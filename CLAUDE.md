@@ -954,6 +954,19 @@ The folder name comes from the *localised* bundle name
   Freeverse's; only the scripts repository is GPL), so it is fetched,
   never shipped. Not done: a signed, notarised release to download, and
   fetching the art from inside the game.
+- The field guide (29 Sep 2026): `docs/GUIDE.html` is the owner's
+  illustrated edition ("Durandal, by Durandal": the guide annotated by
+  the AI, with diagrams), self-contained but for Google Fonts;
+  `docs/index.html` redirects to it for GitHub Pages once the repository
+  is public (Pages needs a public repository on a free plan).
+  `docs/GUIDE.md` is the plain edition that reads on GitHub. Its nine
+  images in `docs/images` are frame shots from earlier rounds' captures
+  (made with a small CoreGraphics crop tool; a missing image removes its
+  own frame, so none is required). Corrections made on placing it, all
+  reported to the owner: the HD art paragraph (the fetch script), the
+  calendar (the Marathon arrived in 2773, the Pfhor came in 2794), and
+  "a thousand years" of S'pht slavery, as the game's first terminal says.
+  Keep the two editions' facts in step when a feature changes.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

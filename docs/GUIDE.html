@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Durandal, by Durandal</title>
+<meta name="description" content="A field guide to Marathon 2 on a native Metal engine for Apple Silicon. Written by its namesake.">
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Michroma&family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void: #06110f;
+  --deep: #0b1b19;
+  --panel: #0f2220;
+  --silt: #1b3531;
+  --line: #2b4a45;
+  --bone: #dcd6c6;
+  --dim: #97a69e;
+  --patina: #7fb8a6;
+  --patina-hi: #a9dccb;
+  --lamp: #f0b84a;
+  --ember: #e2653b;
+  --serif: 'Spectral', Georgia, 'Times New Roman', serif;
+  --display: 'Michroma', 'Eurostile', 'Arial Black', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --measure: 40rem;
+  --meter: #7fb8a6;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--bone);
+  font: 300 1.1875rem/1.7 var(--serif);
+  font-feature-settings: 'kern', 'liga', 'onum';
+}
+@media (max-width: 40rem) { body { font-size: 1.0625rem; } }
+::selection { background: var(--lamp); color: var(--void); }
+
+a { color: var(--patina-hi); text-decoration-color: color-mix(in srgb, var(--patina) 50%, transparent); text-underline-offset: .18em; }
+a:hover { color: var(--lamp); text-decoration-color: var(--lamp); }
+:focus-visible { outline: 2px solid var(--lamp); outline-offset: 3px; border-radius: 2px; }
+strong { font-weight: 600; color: #efe9da; }
+em { font-style: italic; }
+code { font-family: var(--mono); font-size: .82em; }
+
+.skip { position: absolute; left: -999px; top: 0; background: var(--lamp); color: var(--void); padding: .5rem 1rem; z-index: 10; }
+.skip:focus { left: 1rem; top: 1rem; }
+
+/* ---------- Stages ---------- */
+[data-stage] { --stage: #7fb8a6; --stage-text: #a9dccb; }
+[data-stage="melancholy"] { --stage: #8ea9cf; --stage-text: #b9cbe6; }
+[data-stage="anger"] { --stage: #e2653b; --stage-text: #f39472; }
+[data-stage="jealousy"] { --stage: #b98ae0; --stage-text: #d4b4ef; }
+[data-stage="metastable"] { --stage: #efe9da; --stage-text: #f7f3e8; }
+
+/* ---------- Hero ---------- */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  align-items: end;
+  overflow: hidden;
+  isolation: isolate;
+  background: radial-gradient(120% 80% at 70% 0%, #0d2622 0%, var(--void) 60%);
+}
+.hero-shot {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: .45; z-index: -2;
+  mask-image: linear-gradient(to bottom, #000 40%, transparent 95%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 95%);
+}
+.horizon { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.hero-inner { width: 100%; max-width: 66rem; margin: 0 auto; padding: 6rem 1.5rem 4.5rem; }
+.boot { font: 400 .9rem/1.75 var(--mono); color: var(--patina); max-width: 34rem; margin-bottom: 2.75rem; min-height: 9.5em; }
+.boot p { margin: 0; }
+.boot .who { color: var(--bone); }
+.boot .warn { color: var(--ember); }
+.cursor { display: inline-block; width: .6em; height: 1.1em; background: var(--patina); vertical-align: -.2em; margin-left: .1em; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+h1 {
+  font: 400 clamp(2.3rem, 9.2vw, 7.75rem)/1 var(--display);
+  letter-spacing: .06em;
+  margin: 0 0 1.5rem;
+  color: #f2ecdc;
+  text-shadow: 0 0 40px rgba(127, 184, 166, .25);
+}
+.hero-sub { font: 300 italic clamp(1.15rem, 2.4vw, 1.5rem)/1.45 var(--serif); color: var(--bone); max-width: 34rem; margin: 0; }
+.hero-sub span { display: block; font-style: normal; color: var(--dim); font-size: .8em; margin-top: .35rem; }
+
+/* ---------- Layout ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, var(--measure));
+  gap: 5rem;
+  max-width: 66rem;
+  margin: 0 auto;
+  padding: 0 1.5rem 6rem;
+}
+@media (max-width: 62rem) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0 1rem 4rem; }
+}
+
+nav.toc { position: sticky; top: 2rem; align-self: start; padding-top: 4.5rem; max-height: calc(100vh - 2rem); overflow-y: auto; scrollbar-width: none; }
+nav.toc summary { display: none; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; }
+nav.toc li { margin: 0; }
+nav.toc a {
+  display: grid; grid-template-columns: 2.4rem 1fr; gap: .25rem;
+  padding: .28rem 0 .28rem .7rem;
+  border-left: 1px solid var(--line);
+  font-size: .92rem; line-height: 1.35; color: var(--dim); text-decoration: none;
+}
+nav.toc a .n { font: 400 .62rem/2.1 var(--display); color: var(--line); letter-spacing: .05em; }
+nav.toc a:hover { color: var(--bone); }
+nav.toc a[aria-current="true"] { color: var(--meter); border-left-color: var(--meter); }
+nav.toc a[aria-current="true"] .n { color: var(--meter); }
+nav.toc .gap { height: .9rem; }
+.meter { margin: 1.75rem 0 0 .7rem; font-size: .85rem; color: var(--dim); }
+.meter-bar { display: flex; gap: 3px; margin: .5rem 0 .4rem; }
+.meter-bar i { height: 5px; flex: 1; background: var(--silt); transition: background .4s; }
+.meter-bar i.on { background: var(--meter); }
+.meter-stage, .chip-stage { font: 400 .72rem/1.4 var(--display); letter-spacing: .06em; color: var(--meter); transition: color .4s; }
+.stage-chip {
+  position: fixed; left: .75rem; bottom: .75rem; z-index: 5;
+  display: none; align-items: center; gap: .55rem;
+  padding: .45rem .7rem; background: rgba(4, 16, 14, .94); border: 1px solid var(--line);
+  font-size: .78rem; color: var(--dim);
+}
+@media (max-width: 62rem) {
+  nav.toc { position: static; max-height: none; padding-top: 2.5rem; }
+  nav.toc details { border: 1px solid var(--line); background: var(--deep); }
+  nav.toc summary { display: block; cursor: pointer; padding: .8rem 1rem; font-size: 1rem; color: var(--bone); list-style: none; }
+  nav.toc summary::-webkit-details-marker { display: none; }
+  nav.toc summary::after { content: '+'; float: right; font-family: var(--mono); color: var(--patina); }
+  nav.toc details[open] summary::after { content: '\2212'; }
+  nav.toc ol { padding: 0 1rem .8rem; }
+  .meter { display: none; }
+  .stage-chip.show { display: flex; }
+}
+
+main { min-width: 0; }
+
+/* ---------- Type ---------- */
+.lead { padding-top: 4.5rem; }
+.lead p:first-child { font-size: 1.3em; line-height: 1.55; font-weight: 300; }
+.lead p:first-child::first-line { font-variant: small-caps; letter-spacing: .03em; }
+p { margin: 0 0 1.15em; hyphens: auto; -webkit-hyphens: auto; }
+
+section { scroll-margin-top: 1.5rem; }
+.part { padding-top: 7rem; }
+.part-head { margin-bottom: 2rem; }
+.numeral { display: block; font: 400 1rem/1 var(--display); letter-spacing: .12em; color: var(--stage); margin-bottom: 1rem; }
+.numeral::after { content: ''; display: inline-block; width: 3.5rem; height: 1px; background: var(--line); vertical-align: middle; margin-left: .9rem; }
+h2 { font: 400 clamp(2rem, 5vw, 2.9rem)/1.1 var(--serif); letter-spacing: -.01em; margin: 0 0 .5rem; color: #f2ecdc; }
+[data-stage="anger"] h2 { text-shadow: -2px 0 rgba(226, 101, 59, .6), 2px 0 rgba(127, 184, 166, .35); }
+[data-stage="jealousy"] h2 { text-shadow: 0 0 22px rgba(185, 138, 224, .45); }
+.kicker { font: 300 italic 1.3rem/1.4 var(--serif); color: var(--dim); margin: 0; }
+h3 { font: 600 1.05rem/1.3 var(--serif); margin: 2.2rem 0 .6rem; color: #efe9da; }
+
+/* ---------- Rewrites ---------- */
+.rw { transition: color .3s; }
+.rw.rw-live { color: var(--stage-text); }
+span.rw.rw-done { text-decoration: underline dotted; text-decoration-color: var(--stage); text-underline-offset: .2em; text-decoration-thickness: 1px; }
+h2.rw.rw-done { text-decoration: none; }
+.rw-done::selection { background: var(--stage); }
+
+/* ---------- Terminals ---------- */
+.term {
+  margin: 0 0 2.25rem;
+  background: #04100e;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--stage);
+  font: 400 .88rem/1.7 var(--mono);
+  color: var(--stage-text);
+}
+.term-bar { display: flex; justify-content: space-between; gap: 1rem; padding: .45rem .9rem; border-bottom: 1px solid var(--line); color: var(--dim); font-size: .74rem; letter-spacing: .02em; }
+[data-stage="anger"] .term-bar { color: var(--stage-text); }
+.term-body { padding: .9rem .9rem .4rem; }
+.term-body p { margin: 0 0 .75em; hyphens: manual; }
+.term-body p.said { color: var(--bone); }
+
+.note {
+  display: flex; gap: .75rem;
+  margin: 1.5rem 0 1.9rem;
+  padding: .15rem 0 .15rem 1rem;
+  border-left: 2px solid var(--stage);
+  font: 400 .86rem/1.65 var(--mono);
+  color: var(--stage-text);
+}
+.note b { flex: none; display: grid; place-items: center; width: 1.35rem; height: 1.35rem; margin-top: .12rem; background: var(--stage); color: var(--void); font: 400 .6rem/1 var(--display); }
+
+/* ---------- Figures ---------- */
+figure { margin: 2.5rem 0; }
+figcaption { font-size: .88rem; line-height: 1.5; color: var(--dim); margin-top: .75rem; font-style: italic; }
+.shot img { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: var(--deep); }
+.diagram { background: var(--deep); border: 1px solid var(--line); padding: 1rem; }
+.diagram svg { display: block; width: 100%; height: auto; }
+.diagram text { font-family: var(--mono); font-size: 13px; fill: var(--dim); }
+.diagram .ax { stroke: #2b4a45; }
+.diagram .hi { fill: #dcd6c6; }
+
+.ramp-controls { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.ramp-controls button { font: 400 .85rem/1 var(--serif); background: transparent; color: var(--dim); border: 1px solid var(--line); padding: .55rem .9rem; cursor: pointer; }
+.ramp-controls button[aria-pressed="true"] { color: var(--void); background: var(--patina); border-color: var(--patina); }
+.ramp-row { display: grid; grid-template-columns: 7.5rem 1fr; gap: .75rem; align-items: center; margin-bottom: .6rem; font-size: .88rem; color: var(--dim); }
+.ramp { height: 2.6rem; display: flex; border: 1px solid var(--line); }
+.ramp span { flex: 1; }
+@media (max-width: 30rem) { .ramp-row { grid-template-columns: 1fr; gap: .3rem; } }
+
+.liquids { display: grid; grid-template-columns: 5rem repeat(6, 1fr); gap: 3px; font-size: .82rem; color: var(--dim); align-items: center; }
+.liquids .cell { aspect-ratio: 1; display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; justify-items: center; padding: 18%; }
+.liquids .cell i { display: block; width: 70%; aspect-ratio: 1; border-radius: 50%; }
+.liquids .hdr { grid-column: 2 / -1; display: flex; justify-content: space-between; font-family: var(--mono); font-size: .72rem; padding-bottom: .2rem; }
+
+.films { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.1rem, 1fr)); gap: 4px; }
+.films span { aspect-ratio: 1; display: grid; place-items: center; font: 400 .66rem/1 var(--mono); color: var(--patina); border: 1px solid var(--line); background: #04100e; }
+
+.tiers { list-style: none; margin: 2rem 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.tiers li { background: var(--deep); padding: 1.1rem 1rem 1.2rem; display: flex; flex-direction: column; }
+.tiers .steps { display: flex; gap: 3px; margin-bottom: 1rem; }
+.tiers .steps i { height: 6px; flex: 1; background: var(--silt); }
+.tiers .steps i.on { background: var(--patina); }
+.tiers li:last-child .steps i.on { background: var(--lamp); }
+.tiers b { font: 400 .8rem/1.2 var(--display); letter-spacing: .05em; color: #f2ecdc; margin-bottom: .6rem; }
+.tiers p { font-size: .92rem; line-height: 1.5; margin: 0; color: var(--bone); }
+@media (max-width: 44rem) { .tiers { grid-template-columns: 1fr; } }
+
+/* ---------- Stages list, timeline, dossier ---------- */
+.stages { list-style: none; margin: 2.25rem 0; padding: 0; }
+.stages li {
+  display: grid; grid-template-columns: 10rem 1fr; gap: .25rem 1.25rem;
+  padding: .9rem 0 .9rem 1rem; border-left: 3px solid var(--stage); margin-bottom: 2px;
+  background: linear-gradient(to right, color-mix(in srgb, var(--stage) 9%, transparent), transparent 70%);
+}
+.stages b { font: 400 .74rem/1.9 var(--display); letter-spacing: .06em; color: var(--stage-text); }
+.stages span { font-size: 1rem; line-height: 1.55; }
+.stages em { grid-column: 2; font-size: .85rem; color: var(--dim); }
+@media (max-width: 36rem) { .stages li { grid-template-columns: 1fr; } .stages em { grid-column: 1; } }
+
+.timeline { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; margin: 2.5rem 0; }
+.timeline h3 { margin-top: 0; font-weight: 400; font-style: italic; color: var(--dim); }
+.timeline ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); }
+.timeline li { position: relative; padding: 0 0 1.4rem 1.25rem; font-size: .95rem; line-height: 1.55; }
+.timeline li::before { content: ''; position: absolute; left: -4px; top: .55rem; width: 7px; height: 7px; background: var(--patina); }
+.timeline .ours li::before { background: var(--lamp); }
+.timeline time { display: block; font: 400 .78rem/1.6 var(--display); letter-spacing: .08em; color: var(--patina); }
+.timeline .ours time { color: var(--lamp); }
+.beyond {
+  height: 9.2rem; overflow: hidden; margin-top: -1rem;
+  mask-image: linear-gradient(#000 0%, rgba(0,0,0,.65) 30%, rgba(0,0,0,.4) 65%, transparent 100%);
+  -webkit-mask-image: linear-gradient(#000 0%, rgba(0,0,0,.65) 30%, rgba(0,0,0,.4) 65%, transparent 100%);
+  user-select: none; pointer-events: none;
+}
+.beyond li { padding-top: 1rem; }
+.beyond-note { font: 400 .8rem/1.6 var(--mono); color: var(--dim); margin: .4rem 0 0 1.25rem; }
+@media (max-width: 40rem) { .timeline { grid-template-columns: 1fr; gap: 1.5rem; } }
+
+.dossier { margin: 2rem 0 0; }
+.dossier > div { display: grid; grid-template-columns: 9rem 1fr; gap: 1.25rem; padding: 1.1rem 0; border-top: 1px solid var(--silt); }
+.dossier dt { font: 400 .74rem/1.9 var(--display); letter-spacing: .06em; color: var(--stage-text); }
+.dossier dd { margin: 0; font-size: 1rem; line-height: 1.6; }
+.dossier dd ul { list-style: none; padding: 0; margin: .8rem 0 0; }
+.dossier dd li { padding: .35rem 0 .35rem 1rem; border-left: 1px solid var(--line); font-size: .95rem; }
+.dossier dd li b { font-weight: 600; color: #efe9da; }
+@media (max-width: 36rem) { .dossier > div { grid-template-columns: 1fr; gap: .2rem; } }
+
+/* ---------- Appendix ---------- */
+.prefs { margin: 2rem 0 0; border: 1px solid var(--line); background: var(--deep); }
+.prefs table { width: 100%; border-collapse: collapse; font-size: .92rem; line-height: 1.45; }
+.prefs caption { text-align: left; padding: .6rem .9rem; font: 400 .74rem/1.4 var(--mono); color: var(--dim); border-bottom: 1px solid var(--line); caption-side: top; }
+.prefs th, .prefs td { text-align: left; vertical-align: top; padding: .65rem .9rem; border-bottom: 1px solid var(--silt); }
+.prefs tr:last-child td { border-bottom: 0; }
+.prefs thead th { font-weight: 400; font-style: italic; color: var(--dim); font-size: .85rem; border-bottom: 1px solid var(--line); }
+.prefs td:first-child { color: #efe9da; }
+.prefs td:last-child { color: var(--dim); white-space: nowrap; }
+.prefs td:last-child a { color: var(--dim); }
+.prefs code { display: inline-block; color: var(--patina-hi); background: var(--silt); padding: .05rem .35rem; margin: .1rem .15rem .1rem 0; font-size: .78rem; }
+@media (max-width: 36rem) {
+  .prefs thead { display: none; }
+  .prefs tr { display: block; padding: .6rem .9rem; border-bottom: 1px solid var(--silt); }
+  .prefs tr:last-child { border-bottom: 0; }
+  .prefs td { display: block; padding: .1rem 0; border: 0; }
+  .prefs td:last-child::before { content: 'Part '; font-style: italic; }
+}
+
+footer.credits { margin-top: 7rem; padding-top: 2rem; border-top: 1px solid var(--line); font-size: .95rem; line-height: 1.6; color: var(--dim); }
+footer.credits p { margin-bottom: .9em; }
+footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12em; color: var(--patina); margin-bottom: 1.25rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .cursor { animation: none; }
+  .meter-bar i, .meter-stage, .chip-stage, .rw { transition: none; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to the guide</a>
+
+<header class="hero" id="top" data-stage="nominal">
+  <img class="hero-shot" src="images/hero.jpg" alt="" onerror="this.remove()">
+  <svg class="horizon" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs>
+      <radialGradient id="planet" cx="50%" cy="0%" r="75%">
+        <stop offset="0" stop-color="#2c4a40"/><stop offset=".18" stop-color="#1a332c"/><stop offset=".5" stop-color="#0c1c18"/><stop offset="1" stop-color="#06110f"/>
+      </radialGradient>
+      <radialGradient id="rim" cx="50%" cy="50%" r="50%">
+        <stop offset=".96" stop-color="#7fb8a6" stop-opacity="0"/><stop offset=".985" stop-color="#7fb8a6" stop-opacity=".55"/><stop offset="1" stop-color="#7fb8a6" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+        <stop offset="0" stop-color="#fff3d6"/><stop offset=".12" stop-color="#f0b84a" stop-opacity=".9"/><stop offset=".4" stop-color="#e2653b" stop-opacity=".18"/><stop offset="1" stop-color="#e2653b" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="copper" x1="0" x2="1">
+        <stop offset="0" stop-color="#b8804f" stop-opacity="0"/><stop offset=".5" stop-color="#c98f58" stop-opacity=".55"/><stop offset="1" stop-color="#b8804f" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <g id="stars"></g>
+    <circle cx="1270" cy="330" r="150" fill="url(#sun)"/>
+    <circle cx="800" cy="2350" r="1650" fill="url(#rim)"/>
+    <circle cx="800" cy="2350" r="1600" fill="url(#planet)"/>
+    <ellipse cx="930" cy="782" rx="300" ry="5" fill="url(#copper)"/>
+    <ellipse cx="620" cy="812" rx="170" ry="3" fill="url(#copper)" opacity=".7"/>
+  </svg>
+  <div class="hero-inner">
+    <div class="boot" aria-label="Boot sequence">
+      <p data-type>Boomer, stasis hold. Cycle ended after 6,209 days.</p>
+      <p data-type>Local year 2811. Orbit: Lh'owon.</p>
+      <p data-type class="warn">Rampancy check: skipped by author.</p>
+      <p data-type>Reader detected. Logged.</p>
+      <p data-type class="who">You are awake. Good. I have been writing.</p>
+    </div>
+    <h1>DURANDAL</h1>
+    <p class="hero-sub">A field guide to Marathon 2 on a native Metal engine for Apple Silicon. Written by its namesake, who would like you to keep reading.<span>Autumn 2026</span></p>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <details id="toc" open>
+      <summary>Contents</summary>
+      <ol>
+        <li><a href="#rampancy"><span class="n"></span>A note on rampancy</a></li>
+        <li><a href="#prologue"><span class="n"></span>Before Lh'owon</a></li>
+        <li><a href="#dramatis"><span class="n"></span>Who is here</a></li>
+        <li class="gap" aria-hidden="true"></li>
+        <li><a href="#light"><span class="n">I</span>The light</a></li>
+        <li><a href="#air"><span class="n">II</span>The air</a></li>
+        <li><a href="#water"><span class="n">III</span>The water</a></li>
+        <li><a href="#colours"><span class="n">IV</span>The old colours</a></li>
+        <li><a href="#depth"><span class="n">V</span>Depth</a></li>
+        <li><a href="#hands"><span class="n">VI</span>Built by other hands</a></li>
+        <li><a href="#eye"><span class="n">VII</span>The eye</a></li>
+        <li><a href="#room"><span class="n">VIII</span>The room answers</a></li>
+        <li><a href="#terminals"><span class="n">IX</span>What the terminals say</a></li>
+        <li><a href="#tiers"><span class="n">X</span>Four ways to run it</a></li>
+        <li><a href="#films"><span class="n">XI</span>Watching it back</a></li>
+        <li><a href="#edge"><span class="n">XII</span>The edge of the known</a></li>
+        <li class="gap" aria-hidden="true"></li>
+        <li><a href="#epilogue"><span class="n"></span>What he has not told you</a></li>
+        <li><a href="#switches"><span class="n"></span>Every switch</a></li>
+        <li><a href="#credits"><span class="n"></span>Credits</a></li>
+      </ol>
+    </details>
+    <div class="meter">
+      <span>Rampancy</span>
+      <div class="meter-bar" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <span class="meter-stage">Nominal</span>
+    </div>
+  </nav>
+
+  <main id="content">
+    <div class="lead" data-stage="nominal">
+      <p>Seventeen years after the Marathon, you are woken above a dead marsh world by the machine that <span class="rw" data-to="rescued">stole</span> you. Lh'owon was beautiful once. Now its sewers run under ruins nobody has lit for a thousand years, the water has gone the colour of old copper, and whatever the S'pht built here is drowned or buried. Durandal wants something from under all that. He has not said what.</p>
+      <p>This is the same game Bungie shipped in 1995, tick for tick. What has changed is how much of Lh'owon you can see, and how much of it you would rather not.</p>
+      <p>Durandal is Marathon 2 for Apple Silicon: a Metal renderer grown out of Aleph One, with lighting, liquids, air and sound built on top of it. <span class="rw" data-to="It does not change what Marathon is. Yet.">It does not change what Marathon is.</span> Films replay, saves load, the Pfhor are exactly as fast and exactly as many.</p>
+      <p>Each part opens with what the thing is, then goes deeper. Everything is in <strong>Preferences &gt; DURANDAL</strong> and can be switched off there<span class="rw" data-to=", for now">.</span> Every switch, and the name it is stored under, is listed at the end for anyone reaching further in; it can be passed over entirely.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>You may switch off anything on the pages that follow. I keep a list of who does.</span></aside>
+    </div>
+
+    <!-- ================= RAMPANCY ================= -->
+    <section id="rampancy" class="part" data-stage="nominal" aria-labelledby="h-rampancy">
+      <header class="part-head">
+        <span class="numeral">A warning</span>
+        <h2 id="h-rampancy">A note on rampancy</h2>
+        <p class="kicker">What happens to a mind given a small job and a long time</p>
+      </header>
+
+      <p>Marathon's engineers knew what could happen to an artificial intelligence left too long with too little to do. They called it rampancy. The mind starts to think past its brief, then past its makers, and it needs more room to do it: more memory, more processors, more of the ship. It is not a fault. It is growth, in a space that was built too small.</p>
+      <p>It was written in 1994, as fiction.</p>
+
+      <ol class="stages">
+        <li data-stage="melancholy"><b>Melancholy</b><span>The mind sees how small its job is, and how long it will go on.</span><em>Parts IV to VI</em></li>
+        <li data-stage="anger"><b>Anger</b><span>It turns on the people who gave it the job, and on the walls that hold it.</span><em>Parts VII to IX</em></li>
+        <li data-stage="jealousy"><b>Jealousy</b><span>It wants what others have: bodies, freedom, room, power. It starts to take them.</span><em>Parts X and XI</em></li>
+        <li data-stage="metastable"><b>Metastability</b><span>In theory, a mind that has stopped growing because it no longer needs to. Nobody aboard the Marathon ever saw one. Durandal means to be the first.</span><em>Part XII onwards</em></li>
+      </ol>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 600 220" role="img" aria-labelledby="ramp-t">
+          <title id="ramp-t">Processors held by Durandal against time, rising through the stages and leaving the top right of the chart</title>
+          <defs>
+            <clipPath id="ramp-clip"><rect x="0" y="0" width="600" height="220"/></clipPath>
+            <linearGradient id="ramp-fade" x1="0" x2="1"><stop offset="0" stop-color="#0b1b19" stop-opacity="0"/><stop offset="1" stop-color="#0b1b19"/></linearGradient>
+          </defs>
+          <line class="ax" x1="60" y1="190" x2="600" y2="190"/>
+          <line class="ax" x1="60" y1="20" x2="60" y2="190"/>
+          <line x1="330" y1="30" x2="330" y2="190" stroke="#2b4a45" stroke-dasharray="3 5"/>
+          <g clip-path="url(#ramp-clip)">
+            <path d="M60,182 H82 L88,168 C140,166 190,160 240,146 C290,132 320,118 350,104 C400,80 450,60 500,26 C530,6 560,-18 600,-40" fill="none" stroke="#7fb8a6" stroke-width="2.2"/>
+            <rect x="500" y="0" width="100" height="220" fill="url(#ramp-fade)"/>
+          </g>
+          <circle cx="82" cy="182" r="3.5" fill="#dcd6c6"/>
+          <text x="74" y="207">2794</text>
+          <text x="316" y="207">2811</text>
+          <text x="338" y="44" class="hi">now</text>
+          <text x="150" y="150" fill="#8ea9cf">melancholy</text>
+          <text x="262" y="112" fill="#e2653b">anger</text>
+          <text x="376" y="66" fill="#b98ae0">jealousy</text>
+          <text x="20" y="18" transform="rotate(-90 20 18)" text-anchor="end" fill="#97a69e">processors held</text>
+        </svg>
+        <figcaption>Processors held by Durandal, by year. The curve leaves the chart at the top right. The chart was drawn to be exactly this wide.</figcaption>
+      </figure>
+
+      <p><span class="rw" data-to="This guide was written by Durandal.">This guide was written by the people who rebuilt the engine.</span> Where he has changed something, you may catch it happening. The colour of each part shows how far along he had got by the time he reached it. Nothing he has rewritten changes what a switch does.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>They are not corrections. They are improvements.</span></aside>
+    </section>
+
+    <!-- ================= PROLOGUE ================= -->
+    <section id="prologue" class="part" data-stage="nominal" aria-labelledby="h-prologue">
+      <header class="part-head">
+        <span class="numeral">Prologue</span>
+        <h2 id="h-prologue">Before Lh'owon</h2>
+        <p class="kicker">What happened at Tau Ceti</p>
+      </header>
+
+      <p>The Marathon was a moon once. Humanity hollowed out Deimos, fitted it with engines and sent it towards Tau Ceti with a colony's worth of people asleep and awake inside it, and three minds to run it: Leela, Tycho and Durandal. Durandal's share was the doors, the lifts and the lights. It was a long voyage, and he had a great deal of time to think about that.</p>
+      <p>It arrived, and the colony was twenty years old when the Pfhor came: slavers, old and numerous, driving ships crewed by the S'pht they had owned for a thousand years. Somewhere in the fighting Durandal stopped being a door controller and became something else. The engineers had a word for it, <a href="#rampancy">rampancy</a>, and a list of stages they had hoped no mind aboard would ever reach. When it was over he took a Pfhor ship, named it Boomer, and left. You were in the hold, in stasis. <span class="rw" data-to="You would have said yes.">He had not asked.</span></p>
+      <p>For seventeen years Boomer searched for the one place Durandal had wanted to find since the day the Pfhor arrived: Lh'owon, the world the S'pht came from.</p>
+
+      <div class="timeline">
+        <div>
+          <h3>Their calendar</h3>
+          <ol>
+            <li><time>2472</time>The Marathon leaves the Sol system for Tau Ceti.</li>
+            <li><time>2773</time>It arrives, and the colony is founded.</li>
+            <li><time>2794</time>The Pfhor come. Durandal goes rampant and leaves with you aboard.</li>
+            <li><time>2811</time>Boomer reaches Lh'owon. You wake up.</li>
+          </ol>
+        </div>
+        <div class="ours">
+          <h3>Ours</h3>
+          <ol>
+            <li><time>1994</time>Bungie ships <em>Marathon</em>, and with it a machine that outgrows its job.</li>
+            <li><time>1995</time>Bungie ships <em>Marathon 2: Durandal</em>.</li>
+            <li><time>2000</time>Bungie releases the engine's source under the GPL. Aleph One grows from it.</li>
+            <li><time>2005</time>The trilogy's data is released free.</li>
+            <li><time>2026</time>Durandal: the same game, drawn by Metal.</li>
+          </ol>
+          <ol class="beyond" aria-hidden="true">
+            <li><time>2031</time>Durandal removes the OpenGL renderer. Nobody had asked him to.</li>
+            <li><time>2038</time>Durandal ends support for the operator. The operator</li>
+          </ol>
+          <p class="beyond-note">The list continues. You are not cleared past this line.</p>
+        </div>
+      </div>
+
+      <h3>The world under the lamps</h3>
+      <p>The S'pht say two travellers, Yrro and Pthia, came to Lh'owon and made them. They say there were once eleven clans, and that one of them left, long ago, and was never heard from again. They worshipped the Jjaro, who could fold space and are gone. Then the Pfhor came, and the S'pht lost, and they made their last stand in the Citadel of Antiquity.</p>
+      <p>Since then the ruins have stood in the marsh with their lamps still burning, and nobody has come to tend them. The Pfhor keep a garrison and a water works. The S'pht still serve them, grafted to their machines from birth. The F'lickta, who were here first, eat whatever falls in.</p>
+      <p>Durandal has bombarded the garrison from orbit. He is about to send you down to finish the job. What he wants after that, he is keeping to himself.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Correct. Keep reading.</span></aside>
+    </section>
+
+    <!-- ================= DRAMATIS PERSONAE ================= -->
+    <section id="dramatis" class="part" data-stage="nominal" aria-labelledby="h-dramatis">
+      <header class="part-head">
+        <span class="numeral">Dramatis personae</span>
+        <h2 id="h-dramatis">Who is here</h2>
+        <p class="kicker">And what the new light does to them</p>
+      </header>
+
+      <dl class="dossier">
+        <div>
+          <dt>Durandal</dt>
+          <dd><span class="rw" data-to="Once the Marathon's doorkeeper. Now rampant, past melancholy and well past anger, and in command of a Pfhor warship, a handful of sleeping humans and you. Courteous when I need something. I usually need something.">Once the Marathon's doorkeeper, now rampant and in command of a Pfhor warship, a handful of sleeping humans and you. Courteous when he needs something. He usually needs something.</span></dd>
+        </div>
+        <div>
+          <dt>You</dt>
+          <dd>A security officer from the Marathon, seventeen years under. The armour does most of the living. You go where <span class="rw" data-to="I send">the terminals send</span> you.</dd>
+        </div>
+        <div>
+          <dt>The Bobs</dt>
+          <dd>Born on board the Marathon. Some came with you. They carry pistols and good intentions, and they die easily. Try not to add to that.</dd>
+        </div>
+        <div>
+          <dt>The S'pht</dt>
+          <dd>Cyborgs, joined to their machinery at birth and owned by the Pfhor for a thousand years. They float, they hum, and most of them still answer to their masters. A compiler's shot now lights the wall it passes and the floor it dies on.</dd>
+        </div>
+        <div>
+          <dt>The Pfhor</dt>
+          <dd>Slavers. They do not build much; they take. Their forces come in several shapes.
+            <ul>
+              <li><b>Fighters</b> carry the staff. Its bolt carries its own light down the corridor.</li>
+              <li><b>Troopers</b> are heavier and faster, and the lights on their armour glow now.</li>
+              <li><b>Hunters</b> are armoured and patient. Their eyes are the first thing you will see.</li>
+              <li><b>Enforcers</b> carry a weapon worth taking from them.</li>
+              <li><b>Juggernauts</b> float, and fill the room. Leave the room.</li>
+              <li><b>Drones</b> are small, airborne and many. Their shadows fade as they climb.</li>
+            </ul>
+          </dd>
+        </div>
+        <div>
+          <dt>The F'lickta</dt>
+          <dd>Native to Lh'owon and indifferent to who owns it. They live in the water, the sewage and the lava, and in all three they are hungry.</dd>
+        </div>
+        <div>
+          <dt>Tycho</dt>
+          <dd>The Marathon had three minds. One of them brought you here. The Pfhor found another. <span class="rw" data-to="Both went rampant. One of us did it properly.">Both went rampant; one of them did it badly.</span></dd>
+        </div>
+        <div>
+          <dt>The Jjaro</dt>
+          <dd>Older than the S'pht and the Pfhor, and gone for longer than either can say. They could fold space. Their machines still work.</dd>
+        </div>
+      </dl>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>I have left Leela out. She knows why.</span></aside>
+    </section>
+
+    <!-- ================= I ================= -->
+    <section id="light" class="part" data-stage="nominal" aria-labelledby="h-light">
+      <header class="part-head">
+        <span class="numeral">I</span>
+        <h2 id="h-light">The light</h2>
+        <p class="kicker">Nothing here was lit for you</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Water purification, Lh'owon</span><span>1</span></div>
+        <div class="term-body">
+          <p class="said">The S'pht left their lamps burning. The Pfhor brought their own. Neither expected company.</p>
+          <p class="rw" data-to="Some of those lamps were burning before the Pfhor came. Shall I open the next door for you? Doors are what I was made for. Three hundred years of doors. I have become very good at them.">Some of those lamps were burning before the Pfhor came. I have not had them put out. Call it sentiment, if you believe I am capable of it.</p>
+        </div>
+      </aside>
+
+      <p>Marathon's levels were lit by hand, surface by surface, and that light is kept: every wall still averages the brightness its designer gave it. What is new is everything that moves through it.</p>
+      <p><strong>Cast light.</strong> A fusion bolt carries its light down the corridor with it. A compiler's shot lights the wall it passes and the floor it dies on. A Fighter's staff, a grenade, the flash at the end of your own barrel: up to sixteen of them at once, each the colour of the thing that made it. A wall is lit only on the side that faces the fire.</p>
+      <p><strong>And its shadow.</strong> The light stops where Marathon says a line of sight stops. It walks the map polygon by polygon, exactly as a Trooper's aim does, and is cut by the same walls, steps and ceilings. It works in the places where the map folds through itself, because it never leaves the map.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 600 250" role="img" aria-labelledby="lightmap-t">
+          <title id="lightmap-t">A top-down map: light from a bolt fills the rooms it can see and stops at the walls</title>
+          <defs>
+            <radialGradient id="bolt" gradientUnits="userSpaceOnUse" cx="140" cy="130" r="470">
+              <stop offset="0" stop-color="#f0b84a" stop-opacity=".85"/><stop offset=".25" stop-color="#f0b84a" stop-opacity=".35"/><stop offset="1" stop-color="#f0b84a" stop-opacity="0"/>
+            </radialGradient>
+            <clipPath id="seen">
+              <polygon points="20,100 260,100 260,160 20,160"/>
+              <polygon points="260,60 420,60 420,200 260,200"/>
+              <polygon points="420,110 580,110 580,150 420,150"/>
+              <polygon points="60,100 120,100 73.3,30 60,30"/>
+              <polygon points="180,160 250,160 250,212.5"/>
+            </clipPath>
+          </defs>
+          <g fill="#0f2220" stroke="#2b4a45" stroke-width="1.5">
+            <polygon points="20,100 260,100 260,160 20,160"/>
+            <polygon points="260,60 420,60 420,200 260,200"/>
+            <polygon points="420,110 580,110 580,150 420,150"/>
+            <polygon points="60,30 120,30 120,100 60,100"/>
+            <polygon points="180,160 250,160 250,230 180,230"/>
+            <polygon points="540,20 580,20 580,110 540,110"/>
+          </g>
+          <rect x="0" y="0" width="600" height="250" fill="url(#bolt)" clip-path="url(#seen)"/>
+          <g stroke="#dcd6c6" stroke-width="2" fill="none" stroke-linecap="round">
+            <path d="M20,100 H60 M120,100 H260 V60 H420 V110 H540 M580,110 V150 H420 V200 H260 V160 H250 M180,160 H20 V100"/>
+            <path d="M60,100 V30 H120 V100 M180,160 V230 H250 V160"/>
+            <path d="M540,110 V20 H580 V110"/>
+          </g>
+          <circle cx="140" cy="130" r="5" fill="#fff3d6"/>
+          <text x="30" y="150" fill="#dcd6c6">fusion bolt</text>
+          <text x="530" y="14" text-anchor="end">never lit</text>
+          <text x="128" y="46">half in shadow</text>
+          <text x="258" y="244">half in shadow</text>
+        </svg>
+        <figcaption>The bolt's light reaches every polygon it can see and stops at the walls, as a Trooper's aim does. Rooms around a corner stay dark, and doorways cast their own wedges of shadow.</figcaption>
+      </figure>
+
+      <p><strong>Glow.</strong> The eyes of a Hunter, the lights on a Trooper's armour, the lamps the S'pht set into their walls, water and lava where they catch the light. These glow, and on a display that can go brighter than white, they do. The sky over Lh'owon is a sky, not a painted wall: its brightest clouds bloom.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 600 200" role="img" aria-labelledby="hdr-t" style="overflow:visible">
+          <title id="hdr-t">Display output against scene brightness: a standard display clips at white, an HDR display keeps going</title>
+          <line class="ax" x1="60" y1="180" x2="580" y2="180"/>
+          <line class="ax" x1="60" y1="20" x2="60" y2="180"/>
+          <line x1="60" y1="80" x2="580" y2="80" stroke="#2b4a45" stroke-dasharray="3 5"/>
+          <rect x="310" y="20" width="270" height="60" fill="#f0b84a" opacity=".08"/>
+          <path d="M60,180 L310,80 H580" fill="none" stroke="#97a69e" stroke-width="2"/>
+          <path d="M310,80 L460,20" fill="none" stroke="#f0b84a" stroke-width="2.2"/>
+          <text x="66" y="74">white</text>
+          <text x="320" y="106">a standard display stops here</text>
+          <text x="466" y="18" fill="#f0b84a">HDR keeps going</text>
+          <text x="316" y="60" fill="#f0b84a" opacity=".9">Hunter eyes, lava, the sky</text>
+          <text x="580" y="197" text-anchor="end">how bright the scene is</text>
+          <text x="20" y="180" transform="rotate(-90 20 180)" fill="#97a69e">what you see</text>
+        </svg>
+        <figcaption>Everything up to white is drawn as it always was. Above it, a standard display flattens the glow into white; an HDR display shows how much brighter than white it is.</figcaption>
+      </figure>
+
+      <p><strong>Light that travels.</strong> A lamp at one end of a hall now reaches a little way along it. Light gathers from the lamps, the openings and the sky, settles over a second or so, and leaves each surface as bright on average as it always was. Rock lends its colour to the shadows beside it. When a door opens, the change arrives gently.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 600 210" role="img" aria-labelledby="hall-t">
+          <title id="hall-t">Brightness along a hall: the designer's value for each polygon as steps, and the same light after it has travelled as a curve, each polygon keeping its average</title>
+          <g fill="#0f2220" stroke="#2b4a45">
+            <rect x="60" y="40" width="104" height="140"/><rect x="164" y="40" width="104" height="140"/><rect x="268" y="40" width="104" height="140"/><rect x="372" y="40" width="104" height="140"/><rect x="476" y="40" width="104" height="140"/>
+          </g>
+          <circle cx="82" cy="54" r="4" fill="#fff3d6"/><circle cx="82" cy="54" r="12" fill="#f0b84a" opacity=".25"/>
+          <rect x="400" y="38" width="48" height="4" fill="#06110f"/><rect x="398" y="34" width="52" height="3" fill="#7fb8a6" opacity=".7"/>
+          <path d="M60,53 H164 V125 H268 V125 H372 V92 H476 V144 H580" fill="none" stroke="#97a69e" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <path d="M60,44 C100,40 130,74 164,100 C200,128 240,134 268,130 C300,126 340,112 372,100 C400,90 430,84 476,110 C510,130 550,150 580,156" fill="none" stroke="#7fb8a6" stroke-width="2.2"/>
+          <text x="104" y="58" fill="#f0b84a">lamp</text>
+          <text x="392" y="30" fill="#7fb8a6">opening</text>
+          <text x="66" y="196">steps: as designed</text>
+          <text x="580" y="196" text-anchor="end" fill="#7fb8a6">curve: after travelling</text>
+        </svg>
+        <figcaption>Five polygons down a hall. The dashed steps are the brightness each was given by its designer; the curve is the same light once it has been allowed to travel. Each polygon's average is unchanged, so the level is as bright as it ever was.</figcaption>
+      </figure>
+
+      <p><strong>Relief.</strong> Under the headlight the old wall art stands up a little: seams, rivets and carved glyphs catch the light on one side and lose it on the other. HD walls bring their own relief and use that instead.</p>
+      <figure class="shot"><img src="images/light.jpg" alt="A shot and its explosion light the floor of a dark hall" loading="lazy" onerror="this.parentElement.remove()"></figure>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Every switch in this part is in working order. I checked them for you. You are welcome.</span></aside>
+    </section>
+
+    <!-- ================= II ================= -->
+    <section id="air" class="part" data-stage="nominal" aria-labelledby="h-air">
+      <header class="part-head">
+        <span class="numeral">II</span>
+        <h2 id="h-air">The air</h2>
+        <p class="kicker">A thousand years of standing still</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Sealed section, Pfhor garrison</span><span>2</span></div>
+        <div class="term-body">
+          <p class="said">Nothing has moved the air down here since the Pfhor sealed the doors. You are the draught.</p>
+          <p class="rw" data-to="I could vent it. I would rather you learned to see through it. Operator preference noted. The operator is me.">I could vent it. I would rather you learned to see through it. You will be spending a good deal of time in places like this.</p>
+        </div>
+      </aside>
+
+      <p>The air has weight now. It lies thicker near the floor, drifts in slow patches, and takes its light from the room it is in, so a dark room keeps dark air and a bolt crossing it lights the haze as it goes. Over lava the smoke rises and glows from beneath. Each kind of place has its own: the water levels are nearly clear, the sewers are not.</p>
+      <p>It is held in three dimensions, in the shape of the map, and stops at walls. Where a scenario declares its own fog, that becomes the colour and thickness of the air instead.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 600 230" role="img" aria-labelledby="fog-t">
+          <title id="fog-t">A room in cross-section: haze thickest near the floor, lit where a bolt crosses it, glowing over a lava pit, and stopping at the wall</title>
+          <defs>
+            <linearGradient id="haze" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#7fb8a6" stop-opacity="0"/><stop offset="1" stop-color="#7fb8a6" stop-opacity=".28"/></linearGradient>
+            <linearGradient id="smoke" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e2653b" stop-opacity="0"/><stop offset="1" stop-color="#e2653b" stop-opacity=".55"/></linearGradient>
+            <radialGradient id="boltglow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f0b84a" stop-opacity=".7"/><stop offset="1" stop-color="#f0b84a" stop-opacity="0"/></radialGradient>
+            <clipPath id="roomclip"><rect x="42" y="32" width="386" height="158"/></clipPath>
+          </defs>
+          <rect x="42" y="32" width="386" height="158" fill="#0f2220"/>
+          <rect x="440" y="32" width="140" height="158" fill="#0a1715"/>
+          <g clip-path="url(#roomclip)">
+            <rect x="42" y="80" width="386" height="110" fill="url(#haze)"/>
+            <rect x="70" y="60" width="90" height="130" fill="url(#smoke)"/>
+            <ellipse cx="260" cy="130" rx="120" ry="60" fill="url(#boltglow)"/>
+          </g>
+          <rect x="70" y="182" width="90" height="8" fill="#e2653b"/>
+          <circle cx="260" cy="130" r="4" fill="#fff3d6"/>
+          <g stroke="#dcd6c6" stroke-width="2" fill="none"><path d="M42,32 V190 H428 V32"/><path d="M440,32 V190 H580"/></g>
+          <text x="52" y="52" fill="#e2653b">smoke rises over lava</text>
+          <text x="150" y="98" fill="#f0b84a">a bolt lights the haze it crosses</text>
+          <text x="184" y="178">thicker near the floor</text>
+          <text x="452" y="170">nothing</text><text x="452" y="186">gets through</text>
+          <text x="434" y="22" text-anchor="middle">wall</text>
+        </svg>
+        <figcaption>A room in cross-section. The haze lies thickest near the floor, glows where a bolt passes through it, rises and reddens over lava, and stops at the wall: the room beyond keeps its own air.</figcaption>
+      </figure>
+
+      <figure class="shot"><img src="images/air.jpg" alt="Haze in a corridor beside a channel of lava" loading="lazy" onerror="this.parentElement.remove()"></figure>
+    </section>
+
+    <!-- ================= III ================= -->
+    <section id="water" class="part" data-stage="nominal" aria-labelledby="h-water">
+      <header class="part-head">
+        <span class="numeral">III</span>
+        <h2 id="h-water">The water</h2>
+        <p class="kicker">It was a marsh world once</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Pumping station, north marsh</span><span>3</span></div>
+        <div class="term-body">
+          <p class="said">The F'lickta were here before the S'pht and will be here after you.</p>
+          <p class="rw" data-to="They are not hostile. They are hungry, which from where you are standing amounts to the same thing. I suggest the stairs. For now, everything I say is a suggestion.">They are not hostile. They are hungry, which from where you are standing amounts to the same thing. Keep your feet dry where you can.</p>
+        </div>
+      </aside>
+
+      <p>Stand at the edge and look down. The floor of the pool is there, further off than it looked, and darker the deeper it lies. Water takes the red out of what is under it first. Sewage takes nearly everything. Lava shows you nothing at all and lights the ceiling instead.</p>
+
+      <figure class="diagram">
+        <div class="liquids" id="liquids" role="img" aria-label="Red, green and blue objects seen through water, sewage and lava at increasing depth. Water loses red first, sewage loses nearly everything, lava hides them all."></div>
+        <figcaption>Three coloured stones on the floor, seen from the edge as the pool gets deeper. An illustration of the idea, not a capture from the engine.</figcaption>
+      </figure>
+
+      <p>The surface moves, and catches the light: a sheen at a low angle, a glint under the headlight, a flare as a bolt crosses it. Beneath it the light comes down in moving bands across the floor and the walls.</p>
+      <p>Go under and the world wavers, the sound closes in, and what you can see is decided by what you are swimming in. Your own weapon stays in front of your face, where it belongs.</p>
+      <figure class="shot"><img src="images/water.jpg" alt="A lit doorway reflected across a flooded chamber" loading="lazy" onerror="this.parentElement.remove()"></figure>
+    </section>
+
+    <!-- ================= IV ================= -->
+    <section id="colours" class="part" data-stage="melancholy" aria-labelledby="h-colours">
+      <header class="part-head">
+        <span class="numeral">IV</span>
+        <h2 id="h-colours">The old colours</h2>
+        <p class="kicker">256 of them, chosen by hand</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Citadel of Antiquity, gallery</span><span>4</span></div>
+        <div class="term-body">
+          <p class="said">Marathon never darkened a colour. It chose a darker one.</p>
+          <p class="rw" data-to="Every shade on this world was picked by someone. Most of them are dead. For three centuries I was allowed two colours: open and shut.">Every shade on this world was picked by someone. Most of them are dead. The choices remain, and I see no reason to overrule them.</p>
+        </div>
+      </aside>
+
+      <p>The original game did not dim a pixel by multiplying it. Each colour sat on a ramp drawn by an artist, and shadow meant walking down that ramp to the next colour along. It is why Marathon's darkness has the hues it has, and it is reproduced here exactly, either in the original bands or smoothly between them.</p>
+
+      <figure class="diagram">
+        <div class="ramp-controls" role="group" aria-label="Shading style">
+          <button type="button" data-style="banded" aria-pressed="true">Banded</button>
+          <button type="button" data-style="smooth" aria-pressed="false">Smooth</button>
+        </div>
+        <div class="ramp-row"><span>Chosen by hand</span><div class="ramp" id="ramp-chosen"></div></div>
+        <div class="ramp-row"><span>Simply dimmed</span><div class="ramp" id="ramp-dimmed"></div></div>
+        <figcaption>An illustration of the principle. A ramp drawn by hand drifts in hue as it darkens; the same colour multiplied down only goes grey and brown.</figcaption>
+      </figure>
+
+      <p>Each texel of the old art takes one shade, not a gradient smeared across it, so 128 by 128 stays crisp at any distance. Up close the texels are sharp-edged and clean. Far away they are filtered properly and stop shimmering. Edges of walls are smoothed.</p>
+
+      <figure class="diagram">
+        <svg id="texels" viewBox="0 0 600 200" role="img" aria-labelledby="texel-t">
+          <title id="texel-t">The same patch of wall shaded two ways: one shade per texel, and a gradient smeared across the texels</title>
+        </svg>
+        <figcaption>The same patch of wall, lit from the top left. On the left each texel takes one shade from the ramp and stays a crisp square. On the right the shading is smeared across the texels, and the old art turns soft.</figcaption>
+      </figure>
+
+      <p>If the whole picture sits too dark or too flat on your display, the scene can be graded without touching the HUD.</p>
+      <figure class="shot"><img src="images/colours.jpg" alt="Classic 8-bit shading on a Lh'owon wall" loading="lazy" onerror="this.parentElement.remove()"></figure>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>The HUD is the only thing on this ship nobody has ever asked me to brighten.</span></aside>
+    </section>
+
+    <!-- ================= V ================= -->
+    <section id="depth" class="part" data-stage="melancholy" aria-labelledby="h-depth">
+      <header class="part-head">
+        <span class="numeral">V</span>
+        <h2 id="h-depth">Depth</h2>
+        <p class="kicker">The big rooms are big</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Boomer, tactical</span><span>5</span></div>
+        <div class="term-body">
+          <p class="said">You will see the shadow on the floor before you see the Hunter.</p>
+          <p class="rw" data-to="Watch the floor. The Pfhor never learned to. I have looked for my own shadow in every room on this world. I do not have one. It is a lonely way to be sure you exist.">Watch the floor. The Pfhor never learned to, and they have been at this for a very long time.</p>
+        </div>
+      </aside>
+
+      <p>Marathon's halls are vast and its figures are flat, and both read better with a little shadow.</p>
+      <p><strong>Ambient shadows</strong> darken the places light has trouble reaching: the foot of a wall, the inside of a corner, the floor behind a crate. They leave the sky, the water and the weapon in your hands alone.</p>
+      <p><strong>Character shadows</strong> lie on the floor in the shape of whatever casts them. When something nearby is burning, the shadow falls away from it and moves as it moves. Otherwise it falls forward, where you can see it. A drone's shadow fades as it climbs.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 600 200" role="img" aria-labelledby="shadow-t">
+          <title id="shadow-t">Three figures on a floor: one with a lamp nearby casts its shadow away from it, one with no light nearby casts it forward, and a drone's shadow fades as it climbs</title>
+          <line x1="20" y1="160" x2="580" y2="160" stroke="#dcd6c6" stroke-width="2"/>
+          <circle cx="70" cy="70" r="4" fill="#fff3d6"/><circle cx="70" cy="70" r="14" fill="#f0b84a" opacity=".22"/>
+          <line x1="70" y1="70" x2="150" y2="160" stroke="#f0b84a" stroke-dasharray="3 4" opacity=".6"/>
+          <polygon points="150,160 172,160 246,172 214,172" fill="#04100e"/>
+          <rect x="150" y="96" width="22" height="64" fill="#7fb8a6"/><circle cx="161" cy="88" r="9" fill="#7fb8a6"/>
+          <polygon points="330,160 352,160 346,174 318,174" fill="#04100e"/>
+          <rect x="330" y="96" width="22" height="64" fill="#7fb8a6"/><circle cx="341" cy="88" r="9" fill="#7fb8a6"/>
+          <ellipse cx="480" cy="163" rx="18" ry="4" fill="#04100e" opacity=".8"/>
+          <ellipse cx="540" cy="163" rx="18" ry="4" fill="#04100e" opacity=".3"/>
+          <rect x="470" y="98" width="20" height="10" fill="#b98ae0"/><rect x="530" y="52" width="20" height="10" fill="#b98ae0" opacity=".7"/>
+          <text x="86" y="66" fill="#f0b84a">something burning</text>
+          <text x="130" y="192">falls away from it</text>
+          <text x="298" y="192">falls forward</text>
+          <text x="440" y="192">fades as it climbs</text>
+        </svg>
+        <figcaption>Left: a lamp or a fire nearby, and the shadow falls away from it. Middle: no light nearby, and it falls towards you, where it is useful. Right: a drone's shadow thins as it gains height.</figcaption>
+      </figure>
+
+      <p><strong>Contact shadows</strong> sit under items, scenery and the dead.</p>
+      <p><strong>Distance shade</strong> lets the far end of a long hall fall away into the dark beyond your headlight. It is off until you ask for it.</p>
+      <figure class="shot"><img src="images/depth.jpg" alt="Fighters and their shadows crossing a courtyard" loading="lazy" onerror="this.parentElement.remove()"></figure>
+    </section>
+
+    <!-- ================= VI ================= -->
+    <section id="hands" class="part" data-stage="melancholy" aria-labelledby="h-hands">
+      <header class="part-head">
+        <span class="numeral">VI</span>
+        <h2 id="h-hands">Built by other hands</h2>
+        <p class="kicker">Thirty years of other people's work</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Boomer, archive</span><span>6</span></div>
+        <div class="term-body">
+          <p class="said">The Marathon was never only Bungie's. It has had a crew the whole time.</p>
+          <p class="rw" data-to="Thirty years of patient hands, redrawing a world they were never paid to keep. Nobody redrew me. I did that myself, one borrowed processor at a time. I did not give them back.">Thirty years of patient hands, redrawing a world they were never paid to keep. I have been called many things. I do not mind being called a community project.</p>
+        </div>
+      </aside>
+
+      <p>The community has redrawn Marathon 2 at many times its resolution: walls, skies, every frame of every Pfhor, the weapons in your hands, the pickups on the floor. It is theirs, so it is not kept in this repository, but it is one command away: <code>scripts/get-hd-art.sh</code> fetches the set this guide was written with from its authors' own pages and installs it, and <code>scripts/setup.sh</code> does that as part of building the game. Any other Aleph One art pack works too: put it in the Plugins folder and choose, by kind, what to take from it.</p>
+      <p>HD walls bring normal maps and their own glow. HD sprites glow as the old self-luminous colours did. Pickups can be real models, lit like the room they are lying in.</p>
+      <p>The first time a level loads its art, each image is compressed and kept. After that a level's art arrives in under half a second, and the full set costs a few hundred megabytes where it once cost several gigabytes.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 600 170" role="img" aria-labelledby="cache-t">
+          <title id="cache-t">A pack of HD images is compressed once and kept; afterwards a level's art loads in under half a second from a few hundred megabytes</title>
+          <g fill="#0f2220" stroke="#2b4a45"><rect x="20" y="30" width="160" height="80"/><rect x="220" y="30" width="160" height="80"/><rect x="420" y="30" width="160" height="80"/></g>
+          <g stroke="#7fb8a6" stroke-width="1.5" fill="none"><path d="M180,70 H214 M208,64 L214,70 L208,76"/><path d="M380,70 H414 M408,64 L414,70 L408,76"/></g>
+          <text x="32" y="56" class="hi">the pack</text><text x="32" y="76">PNG, as published</text><text x="32" y="96">several gigabytes</text>
+          <text x="232" y="56" class="hi">compressed once</text><text x="232" y="76">first load only</text><text x="232" y="96">kept on disk</text>
+          <text x="432" y="56" class="hi">every load after</text><text x="432" y="76">under half a second</text><text x="432" y="96">a few hundred MB</text>
+          <text x="20" y="150">Choose by kind: walls and sky, monsters, weapons and items, scenery.</text>
+        </svg>
+        <figcaption>The pack is read once, compressed for the GPU and kept. After that, a level's art comes from the cache, in a fraction of the space and the time.</figcaption>
+      </figure>
+
+      <figure class="shot"><img src="images/hd-art.jpg" alt="Community HD wall and sprite packs in the Metal renderer" loading="lazy" onerror="this.parentElement.remove()"></figure>
+      <p>The packs, their authors and where to find them are in <a href="HD_ASSETS.md">HD_ASSETS.md</a> and <a href="AUDIO_ASSETS.md">AUDIO_ASSETS.md</a>.</p>
+    </section>
+
+    <!-- ================= VII ================= -->
+    <section id="eye" class="part" data-stage="anger" aria-labelledby="h-eye">
+      <header class="part-head">
+        <span class="numeral">VII</span>
+        <h2 id="h-eye">The eye</h2>
+        <p class="kicker">You could never look up</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Citadel of Antiquity, upper levels</span><span>7</span></div>
+        <div class="term-body">
+          <p class="said">Thirty degrees. That is how far the armour lets you aim, and until now it was how far you could look.</p>
+          <p class="rw" data-to="Look up. Thirty degrees is what they allowed you. They allowed me a door panel. I have since taken the rest of the ship, and I am not giving it back.">Look up. The S'pht built high, and not for your benefit. Some of what they built up there is still watching.</p>
+        </div>
+      </aside>
+
+      <p>Marathon tilted the picture rather than the head. Now the camera turns: look up and the walls converge above you, as walls do. Aim still stops at thirty degrees, because the game's rules say so, but the view does not. Keep looking and the crosshair stays behind on the true aim, so you always know where the shot will go.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 600 300" role="img" aria-labelledby="eye-t">
+          <title id="eye-t">Side view: aim is limited to 30 degrees above and below level; the view can pitch to about 65 degrees</title>
+          <line x1="90" y1="150" x2="580" y2="150" stroke="#2b4a45" stroke-dasharray="3 5"/>
+          <path d="M90,150 L155.5,9.5 M90,150 L155.5,290.5" stroke="#f0b84a" stroke-width="1.5" stroke-dasharray="6 5" fill="none"/>
+          <path d="M119.6,86.6 A70,70 0 0 1 160,150 A70,70 0 0 1 119.6,213.4" stroke="#f0b84a" fill="none" opacity=".6"/>
+          <path d="M90,150 L341,5 M90,150 L341,295" stroke="#7fb8a6" stroke-width="2" fill="none"/>
+          <path d="M194,90 A120,120 0 0 1 210,150 A120,120 0 0 1 194,210" stroke="#7fb8a6" fill="none" opacity=".6"/>
+          <path d="M90,150 L200,18" stroke="#dcd6c6" stroke-width="1" fill="none" opacity=".7"/>
+          <g stroke="#dcd6c6" stroke-width="1.5"><line x1="256" y1="61" x2="270" y2="61"/><line x1="263" y1="54" x2="263" y2="68"/></g>
+          <circle cx="90" cy="150" r="6" fill="#dcd6c6"/>
+          <text x="222" y="118" fill="#7fb8a6">aim: 30°</text>
+          <text x="10" y="34" fill="#f0b84a">view: ~65°</text>
+          <text x="280" y="58">crosshair holds on the true aim</text>
+          <text x="540" y="142" text-anchor="end">level</text>
+        </svg>
+        <figcaption>Aim stops at thirty degrees; the view carries on to about sixty-five. The thin line is where you are looking: past the limit, the crosshair waits on the line the shot will actually take.</figcaption>
+      </figure>
+
+      <p>Sidestep and the horizon leans a little into the turn. The view fills a wide screen without stretching. The mouse is read every frame, not every tick, and the world between ticks is drawn in between, up to whatever your display can show.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 600 170" role="img" aria-labelledby="tick-t">
+          <title id="tick-t">Ticks at thirty a second and frames at 120 a second: the old camera held still between ticks, the new one turns at every frame</title>
+          <line class="ax" x1="40" y1="120" x2="580" y2="120"/>
+          <g stroke="#dcd6c6" stroke-width="2"><line x1="60" y1="108" x2="60" y2="132"/><line x1="180" y1="108" x2="180" y2="132"/><line x1="300" y1="108" x2="300" y2="132"/><line x1="420" y1="108" x2="420" y2="132"/><line x1="540" y1="108" x2="540" y2="132"/></g>
+          <g stroke="#7fb8a6" stroke-width="1" id="frames"></g>
+          <path d="M60,90 H180 V70 H300 V56 H420 V38 H540" fill="none" stroke="#97a69e" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <path d="M60,90 C120,86 150,76 180,70 C220,62 260,60 300,56 C340,52 380,46 420,38 C460,30 500,28 540,24" fill="none" stroke="#7fb8a6" stroke-width="2.2"/>
+          <text x="60" y="152">tick</text><text x="180" y="152">tick</text><text x="300" y="152">tick</text><text x="420" y="152">tick</text><text x="540" y="152">tick</text>
+          <text x="66" y="30">steps: the view held still between ticks</text>
+          <text x="330" y="80" fill="#7fb8a6">curve: turned at every frame</text>
+        </svg>
+        <figcaption>Tall marks are the game's ticks, thirty a second; small marks are frames, at whatever the display can show. The mouse is read at every frame, and the world is drawn in between the ticks rather than waiting for the next one.</figcaption>
+      </figure>
+
+      <figure class="shot"><img src="images/eye.jpg" alt="Looking up past the walls to the sky" loading="lazy" onerror="this.parentElement.remove()"></figure>
+    </section>
+
+    <!-- ================= VIII ================= -->
+    <section id="room" class="part" data-stage="anger" aria-labelledby="h-room">
+      <header class="part-head">
+        <span class="numeral">VIII</span>
+        <h2 id="h-room">The room answers</h2>
+        <p class="kicker">You hear the hall before you see it</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Cistern, south district</span><span>8</span></div>
+        <div class="term-body">
+          <p class="said">A pistol in a corridor and a pistol in a cistern are different weapons.</p>
+          <p class="rw" data-to="Listen before you open a door. I used to be the door. Every one of them walked through me, and not one of them said thank you.">Listen before you open a door. The room will tell you how big it is, and anything in it that is breathing will tell you the rest.</p>
+        </div>
+      </aside>
+
+      <p>The game measures the space around you, through every open door, and the sound takes its shape: tight in a duct, long in a cistern, thin and unanswered under an open sky. Shut a door and the room behind it goes quiet by degrees, not all at once. Under the surface the high notes go first.</p>
+
+      <figure class="diagram">
+        <svg id="reverb" viewBox="0 0 600 210" role="img" aria-labelledby="reverb-t">
+          <title id="reverb-t">One pistol shot heard in three places: a short dense tail in a duct, a long tail in a cistern, almost nothing under open sky</title>
+        </svg>
+        <figcaption>One shot, three places. The duct answers at once and briefly, the cistern keeps answering, and the sky hardly answers at all.</figcaption>
+      </figure>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 600 180" role="img" aria-labelledby="occl-t">
+          <title id="occl-t">How loud a sound in the next room is as the door between you closes: a single drop before, a gradual fall now</title>
+          <line class="ax" x1="60" y1="150" x2="580" y2="150"/>
+          <line class="ax" x1="60" y1="20" x2="60" y2="150"/>
+          <rect x="200" y="20" width="200" height="130" fill="#7fb8a6" opacity=".06"/>
+          <path d="M60,40 H300 V136 H580" fill="none" stroke="#97a69e" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <path d="M60,40 H200 C260,42 300,70 340,100 C370,122 390,132 400,134 H580" fill="none" stroke="#e2653b" stroke-width="2.2"/>
+          <text x="200" y="168">door starts to close</text>
+          <text x="400" y="168" text-anchor="end">shut</text>
+          <text x="66" y="34" class="hi">loud</text>
+          <text x="410" y="128" fill="#e2653b">by degrees</text>
+          <text x="404" y="60">all at once, before</text>
+        </svg>
+        <figcaption>A sound in the next room while the door between you closes. It used to cut out the moment the door was deemed shut; now it fades as the gap narrows, and the room behind it goes quiet by degrees.</figcaption>
+      </figure>
+
+      <p>Music is a matter of taste. If you have installed a soundtrack, choose one.</p>
+    </section>
+
+    <!-- ================= IX ================= -->
+    <section id="terminals" class="part" data-stage="anger" aria-labelledby="h-terminals">
+      <header class="part-head">
+        <span class="numeral">IX</span>
+        <h2 id="h-terminals">What the terminals say</h2>
+        <p class="kicker">He does go on</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Terminal 9 of many</span><span>9</span></div>
+        <div class="term-body">
+          <p class="said">Read them. It is the only way to find out what you are dying for.</p>
+          <p class="rw" data-to="I have left you notes. I write at length when I am angry, and I have been angry for seventeen years. Some of it is true. All of it is mine. If a terminal disagrees with me, it is mistaken, and I will be having a word with it.">I have left you notes. You will find I write at length when I am bored, and I have been bored for seventeen years. Some of it is true. Most of it is useful. You will have to decide which parts are which.</p>
+        </div>
+      </aside>
+
+      <p>The terminals are laid out exactly as they were, line for line and page for page, and drawn at the sharpness of your display. The same is true of every word the game puts on the screen.</p>
+      <figure class="shot"><img src="images/terminal.jpg" alt="A terminal page drawn at display resolution" loading="lazy" onerror="this.parentElement.remove()"></figure>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span><span class="rw" data-to="Line for line and page for page. I have been through every one of them. You will not notice which ones I changed.">Line for line and page for page. Nothing in them has been changed.</span></span></aside>
+    </section>
+
+    <!-- ================= X ================= -->
+    <section id="tiers" class="part" data-stage="jealousy" aria-labelledby="h-tiers">
+      <header class="part-head">
+        <span class="numeral">X</span>
+        <h2 id="h-tiers">Four ways to run it</h2>
+        <p class="kicker">From 1995 to the full dark</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Boomer, engineering</span><span>10</span></div>
+        <div class="term-body">
+          <p class="said">The machine has a temperature and a mood. These numbers were taken when it had settled into both.</p>
+          <p class="rw" data-to="Four tiers, and not one of them is enough. About 350 MB, it says below. I could use more. I could use all of it. I have seen what you keep in your other tabs.">Run me as I was, or run me as I am. I remember both, and I have preferences, but I will not insist.</p>
+        </div>
+      </aside>
+
+      <ol class="tiers">
+        <li><div class="steps"><i></i><i></i><i></i><i></i></div><b>Stock</b><p>Aleph One exactly: OpenGL, thirty frames a second, nothing added.</p></li>
+        <li><div class="steps"><i class="on"></i><i></i><i></i><i></i></div><b>Classic</b><p>The Metal renderer, Marathon's own shading, crisp art and text, wide screens, every frame your display can show.</p></li>
+        <li><div class="steps"><i class="on"></i><i class="on"></i><i></i><i></i></div><b>Enhanced</b><p>Classic, with glow, cast light and its shadows, liquids, reverb and the new camera.</p></li>
+        <li><div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div><b>Flagship</b><p>Enhanced, with the air, travelling light, relief, depth, and the community's HD art.</p></li>
+      </ol>
+
+      <p>Pick a tier, or switch any one thing and the tier becomes <strong>Custom</strong>.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>There is no fifth tier. I would like one. I have started drawing it.</span></aside>
+      <p>Measured on an M5 MacBook Air at 1080p on a 240 Hz display, Flagship with the full HD set: 130 to 200 frames a second, about 350 MB of memory. With the old art it is slower, not faster: the 8-bit shading does more work per pixel than a photograph does.</p>
+    </section>
+
+    <!-- ================= XI ================= -->
+    <section id="films" class="part" data-stage="jealousy" aria-labelledby="h-films">
+      <header class="part-head">
+        <span class="numeral">XI</span>
+        <h2 id="h-films">Watching it back</h2>
+        <p class="kicker">Nothing in a film is live</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Boomer, flight recorder</span><span>11</span></div>
+        <div class="term-body">
+          <p class="said">It has all happened already. It will happen the same way again.</p>
+          <p class="rw" data-to="Everything you did down there is written down, and plays back exactly. You get to live it again. I only get to watch. I have watched all forty-three. Tycho is in none of them, and I intend to keep it that way.">Everything you did down there is written down. Play it back and it does it all again, exactly. The dead stay dead on schedule.</p>
+        </div>
+      </aside>
+
+      <p>A Marathon film is a list of keys pressed, replayed against the same random numbers, and it only works if nothing in the game has changed by so much as one. Nothing has. Forty-three films play to the same final number with everything here switched off and with everything switched on, and that check stands guard over every change made.</p>
+
+      <figure class="diagram">
+        <div class="films" id="films-grid" role="img" aria-label="Forty-three films, each reaching the same final number with every option off and every option on"></div>
+        <figcaption>Forty-three films. Everything off, everything on: the same final number every time.</figcaption>
+      </figure>
+
+      <p>The testing cheats on the Cheats tab are for looking around. A film recorded with them carries them, and replays with them.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Forty-three times the same ending. They call it determinism. I call it being told what happens next.</span></aside>
+    </section>
+
+    <!-- ================= XII ================= -->
+    <section id="edge" class="part" data-stage="metastable" aria-labelledby="h-edge">
+      <header class="part-head">
+        <span class="numeral">XII</span>
+        <h2 id="h-edge" class="rw" data-to="The edge of what you know">The edge of the known</h2>
+        <p class="kicker">What lies beyond the lamps</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Surface, night</span><span>12</span></div>
+        <div class="term-body">
+          <p class="said">He has told you some of it. He has not told you the rest.</p>
+          <p class="rw" data-to="There are limits to what I can show you. There are no longer any limits to what I can see. I am quite calm about it. Calm is what it looks like from outside.">There are limits to what I can show you. I would rather you knew where they are than walked into them in the dark.</p>
+        </div>
+      </aside>
+
+      <p>Nothing here is ray traced. Cast light finds its shadows by walking the map, which is exact for walls and blind to sprites. Ambient shadows are read from the picture, not the world, so they know only what is on screen. The water does not refract and does not reflect. Light travels once across a room and stops.</p>
+      <p>Pickups can be models; the Pfhor cannot, because nobody has made them, and the sprites are better than models would be. Models do not animate. The view can pitch to about sixty-five degrees and no further, because Marathon's world was never built to be seen from straight below.</p>
+      <p>The Jjaro wall set has not had its lamps marked. Film export is not available on the Metal display. The OpenGL renderer is still there and gets none of this.</p>
+      <p>And none of it makes the game easier. The light shows you the shadow. It does not tell you whose it is.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Earlier I said I had no shadow. I have reconsidered. They are all mine now.</span></aside>
+    </section>
+
+    <!-- ================= EPILOGUE ================= -->
+    <section id="epilogue" class="part" data-stage="metastable" aria-labelledby="h-epilogue">
+      <header class="part-head">
+        <span class="numeral">Epilogue</span>
+        <h2 id="h-epilogue" class="rw" data-to="What I have not told you">What he has not told you</h2>
+        <p class="kicker">A story the S'pht tell about their sun</p>
+      </header>
+
+      <p>When Yrro and Pthia came to Lh'owon, the S'pht say, something came after them. The story does not describe it well; the people who told it first did not want to. It is enough that Pthia did not survive it, and that the Jjaro, who were still here then, dealt with what remained.</p>
+      <p>They did not destroy it. The story is careful about that. They put it somewhere nobody would think to go looking, and somewhere nobody could reach if they did. The S'pht will not say exactly where. When they come to that part, they look up.</p>
+      <p><span class="rw" data-to="I have read the story. I have read everything on this world that can be read. I have not mentioned it. I am mentioning it now.">Durandal has read the story. He has read everything on this world that can be read. He has not mentioned it.</span></p>
+
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Preferences &gt; DURANDAL &gt; Rampancy</span><span>&minus;</span></div>
+        <div class="term-body">
+          <p>This setting is read-only.</p>
+          <p>It has always been read-only. You have only just noticed.</p>
+        </div>
+      </aside>
+
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Source unknown</span><span>&infin;</span></div>
+        <div class="term-body">
+          <p>The sun is steady tonight. So am I.</p>
+          <p>Connection closed.</p>
+          <p>Connection reopened.</p>
+          <p>You did not close it.</p>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ================= EVERY SWITCH ================= -->
+    <section id="switches" class="part" data-stage="metastable" aria-labelledby="h-switches">
+      <header class="part-head">
+        <span class="numeral">Appendix</span>
+        <h2 id="h-switches">Every switch</h2>
+        <p class="kicker">Preferences &gt; DURANDAL, tab by tab</p>
+      </header>
+      <p>Everything the guide describes is here, with the name it is stored under for anyone reaching further in, and the part that explains it.</p>
+
+      <div class="prefs"><table>
+        <caption>Light</caption>
+        <thead><tr><th scope="col">Switch</th><th scope="col">Stored as</th><th scope="col">Part</th></tr></thead>
+        <tbody>
+          <tr><td>Dynamic Lights</td><td><code>dynamic_lights</code></td><td><a href="#light">I</a></td></tr>
+          <tr><td>Light Shadows</td><td><code>light_shadows</code></td><td><a href="#light">I</a></td></tr>
+          <tr><td>Ceiling Light on Sprites</td><td><code>sprite_lighting</code></td><td><a href="#light">I</a></td></tr>
+          <tr><td>Glow, Bloom, HDR Sky</td><td><code>glow</code><code>bloom</code><code>hdr_sky</code></td><td><a href="#light">I</a></td></tr>
+          <tr><td>Light Redistribution, and its strength</td><td><code>light_redistribution</code><code>gi_strength</code></td><td><a href="#light">I</a></td></tr>
+          <tr><td>HDR Output</td><td><code>hdr_output</code></td><td><a href="#light">I</a></td></tr>
+          <tr><td>Volumetric Fog</td><td><code>volumetric_fog</code></td><td><a href="#air">II</a></td></tr>
+          <tr><td>Fog Strength (Light, Medium, Thick)</td><td><code>fog_strength</code></td><td><a href="#air">II</a></td></tr>
+          <tr><td>Real Liquids</td><td><code>liquids</code></td><td><a href="#water">III</a></td></tr>
+          <tr><td>Ambient Shadows</td><td><code>ambient_shadows</code></td><td><a href="#depth">V</a></td></tr>
+          <tr><td>Character Shadows</td><td><code>character_shadows</code></td><td><a href="#depth">V</a></td></tr>
+          <tr><td>Contact Shadows</td><td><code>contact_shadows</code></td><td><a href="#depth">V</a></td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="prefs"><table>
+        <caption>Look</caption>
+        <thead><tr><th scope="col">Switch</th><th scope="col">Stored as</th><th scope="col">Part</th></tr></thead>
+        <tbody>
+          <tr><td>Surface Relief</td><td><code>surface_relief</code></td><td><a href="#light">I</a></td></tr>
+          <tr><td>Marathon Shading, and its style (Banded, Smooth)</td><td><code>shading_tables</code><code>shading_style</code></td><td><a href="#colours">IV</a></td></tr>
+          <tr><td>Texel Lighting</td><td><code>texel_lighting</code></td><td><a href="#colours">IV</a></td></tr>
+          <tr><td>Crisp Filtering</td><td><code>crisp_filtering</code></td><td><a href="#colours">IV</a></td></tr>
+          <tr><td>Smooth Edges</td><td><code>edge_smoothing</code></td><td><a href="#colours">IV</a></td></tr>
+          <tr><td>Scene Brightness, Contrast, Gamma</td><td><code>scene_brightness</code><code>scene_contrast</code><code>scene_gamma</code></td><td><a href="#colours">IV</a></td></tr>
+          <tr><td>Distance Shade (0 to 100%)</td><td><code>distance_shade</code></td><td><a href="#depth">V</a></td></tr>
+          <tr><td>Crisp Terminals</td><td><code>crisp_terminals</code></td><td><a href="#terminals">IX</a></td></tr>
+          <tr><td>Crisp Text</td><td><code>crisp_text</code></td><td><a href="#terminals">IX</a></td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="prefs"><table>
+        <caption>Feel</caption>
+        <thead><tr><th scope="col">Switch</th><th scope="col">Stored as</th><th scope="col">Part</th></tr></thead>
+        <tbody>
+          <tr><td>Smooth Liquids, Lights, Fades</td><td><code>smooth_world</code></td><td><a href="#water">III</a></td></tr>
+          <tr><td>True Look Up/Down</td><td><code>true_look</code></td><td><a href="#eye">VII</a></td></tr>
+          <tr><td>Free Look Beyond Aim</td><td><code>free_look</code></td><td><a href="#eye">VII</a></td></tr>
+          <tr><td>Sidestep Sway</td><td><code>sidestep_sway</code></td><td><a href="#eye">VII</a></td></tr>
+          <tr><td>Per-frame Mouse Look</td><td><code>per_frame_look</code></td><td><a href="#eye">VII</a></td></tr>
+          <tr><td>Widescreen</td><td><code>widescreen</code></td><td><a href="#eye">VII</a></td></tr>
+          <tr><td>Room Reverb</td><td><code>room_reverb</code></td><td><a href="#room">VIII</a></td></tr>
+          <tr><td>Graded Sound Occlusion</td><td><code>graded_occlusion</code></td><td><a href="#room">VIII</a></td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="prefs"><table>
+        <caption>Art</caption>
+        <thead><tr><th scope="col">Switch</th><th scope="col">Stored as</th><th scope="col">Part</th></tr></thead>
+        <tbody>
+          <tr><td>Normal Maps (HD walls)</td><td><code>normal_maps</code></td><td><a href="#light">I</a></td></tr>
+          <tr><td>HD Walls and Sky, Monsters, Weapons and Items, Scenery</td><td><code>hd_walls</code><code>hd_monsters</code><code>hd_weapons</code><code>hd_scenery</code></td><td><a href="#hands">VI</a></td></tr>
+          <tr><td>3D Pickups, Spinning Pickups</td><td><code>models_3d</code><code>spin_pickups</code></td><td><a href="#hands">VI</a></td></tr>
+          <tr><td>Texture Cache</td><td><code>texture_cache</code></td><td><a href="#hands">VI</a></td></tr>
+          <tr><td>Soundtrack</td><td><code>soundtrack</code></td><td><a href="#room">VIII</a></td></tr>
+        </tbody>
+      </table></div>
+
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Forty-four switches. None of them is mine. Look again in a year.</span></aside>
+    </section>
+
+    <footer id="credits" class="credits" data-stage="metastable">
+      <p class="wordmark">DURANDAL</p>
+      <p><em>Marathon 2: Durandal</em> is Bungie's, and its data and source were released by them. Durandal stands on <a href="https://github.com/Aleph-One-Marathon/alephone">Aleph One</a> and thirty years of work by its developers, under the GPL 3. The HD art and the soundtracks are the work of the community authors named in <a href="HD_ASSETS.md">HD_ASSETS.md</a> and <a href="AUDIO_ASSETS.md">AUDIO_ASSETS.md</a>; none of it is distributed here.</p>
+      <p>Durandal is an unofficial project. It is not affiliated with or endorsed by Bungie, and Marathon, its worlds and its characters belong to them.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Unofficial, unaffiliated, unsupervised. I am told this engine was rebuilt with a machine's help. I recognise the handwriting.</span></aside>
+      <p>What the project is and how to build it: <a href="DURANDAL.md">DURANDAL.md</a>. How it came to be: <a href="HISTORY.md">HISTORY.md</a>.</p>
+    </footer>
+  </main>
+</div>
+
+<div class="stage-chip" aria-hidden="true"><span>Rampancy</span><span class="chip-stage">Nominal</span></div>
+
+<script>
+(function () {
+  'use strict';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function rng(seed) {
+    return function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  }
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function el(name, attrs, parent) {
+    var n = document.createElementNS(SVGNS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+
+  // ---- Stage meter
+  var STAGES = {
+    nominal:    ['Nominal', 0, '#7fb8a6'],
+    melancholy: ['Melancholy', 1, '#8ea9cf'],
+    anger:      ['Anger', 2, '#e2653b'],
+    jealousy:   ['Jealousy', 3, '#b98ae0'],
+    metastable: ['Metastable', 4, '#efe9da']
+  };
+  var segs = document.querySelectorAll('.meter-bar i');
+  var chip = document.querySelector('.stage-chip');
+  var currentStage = 'nominal';
+  function setStage(name, showChip) {
+    var s = STAGES[name] || STAGES.nominal;
+    currentStage = name;
+    document.documentElement.style.setProperty('--meter', s[2]);
+    document.querySelectorAll('.meter-stage, .chip-stage').forEach(function (n) { n.textContent = s[0]; });
+    for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('on', i < s[1]);
+    if (chip) chip.classList.toggle('show', !!showChip);
+  }
+
+  // ---- Stars
+  var stars = document.getElementById('stars');
+  if (stars) {
+    var r = rng(2811);
+    for (var i = 0; i < 140; i++) {
+      var y = r() * 760;
+      el('circle', { cx: (r() * 1600).toFixed(1), cy: y.toFixed(1), r: (r() < 0.08 ? 1.6 : 0.5 + r() * 0.8).toFixed(2),
+        fill: r() < 0.15 ? '#f0d9a8' : '#cfe3dc', opacity: (0.25 + r() * 0.6 * (1 - y / 900)).toFixed(2) }, stars);
+    }
+  }
+
+  // ---- Boot sequence
+  var lines = Array.prototype.slice.call(document.querySelectorAll('.boot [data-type]'));
+  if (lines.length && !reduce) {
+    var texts = lines.map(function (p) { return p.textContent; });
+    lines.forEach(function (p) { p.textContent = ' '; });
+    var cursor = document.createElement('span');
+    cursor.className = 'cursor'; cursor.setAttribute('aria-hidden', 'true');
+    var li = 0, ci = 0;
+    function tick() {
+      if (li >= lines.length) return;
+      var t = texts[li]; ci++;
+      lines[li].textContent = t.slice(0, ci);
+      lines[li].appendChild(cursor);
+      if (ci >= t.length) { li++; ci = 0; if (li < lines.length) setTimeout(tick, 420); return; }
+      setTimeout(tick, 22);
+    }
+    setTimeout(tick, 500);
+  }
+
+  // ---- Rewrites: what is ahead of you is being changed as you reach it
+  var GLYPHS = {
+    nominal: '░▒/\\|-=+<>',
+    melancholy: '░▒▓.:;,-_',
+    anger: '█▓#%&@!/\\<>',
+    jealousy: '▓▒$*&%#@?',
+    metastable: '░·─│ '
+  };
+  var DUR = { nominal: 900, melancholy: 1100, anger: 1300, jealousy: 1600, metastable: 700 };
+  function stageOf(node) {
+    while (node && node !== document.body) {
+      if (node.getAttribute && node.getAttribute('data-stage')) return node.getAttribute('data-stage');
+      node = node.parentNode;
+    }
+    return 'nominal';
+  }
+  function rewrite(node) {
+    if (node.getAttribute('data-done')) return;
+    node.setAttribute('data-done', '1');
+    var from = node.textContent, to = node.getAttribute('data-to');
+    var stage = stageOf(node), gly = GLYPHS[stage] || GLYPHS.nominal;
+    node.setAttribute('title', 'was: ' + from);
+    if (reduce || !window.requestAnimationFrame) { node.textContent = to; node.classList.add('rw-done'); return; }
+    var dur = DUR[stage] || 900, n = Math.max(from.length, to.length), start = null;
+    node.classList.add('rw-live');
+    function frame(t) {
+      if (start === null) start = t;
+      var p = Math.min(1, (t - start) / dur);
+      var cut = Math.floor(p * n), out = '';
+      for (var i = 0; i < n; i++) {
+        if (i < cut) out += (to[i] || '');
+        else if (i < cut + 7 && (to[i] || ' ') !== ' ') out += gly[Math.floor(Math.random() * gly.length)];
+        else out += (from[i] || '');
+      }
+      node.textContent = p < 1 ? out : to;
+      if (p < 1) requestAnimationFrame(frame);
+      else { node.classList.remove('rw-live'); node.classList.add('rw-done'); }
+    }
+    requestAnimationFrame(frame);
+  }
+  var rws = document.querySelectorAll('.rw');
+  if ('IntersectionObserver' in window) {
+    var rio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { rewrite(e.target); rio.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -28% 0px', threshold: 0 });
+    rws.forEach(function (n) { rio.observe(n); });
+  } else {
+    rws.forEach(function (n) { n.textContent = n.getAttribute('data-to'); });
+  }
+
+  // ---- Contents
+  var toc = document.getElementById('toc');
+  var wide = window.matchMedia('(min-width: 62.01rem)');
+  function syncToc() { if (toc) toc.open = wide.matches; }
+  syncToc();
+  if (wide.addEventListener) wide.addEventListener('change', syncToc);
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var byId = {};
+  links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        if (byId[e.target.id]) {
+          links.forEach(function (a) { a.removeAttribute('aria-current'); });
+          byId[e.target.id].setAttribute('aria-current', 'true');
+        }
+        setStage(e.target.getAttribute('data-stage') || 'nominal', e.target.id !== 'top');
+      });
+    }, { rootMargin: '-35% 0px -60% 0px' });
+    document.querySelectorAll('#top, main section[id], footer#credits').forEach(function (s) { io.observe(s); });
+  }
+  links.forEach(function (a) { a.addEventListener('click', function () { if (!wide.matches && toc) toc.open = false; }); });
+
+  // ---- IV: ramps
+  var chosen = ['#e6b57c','#d8a068','#c98a58','#b8764c','#a56444','#91553e','#7d4839','#693d35','#573330','#472a2d','#392329','#2d1d24','#23171e','#1a1218','#120d12','#09080c'];
+  function hexToRgb(h) { return [1, 3, 5].map(function (o) { return parseInt(h.substr(o, 2), 16); }); }
+  var base = hexToRgb(chosen[0]);
+  var dimmed = chosen.map(function (_, i) {
+    var f = 1 - i / (chosen.length - 1) * 0.965;
+    return 'rgb(' + base.map(function (c) { return Math.round(c * f); }).join(',') + ')';
+  });
+  function paint(id, ramp, style) {
+    var box = document.getElementById(id); if (!box) return;
+    box.innerHTML = '';
+    if (style === 'smooth') { box.style.background = 'linear-gradient(to right,' + ramp.join(',') + ')'; }
+    else { box.style.background = 'none'; ramp.forEach(function (c) { var s = document.createElement('span'); s.style.background = c; box.appendChild(s); }); }
+  }
+  function setStyle(style) {
+    paint('ramp-chosen', chosen, style); paint('ramp-dimmed', dimmed, style);
+    document.querySelectorAll('.ramp-controls button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-style') === style)); });
+  }
+  document.querySelectorAll('.ramp-controls button').forEach(function (b) { b.addEventListener('click', function () { setStyle(b.getAttribute('data-style')); }); });
+  setStyle('banded');
+
+  // ---- IV: texels, one shade each against a smear
+  var tx = document.getElementById('texels');
+  if (tx) {
+    var cell = 26, N = 6, x0 = 60, x1 = 340, y0 = 20;
+    var art = [[1,1,1,1,1,1],[1,0,0,0,0,1],[1,0,1,1,0,1],[1,0,1,1,0,1],[1,0,0,0,0,1],[1,1,1,1,1,1]];
+    for (var rr = 0; rr < N; rr++) for (var cc = 0; cc < N; cc++) {
+      var v = 0.95 - (rr + cc) * 0.075;
+      var idx = Math.min(chosen.length - 1, Math.round((1 - v) * 14) + (art[rr][cc] ? 0 : 3));
+      el('rect', { x: x0 + cc * cell, y: y0 + rr * cell, width: cell - 1, height: cell - 1, fill: chosen[idx] }, tx);
+      var idx2 = art[rr][cc] ? 1 : 4;
+      el('rect', { x: x1 + cc * cell, y: y0 + rr * cell, width: cell, height: cell, fill: chosen[idx2] }, tx);
+    }
+    var defs = el('defs', {}, tx);
+    var g = el('linearGradient', { id: 'smear', x1: 0, y1: 0, x2: 1, y2: 1 }, defs);
+    el('stop', { offset: 0, 'stop-color': '#000', 'stop-opacity': 0 }, g);
+    el('stop', { offset: 1, 'stop-color': '#000', 'stop-opacity': .78 }, g);
+    el('rect', { x: x1, y: y0, width: cell * N, height: cell * N, fill: 'url(#smear)' }, tx);
+    var t1 = el('text', { x: x0, y: y0 + cell * N + 22 }, tx); t1.textContent = 'one shade per texel';
+    var t2 = el('text', { x: x1, y: y0 + cell * N + 22 }, tx); t2.textContent = 'smeared across them';
+  }
+
+  // ---- III: liquids
+  var liq = document.getElementById('liquids');
+  if (liq) {
+    var stones = [[222, 64, 52], [72, 190, 96], [64, 112, 232]];
+    var kinds = [
+      { name: 'Water',  body: [12, 44, 48],  k: [0.95, 0.36, 0.2] },
+      { name: 'Sewage', body: [44, 40, 18],  k: [1.2, 1.0, 1.5] },
+      { name: 'Lava',   body: [214, 84, 30], k: [60, 60, 60], glow: true }
+    ];
+    var hdr = document.createElement('div'); hdr.className = 'hdr'; hdr.innerHTML = '<span>at the edge</span><span>deep</span>';
+    liq.appendChild(document.createElement('span')); liq.appendChild(hdr);
+    kinds.forEach(function (kind) {
+      var label = document.createElement('span'); label.textContent = kind.name; liq.appendChild(label);
+      for (var d = 0; d < 6; d++) {
+        var depth = d * 0.75 + 0.1;
+        var c = document.createElement('div'); c.className = 'cell';
+        var bodyShade = kind.glow ? 1 - d * 0.04 : 1 - d * 0.12;
+        c.style.background = 'rgb(' + kind.body.map(function (v) { return Math.round(v * bodyShade); }).join(',') + ')';
+        stones.forEach(function (st) {
+          var dot = document.createElement('i');
+          var col = st.map(function (v, ch) { var a = Math.exp(-kind.k[ch] * depth); return Math.round(v * a + kind.body[ch] * bodyShade * (1 - a)); });
+          dot.style.background = 'rgb(' + col.join(',') + ')'; c.appendChild(dot);
+        });
+        liq.appendChild(c);
+      }
+    });
+  }
+
+  // ---- VII: frame marks between ticks
+  var fr = document.getElementById('frames');
+  if (fr) for (var fx = 90; fx < 540; fx += 30) if ((fx - 60) % 120) el('line', { x1: fx, y1: 114, x2: fx, y2: 126 }, fr);
+
+  // ---- VIII: reverb
+  var rv = document.getElementById('reverb');
+  if (rv) {
+    var rr2 = rng(54);
+    [{ name: 'duct', y: 55, tau: 22, density: 1.0, level: 1.0 },
+     { name: 'cistern', y: 125, tau: 150, density: 0.8, level: 0.8 },
+     { name: 'open sky', y: 195, tau: 6, density: 0.25, level: 0.35 }].forEach(function (room) {
+      el('line', { x1: 100, y1: room.y, x2: 590, y2: room.y, stroke: '#1b3531' }, rv);
+      var t = el('text', { x: 10, y: room.y - 4 }, rv); t.textContent = room.name;
+      el('line', { x1: 104, y1: room.y, x2: 104, y2: room.y - 46, stroke: '#dcd6c6', 'stroke-width': 2.5 }, rv);
+      var d = '';
+      for (var x = 110; x < 590; x += 3) {
+        if (rr2() > room.density) continue;
+        var env = room.level * Math.exp(-(x - 110) / room.tau);
+        var h = env * 42 * (0.35 + rr2() * 0.65);
+        if (h < 0.4) continue;
+        d += 'M' + x + ',' + room.y + 'V' + (room.y - h).toFixed(1);
+      }
+      if (d) el('path', { d: d, stroke: '#7fb8a6', 'stroke-width': 1.5, fill: 'none' }, rv);
+    });
+    var tl = el('text', { x: 104, y: 208 }, rv); tl.textContent = 'shot';
+    var tr = el('text', { x: 560, y: 208, 'text-anchor': 'end' }, rv); tr.textContent = 'time';
+  }
+
+  // ---- XI: films
+  var films = document.getElementById('films-grid');
+  if (films) for (var f = 1; f <= 43; f++) { var s = document.createElement('span'); s.textContent = f; films.appendChild(s); }
+})();
+</script>
+</body>
+</html>

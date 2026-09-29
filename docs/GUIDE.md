@@ -2,6 +2,10 @@
 
 *Marathon 2 · a native Metal engine for Apple Silicon · Autumn 2026*
 
+*This is the plain edition, which reads on GitHub. The illustrated edition,
+annotated by Durandal himself, is [GUIDE.html](GUIDE.html): open it in a
+browser.*
+
 Seventeen years after the Marathon, you are woken above a dead marsh world
 by the machine that stole you. Lh'owon was beautiful once. Now its sewers
 run under ruins nobody has lit for a thousand years, the water has gone
