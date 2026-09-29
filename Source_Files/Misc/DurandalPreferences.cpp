@@ -81,11 +81,24 @@ const char* const kFeatureAttr[kNumberOfFeatures] = {
 	"ambient_shadows",
 	"character_shadows",
 	"texture_cache",
+	"weapon_lighting",
 };
 
 }
 
+// Since baseline-7 (29 Sep 2026) what has passed QA runs for everyone,
+// however the app is launched; what has not needs QA(). DURANDAL_STOCK=1
+// closes the gate altogether.
 bool Available()
+{
+	static const bool stock = [] {
+		const char* v = std::getenv("DURANDAL_STOCK");
+		return v && std::strcmp(v, "1") == 0;
+	}();
+	return !stock;
+}
+
+bool QA()
 {
 #ifndef __OPTIMIZE__
 	return true;	// Debug build
@@ -98,9 +111,20 @@ bool Available()
 #endif
 }
 
+bool Released(Feature feature)
+{
+	switch (feature)
+	{
+		case kWeaponLighting:
+			return false;
+		default:
+			return true;
+	}
+}
+
 bool Enabled(Feature feature)
 {
-	return Available() && prefs.features[feature];
+	return Available() && prefs.features[feature] && (Released(feature) || QA());
 }
 
 int FeatureTier(Feature feature)
@@ -122,6 +146,7 @@ int FeatureTier(Feature feature)
 		case kTrueLook:
 		case kSidestepSway:
 		case kFreeLook:
+		case kWeaponLighting:
 			return kTierEnhanced;
 		case kVolumetricFog:
 		case kLightRedistribution:
@@ -264,8 +289,8 @@ void AfterRead()
 {
 	if (!read_durandal_element && Available())
 	{
-		logNote("Durandal: first run, applying the Classic tier");
-		ApplyTier(kTierClassic);
+		logNote("Durandal: first run, applying the Flagship tier");
+		ApplyTier(kTierFlagship);
 	}
 
 	// Development runs (benchmark, menu shot; they never write preferences):
@@ -369,6 +394,7 @@ static Tab FeatureTab(Feature feature)
 		case kFreeLook:
 			return kTabFeel;
 		case kHDROutput:
+		case kWeaponLighting:
 		case kGlow:
 		case kBloom:
 		case kHDRSky:
@@ -468,6 +494,7 @@ void Dialog(void* parent_dialog)
 		"Ambient Shadows",
 		"Character Shadows",
 		"Texture Cache (compressed HD art)",
+		"Weapon Takes the Light",
 	};
 	w_toggle* feature_w[kNumberOfFeatures];
 	w_select* style_w = nullptr;
@@ -475,6 +502,10 @@ void Dialog(void* parent_dialog)
 	w_select* gi_w = nullptr;
 	for (int i = 0; i < kNumberOfFeatures; ++i)
 	{
+		// A feature still in QA has no switch unless QA is open
+		feature_w[i] = nullptr;
+		if (!Released(Feature(i)) && !QA())
+			continue;
 		feature_w[i] = new w_toggle(prefs.features[i]);
 		table_placer* table = tables[FeatureTab(Feature(i))];
 		table->dual_add(feature_w[i]->label(feature_labels[i]), d);
@@ -630,11 +661,11 @@ void Dialog(void* parent_dialog)
 		if (tier == kTierCustom)
 			return;
 		for (int i = 0; i < kNumberOfFeatures; ++i)
-			if (IsTierFeature(Feature(i)))
+			if (feature_w[i] && IsTierFeature(Feature(i)))
 				feature_w[i]->set_selection(TierIncludes(tier, Feature(i)) ? 1 : 0);
 	});
 	for (int i = 0; i < kNumberOfFeatures; ++i)
-		if (IsTierFeature(Feature(i)))
+		if (feature_w[i] && IsTierFeature(Feature(i)))
 			feature_w[i]->set_selection_changed_callback([&](void*) {
 			tier_w->set_selection(tier_to_index(kTierCustom));
 		});
@@ -658,11 +689,11 @@ void Dialog(void* parent_dialog)
 		{
 			prefs.quality_tier = kTierCustom;
 			for (int i = 0; i < kNumberOfFeatures; ++i)
-				if (IsTierFeature(Feature(i)))
+				if (feature_w[i] && IsTierFeature(Feature(i)))
 					prefs.features[i] = feature_w[i]->get_selection() != 0;
 		}
 		for (int i = 0; i < kNumberOfFeatures; ++i)
-			if (!IsTierFeature(Feature(i)))
+			if (feature_w[i] && !IsTierFeature(Feature(i)))
 				prefs.features[i] = feature_w[i]->get_selection() != 0;
 		if (tier == kTierCustom || tier == kTierStock)
 			prefs.shading_style = style_w ? style_w->get_selection() : prefs.shading_style;

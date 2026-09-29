@@ -71,6 +71,7 @@ enum Feature {
 	kAmbientShadows,	// Round 12: screen-space ambient occlusion from the world's depth (Metal display; Flagship)
 	kCharacterShadows,	// Round 12: sprites cast their silhouette on the floor (Metal; Flagship)
 	kTextureCache,		// HD art kept block-compressed in ~/Library/Caches, built at first load (DurandalTextureCache.h; Metal display; Flagship)
+	kWeaponLighting,	// the weapon in hand takes the strength and colour of the dynamic lights around the viewer (Metal; Enhanced; in QA)
 	kNumberOfFeatures
 };
 
@@ -106,10 +107,19 @@ struct Preferences {
 	std::string soundtrack;
 };
 
-// True when enhancements may run at all (see the gate above).
+// True when enhancements may run at all: always, unless DURANDAL_STOCK=1
+// closes the gate (the film tests' stock run, comparisons).
 bool Available();
 
-// True when the gate is open and the feature is switched on.
+// True when features still awaiting QA may run: Debug builds, and Release
+// builds launched with DURANDAL_QA=1 (the shared scheme's Run sets it).
+bool QA();
+
+// Features that have passed QA run for everyone; the rest need QA().
+bool Released(Feature feature);
+
+// True when the gate is open, the feature is switched on, and it has
+// either passed QA or QA is open.
 bool Enabled(Feature feature);
 
 // Features the quality tier sets; the rest (HDR output) are independent

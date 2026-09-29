@@ -92,6 +92,7 @@ struct Uniforms {
 	float normal_gain;			// HD art: the normal map's strength
 	float glow_gain;			// HD art: glow boost on a replacement sprite's bright pixels (1: none)
 	float distance_mode;		// Round 12: the distance image: 1 the fragment's distance where its alpha is over a half, 0 never, -1 and 2 far as the sky (no ambient shadow or distance shade, occludes nothing): -1 the weapon in hand (also fogged as right at the face), 2 landscape surfaces
+	simd_float4 viewer_light;	// weapon lighting: the dynamic lights at the viewer, for the weapon in hand (rgb the tint, a the amount; 0 none)
 };
 
 // Dynamic lights (E2), world units. Must match struct Light in the shaders.

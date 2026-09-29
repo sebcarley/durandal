@@ -160,6 +160,7 @@ void RenderRasterize_Metal::render_tree()
 	u.color = simd_make_float4(1, 1, 1, 1);
 	u.alpha_threshold = -1;
 	u.distance_mode = 1;
+	u.viewer_light = simd_make_float4(0, 0, 0, 0);
 	u.visibility = 1;
 	u.time = view->tick_count;
 	const float pixel_height = view->screen_height * MainScreenPixelScale();
@@ -1295,11 +1296,46 @@ void RenderRasterize_Metal::render_viewer_sprite(rectangle_definition& RenderRec
 	m.uniforms.distance_mode = -1;
 	m.state.depth_test = false;
 
+	// Weapon lighting: the weapon in hand takes the dynamic lights around
+	// the viewer, their strength and colour, as the world's surfaces do: a
+	// bolt passing close tints it, and its own flash is among them. The
+	// lights come from the polygons in view, so each has a line to the eye.
+	if (Durandal::Enabled(Durandal::kWeaponLighting) && shadow_light_count > 0) {
+		const simd_float3 eye = simd_make_float3(view->origin.x, view->origin.y, view->origin.z);
+		float amount = 0;
+		simd_float3 colour = simd_make_float3(0, 0, 0);
+		for (int i = 0; i < shadow_light_count; ++i) {
+			const simd_float4 lp = shadow_lights[i].position_radius;
+			const float d2 = simd_length_squared(simd_make_float3(lp.x, lp.y, lp.z) - eye);
+			if (d2 >= lp.w * lp.w)
+				continue;
+			float f = 1 - d2 / (lp.w * lp.w);
+			f *= f;
+			const simd_float4 cs = shadow_lights[i].colour_strength;
+			amount += cs.w * f;
+			colour += simd_make_float3(cs.x, cs.y, cs.z) * (cs.w * f);
+		}
+		if (amount > 0) {
+			// The weapon is nearer its own flash than any wall is, and mostly
+			// dark metal: a little more than a wall would take
+			// (DURANDAL_WEAPON_LIGHT=<gain> for film runs)
+			static const float gain = [] {
+				const char* v = getenv("DURANDAL_WEAPON_LIGHT");
+				return v ? float(atof(v)) : 1.5f;
+			}();
+			const simd_float3 c = colour / amount;
+			const simd_float3 tint = c / std::max(std::max(c.x, std::max(c.y, c.z)), 1e-3f);
+			m.uniforms.viewer_light = simd_make_float4(tint.x, tint.y, tint.z, amount * gain);
+		}
+	}
+
 	const uint32_t saved_mask = clip_mask;
 	clip_mask = 0;
 	draw(m, vertices, 4);
-	if (setup_glow(m, 0, 0))
+	if (setup_glow(m, 0, 0)) {
+		m.uniforms.viewer_light = simd_make_float4(0, 0, 0, 0);	// the glow image glows as it is
 		draw(m, vertices, 4);
+	}
 	clip_mask = saved_mask;
 }
 

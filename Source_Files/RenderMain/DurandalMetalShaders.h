@@ -85,6 +85,7 @@ struct Uniforms {
 	float normal_gain;			// HD art: the normal map's strength
 	float glow_gain;			// HD art: glow boost on a replacement sprite's bright pixels (1: none)
 	float distance_mode;		// Round 12: the distance image: 1 the fragment's distance where its alpha is over a half, 0 never, -1 and 2 far as the sky (no ambient shadow or distance shade, occludes nothing): -1 the weapon in hand (also fogged as right at the face), 2 landscape surfaces
+	float4 viewer_light;		// weapon lighting: the dynamic lights at the viewer, for the weapon in hand (rgb the tint, a the amount; 0 none)
 };
 
 // Light redistribution (E4): one surface's lumels in the surface cache
@@ -678,7 +679,12 @@ fragment WorldFrag sprite_fragment(WorldIn in [[stage_in]], constant Uniforms& u
 								texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]])
 {
 	const Lighting l = texel_lighting(u, in, in.texcoord * float2(tex.get_width(), tex.get_height()));
-	const DynamicLight dl = dynamic_light(u, lights, map, l, false);
+	DynamicLight dl = dynamic_light(u, lights, map, l, false);
+	if (u.viewer_light.a > 0.0) {
+		// The weapon in hand: lit by the lights around the viewer
+		dl.amount = u.viewer_light.a;
+		dl.tint = u.viewer_light.rgb;
+	}
 	const float4 color = crisp_sample(u, tex, smp, in.texcoord);
 	const float3 intensity = add_light(classic_intensity(u, l.depth), classic_intensity(u, l.depth, dl.amount), dl);
 	const float f = fog_factor(u, l.fog_distance);
@@ -879,6 +885,11 @@ static WorldFrag ramp_shade(WorldIn in, constant Uniforms& u, constant Light* li
 		lr.normal = rf.normal;
 	}
 	DynamicLight dl = dynamic_light(u, lights, map, lr, repeat);
+	if (u.viewer_light.a > 0.0) {
+		// The weapon in hand: lit by the lights around the viewer
+		dl.amount = u.viewer_light.a;
+		dl.tint = u.viewer_light.rgb;
+	}
 	dl = add_caustics(u, dl, l);
 	const float2 dtx = dfdx(texel0), dty = dfdy(texel0);
 	const float2 fw = max(abs(dtx) + abs(dty), float2(1e-4));
