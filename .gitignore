@@ -39,3 +39,6 @@ compile_commands.json
 
 # Durandal: local copies of third-party art packs for inspection (docs/HD_ASSETS.md); never committed
 /Assets/
+
+# Durandal: the app scripts/setup.sh leaves at the top of the folder
+/Durandal.app/

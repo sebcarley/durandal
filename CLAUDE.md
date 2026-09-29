@@ -26,7 +26,8 @@ unforced error is likely. British English throughout; direct, peer-level.
 - Every enhancement is switchable, with a way back to the stock look. Nothing
   may break save games, films (replays) or the original gameplay rules.
 - New user-visible behaviour ships behind a feature flag (DEBUG on, Release
-  off) until manual QA has passed.
+  off) until manual QA has passed; then it is released to every launch
+  (see Feature gate).
 - Don't overwrite the owner's files or anything outside this folder without asking.
 - Ask before installing anything system-wide (Homebrew, global tools). Prefer
   what vcpkg fetches itself. Don't add dependencies without asking.
@@ -120,17 +121,23 @@ The folder name comes from the *localised* bundle name
 
 ## Feature gate and settings
 
-- `Source_Files/Misc/DurandalPreferences.*`. Enhancements run in Debug
-  builds; in Release only when launched with `DURANDAL_QA=1` (set in the
-  shared scheme's Run action, so Run from Xcode gets them; Finder launches are
-  stock). A feature is live only when the gate is open and its switch is on.
+- `Source_Files/Misc/DurandalPreferences.*`. Since baseline-7 (29 Sep
+  2026) everything that has passed QA runs however the app is launched
+  (`Durandal::Available()`, closed only by `DURANDAL_STOCK=1`), so a
+  built app plays as the owner plays. A feature still in QA
+  (`Durandal::Released()` false: today Weapon Takes the Light) runs only
+  in Debug builds or with `DURANDAL_QA=1` (`Durandal::QA()`; the shared
+  scheme's Run action sets it), and has no switch in the dialog
+  otherwise. When the owner passes a feature, take it out of
+  `Released()`'s list. A feature is live only when its gate is open and
+  its switch is on.
 - Preferences → DURANDAL: Quality (Stock / Classic / Enhanced / Flagship / Custom) and one switch
-  per feature. First gated run applies Classic (features on, fps target
-  0 = display rate). Stock restores upstream exactly (30 fps, no features).
+  per feature. The first run applies Flagship (fps target 0 = display
+  rate). Stock restores upstream exactly (30 fps, no features).
 - Add a feature: extend `Durandal::Feature`, `kFeatureAttr`, the dialog
-  labels, and `ApplyTier`.
-- Run the film tests both ways: `scripts/test-films.sh` and
-  `DURANDAL_QA=1 scripts/test-films.sh`.
+  labels, `FeatureTier`, `FeatureTab` and `Released`.
+- Run the film tests three ways: `DURANDAL_STOCK=1 scripts/test-films.sh`,
+  `scripts/test-films.sh` and `DURANDAL_QA=1 scripts/test-films.sh`.
 
 ## Benchmark, parity check and hidden runs
 
@@ -921,6 +928,32 @@ The folder name comes from the *localised* bundle name
   testing cheats. Left for later: `landscape_bloom`, the audio round
   (`docs/AUDIO_ASSETS.md`), de-personalising before the repository goes
   public (see GitHub above).
+- Weapon Takes the Light (29 Sep 2026, on `durandal/main`, in QA;
+  `weapon_lighting`, Enhanced, Light tab; after the sister project's
+  Quake work). The weapon in hand is drawn in screen space and took no
+  dynamic light. `render_viewer_sprite` now sums the frame's dynamic
+  lights at the viewer's position (strength and colour, the same falloff
+  as `dynamic_light`; the lights come from the polygons in view, so each
+  has a line to the eye; the viewer's own flash is among them) and hands
+  the result to the sprite shaders as `Uniforms::viewer_light`, which
+  stands in for the light they would have gathered. Gain 1.5
+  (`DURANDAL_WEAPON_LIGHT=<gain>` for film runs). Checked hidden on the
+  level 6 film, off against on: only the weapon's region differs, most at
+  tick 1053 (the fusion bolts close by). Subtle on a black pistol in a
+  still; to be judged in play.
+- The short route from GitHub (29 Sep 2026): `scripts/setup.sh` takes a
+  fresh clone to `Durandal.app` at the top of the folder (game data
+  submodule, dependencies, HD art, build); `scripts/get-hd-art.sh` fetches
+  the four CFP packs and 3D Items through their Simplici7y items'
+  `downloads/new` redirects (Google Drive files become
+  `drive.usercontent.google.com/download?id=...&confirm=t`), checks each
+  is a zip, notes when its SHA-256 differs from the version tested,
+  finds the folder holding `Plugin.xml` and moves it into the Plugins
+  folder (`DURANDAL_PLUGINS_DIR` to install elsewhere). It never
+  overwrites. The art is not ours to re-host (the CFP art derives from
+  Freeverse's; only the scripts repository is GPL), so it is fetched,
+  never shipped. Not done: a signed, notarised release to download, and
+  fetching the art from inside the game.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

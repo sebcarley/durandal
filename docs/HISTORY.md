@@ -69,7 +69,10 @@ HD art set, and the texture cache. Film tests pass both ways.
 - The audio round: gapless music, then spatial audio and per-source
   reverb. The research is in [AUDIO_ASSETS.md](AUDIO_ASSETS.md).
 - More from the sister project's Quake work, where it suits Marathon.
-  Candidates: the weapon in hand lit by the room and by its own muzzle
-  flash; heat shimmer over lava; dust and embers in the air; a storm under
-  open sky; a photo mode.
+  Done and in QA: the weapon in hand lit by the lights around the viewer
+  and by its own flash. Candidates: heat shimmer over lava; dust and
+  embers in the air; a storm under open sky; a photo mode.
+- A release: a signed, notarised `Durandal.app` to download, so that
+  playing needs neither Xcode nor Terminal, with the HD art fetched from
+  inside the game.
 - Bloom for the HD skies; wall lamps for the Jjaro set.

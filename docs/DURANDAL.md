@@ -38,26 +38,46 @@ On an M5 MacBook Air at 1080p, Flagship tier with the full HD art set:
 memory. The texture cache is what makes the HD art affordable: the same
 set cost 4.7 GB without it.
 
-## Building
+## Playing it
 
-Apple Silicon Mac, macOS 12 or later, Xcode.
+You need an Apple Silicon Mac, macOS 12 or later, and Xcode from the App
+Store (open it once so that it finishes installing). Then, in Terminal:
 
-    git clone --recurse-submodules <this repository>
+    git clone https://github.com/sebcarley/durandal.git
+    cd durandal
+    scripts/setup.sh
+
+That fetches the game data, the build tools and the community HD art,
+builds the game, and leaves **Durandal.app** in the folder. Double-click
+it. About 20 minutes the first time, most of it unattended; about 1 GB of
+art to download. `scripts/setup.sh --no-art` skips the art.
+
+The game starts on the Flagship tier. If it is too slow on your Mac:
+Preferences > DURANDAL > Quality.
+
+## HD art and music
+
+The art is the community's, not ours, so it is not in this repository and
+is not ours to re-host. `scripts/get-hd-art.sh` fetches the set we play
+with (the four Community/Freeverse packs and the 3D Items plugin) from its
+authors' own pages and installs it as ordinary Aleph One plugins in
+`~/Library/Application Support/Durandal/Plugins`. It never overwrites a
+pack that is already there. The ART tab chooses which kinds to use.
+
+Any other Aleph One art or music pack works the same way: unzip it into
+that folder. `docs/HD_ASSETS.md` and `docs/AUDIO_ASSETS.md` catalogue what
+exists, who made it and where it lives.
+
+## Building, for developers
+
     scripts/install-deps.sh      # once, about 8 minutes; keeps everything inside the folder
     scripts/build.sh             # builds Durandal.app (Release)
     scripts/test-films.sh        # the film determinism test
 
 In Xcode: open `Xcode/AlephOne.xcodeproj`, scheme **Marathon 2**, destination
-**My Mac**, Run. Release builds enable the enhancements only when launched
-with `DURANDAL_QA=1`, which the scheme's Run action sets.
-
-## HD art and music
-
-No third-party art or music is in this repository. Durandal loads
-community packs as ordinary Aleph One plugins from
-`~/Library/Application Support/Durandal/Plugins`, and the ART tab chooses
-which categories to use. `docs/HD_ASSETS.md` and `docs/AUDIO_ASSETS.md`
-catalogue the packs, their authors and where to get them.
+**My Mac**, Run. Everything that has passed QA runs however the app is
+launched. Features still in QA need `DURANDAL_QA=1`, which the scheme's Run
+action sets; `DURANDAL_STOCK=1` closes the gate altogether.
 
 ## Current state
 

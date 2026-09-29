@@ -74,6 +74,9 @@ settles over a second or so, and leaves each surface as bright on average
 as it always was. Rock lends its colour to the shadows beside it. When a
 door opens, the change arrives gently.
 
+**The weapon in your hands** takes the light around you: it warms as a
+bolt passes close, and flares with its own fire. (Still in QA.)
+
 **Relief.** Under the headlight the old wall art stands up a little: seams,
 rivets and carved glyphs catch the light on one side and lose it on the
 other. HD walls bring their own relief and use that instead.
@@ -85,6 +88,7 @@ other. HD walls bring their own relief and use that instead.
 | Ceiling Light on Sprites | `sprite_lighting` | Light |
 | Glow, Bloom, HDR Sky | `glow`, `bloom`, `hdr_sky` | Light |
 | Light Redistribution, and its strength | `light_redistribution`, `gi_strength` | Light |
+| Weapon Takes the Light (in QA) | `weapon_lighting` | Light |
 | Surface Relief | `surface_relief` | Look |
 | Normal Maps (HD walls) | `normal_maps` | Art |
 | HDR Output | `hdr_output` | Light |
@@ -211,8 +215,12 @@ beyond your headlight. It is off until you ask for it.
 
 The community has redrawn Marathon 2 at many times its resolution: walls,
 skies, every frame of every Pfhor, the weapons in your hands, the pickups
-on the floor. None of it is included here, and all of it works. Install a
-pack as an ordinary plugin and choose, by kind, what to take from it.
+on the floor. It is theirs, so it is not kept in this repository, but it
+is one command away: `scripts/get-hd-art.sh` fetches the set this guide
+was written with from its authors' own pages and installs it, and
+`scripts/setup.sh` does that as part of building the game. Any other
+Aleph One art pack works too: put it in the Plugins folder and choose, by
+kind, what to take from it.
 
 HD walls bring normal maps and their own glow. HD sprites glow as the old
 self-luminous colours did. Pickups can be real models, lit like the room
