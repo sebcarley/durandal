@@ -73,6 +73,10 @@ Jan 25, 2002 (Br'fin (Jeremy Parsons)):
 #include "OGL_Headers.h"
 #include "OGL_Render.h"
 #include "OGL_Textures.h"
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
 
 
 // rgb_color straight to OpenGL
@@ -397,3 +401,4 @@ void OverheadMap_OGL_Class::finish_path()
 	PathPoints.clear();
 }
 #endif // def HAVE_OPENGL
+

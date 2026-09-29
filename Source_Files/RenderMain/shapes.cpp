@@ -84,6 +84,7 @@ Jan 17, 2001 (Loren Petrich):
 */
 
 #include "cseries.h"
+#include "DurandalTextureCache.h"	// Durandal: load timing marks
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,6 +111,9 @@ Jan 17, 2001 (Loren Petrich):
 
 #include "Packing.h"
 #include "SW_Texture_Extras.h"
+#include "DurandalShading.h"
+#include "DurandalBenchmark.h"
+#include "DurandalGlow.h"	// Durandal: 8-bit shading ramps for the Metal renderer
 
 #include <SDL2/SDL_rwops.h>
 #include <memory>
@@ -1390,6 +1394,7 @@ void load_collections(
 //		draw_progress_bar(0, 2*MAXIMUM_COLLECTIONS);
 	}
 	precalculate_bit_depth_constants();
+	DurandalTextureCache::Mark("load_collections: start");	// Durandal: load timing
 		
 	/* first go through our list of shape collections and dispose of any collections which
 		were marked for unloading.  at the same time, unlock all those collections which
@@ -1442,7 +1447,9 @@ void load_collections(
 		header->flags= 0;
 	}
 
+	DurandalTextureCache::Mark("load_collections: shapes loaded");	// Durandal: load timing
 	Plugins::instance()->load_shapes_patches(is_opengl);
+	DurandalTextureCache::Mark("load_collections: plugin shapes patches loaded");
 
 	if (shapes_patch.size())
 	{
@@ -1454,6 +1461,7 @@ void load_collections(
 	/* remap the shapes, recalculate row base addresses, build our new world color table and
 		(finally) update the screen to reflect our changes */
 	update_color_environment(is_opengl);
+	DurandalTextureCache::Mark("load_collections: colour environment updated");	// Durandal: load timing
 
 	// load software enhancements
 	if (!is_opengl) {
@@ -1491,6 +1499,7 @@ void load_replacement_collections()
 {
 	struct collection_header *header;
 	short collection_index;
+	DurandalTextureCache::Mark("load_replacement_collections: start");	// Durandal: load timing
 
 	for (collection_index= 0, header= collection_headers; collection_index < MAXIMUM_COLLECTIONS; ++collection_index, ++header)
 	{
@@ -1499,6 +1508,7 @@ void load_replacement_collections()
 			OGL_LoadModelsImages(collection_index);
 		}
 	}
+	DurandalTextureCache::Mark("load_replacement_collections: done");
 }
 
 #endif
@@ -1590,6 +1600,37 @@ static short find_or_add_color(
 	return (*color_count)++;
 }
 
+// Durandal (development): DURANDAL_DUMP_BITMAPS=<dir> writes every wall
+// bitmap of each wall collection as it loads (collNN-bmpMMM.png), for
+// reviewing glow masks. Bitmap bytes are positions in `colors` here.
+static void durandal_dump_wall_bitmaps(short collection_index, const rgb_color_value *colors, short color_count)
+{
+	static const char *dir = getenv("DURANDAL_DUMP_BITMAPS");
+	struct collection_definition *collection = get_collection_definition(collection_index);
+	if (!dir || !collection || collection->type != _wall_collection) return;
+	for (short b = 0; b < collection->bitmap_count; ++b)
+	{
+		struct bitmap_definition *bitmap = get_bitmap_definition(collection_index, b);
+		if (!bitmap || bitmap->bytes_per_row == NONE) continue;
+		const bool columns = (bitmap->flags & _COLUMN_ORDER_BIT) != 0;
+		const int w = bitmap->width, h = bitmap->height;
+		std::vector<uint8_t> rgba(size_t(w) * h * 4);
+		for (int y = 0; y < h; ++y)
+			for (int x = 0; x < w; ++x)
+			{
+				const uint8 v = columns ? bitmap->row_addresses[x][y] : bitmap->row_addresses[y][x];
+				uint8_t *o = &rgba[(size_t(y) * w + x) * 4];
+				const rgb_color_value &c = colors[v < color_count ? v : 0];
+				o[0] = c.red >> 8; o[1] = c.green >> 8; o[2] = c.blue >> 8; o[3] = 255;
+			}
+		fprintf(stderr, "Durandal glow: collection %d bitmap %d fingerprint 0x%08x\n", collection_index, b,
+				DurandalGlow::Fingerprint(bitmap));
+		char name[64];
+		snprintf(name, sizeof(name), "/coll%02d-bmp%03d.png", collection_index, b);
+		DurandalBenchmark::SavePNG(std::string(dir) + name, rgba, w, h);
+	}
+}
+
 static void update_color_environment(
 	bool is_opengl)
 {
@@ -1601,6 +1642,8 @@ static void update_color_environment(
 	struct rgb_color_value colors[PIXEL8_MAXIMUM_COLORS];
 
 	memset(remapping_table, 0, PIXEL8_MAXIMUM_COLORS*sizeof(pixel8));
+
+	DurandalShading::BeginColorEnvironment();	// Durandal
 
 	// dummy color to hold the first index (zero) for transparent pixels
 	colors[0].red= colors[0].green= colors[0].blue= 65535;
@@ -1646,6 +1689,8 @@ static void update_color_environment(
 				/* ... and remap it */
 				remap_bitmap(bitmap, remapping_table);
 			}
+
+			durandal_dump_wall_bitmaps(collection_index, colors, color_count);	// Durandal: development only
 			
 			/* build a shading table for each clut in this collection */
 			for (clut_index= 0; clut_index<collection->clut_count; ++clut_index)
@@ -1694,6 +1739,8 @@ static void update_color_environment(
 							assert(false);
 							break;
 					}
+					// Durandal: the same colours and runs, for the 8-bit shading walk
+					DurandalShading::Build(collection_index, clut_index, colors, color_count, shading_remapping_table);
 				}
 				else
 				{
@@ -1707,6 +1754,7 @@ static void update_color_environment(
 							assert(false);
 							break;
 					}
+					DurandalShading::Build(collection_index, clut_index, colors, color_count, nullptr);	// Durandal
 				}
 			}
 			

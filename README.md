@@ -1,3 +1,18 @@
+# Durandal
+
+Marathon 2: Durandal on a native Metal engine for Apple Silicon: a fork of
+Aleph One with a Metal renderer, modern lighting, liquids, fog and sound,
+and support for the community's HD art, all switchable and all without
+changing the game. Films still replay tick for tick.
+
+**[The field guide](docs/GUIDE.md)** ·
+**[What it is and how to build it](docs/DURANDAL.md)** ·
+**[Development to date](docs/HISTORY.md)**
+
+GPL 3, as Aleph One. Not affiliated with Bungie or the Aleph One developers.
+
+What follows is Aleph One's own README.
+
 # Aleph One
 
 Aleph One is the open source continuation of Bungie™’s _Marathon® 2_ and _Marathon Infinity_ game engines. Aleph One plays _Marathon_, _Marathon 2_, _Marathon Infinity_, and third-party content on a variety of platforms.

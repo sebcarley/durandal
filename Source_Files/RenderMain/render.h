@@ -141,6 +141,23 @@ struct view_data
 
 	// whether to correct sprite parallax when not mimicking software
 	bool billboard_xy;
+
+	// Durandal (True Look, Round 10): the camera really rotates when the
+	// player looks up or down (and may roll), so the 2.5D visibility
+	// bookkeeping above must contain the rotated frustum rather than the
+	// sheared screen. true_look is set from the preferences for the world
+	// view only (never the M1 exploration view). Under it the horizontal
+	// cone and world_to_screen are recomputed every frame from the
+	// frustum's corner rays, and the top and bottom clip extents use these
+	// two values in place of dtanpitch: world_to_screen_y * tan(pitch +/-
+	// half vertical FOV) brought back to the screen's own half height.
+	// With true_look off both equal dtanpitch, so nothing changes.
+	bool true_look;
+	short dtanpitch_top, dtanpitch_bottom;
+	// Roll of the camera about its view axis in degrees (Sidestep Sway);
+	// 0 unless True Look is on. The unused upstream 'roll' above is in
+	// Marathon angle units, too coarse for a sway of a couple of degrees.
+	float durandal_roll;
 };
 
 /* ---------- render flags */

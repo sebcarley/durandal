@@ -89,6 +89,8 @@ Feb 20, 2002 (Woody Zenfell):
 #include "Logging.h"
 #include "mouse.h"
 #include "player.h"
+#include "DurandalView.h"
+#include "DurandalCamera.h"	// Durandal (C3)
 #include "key_definitions.h"
 #include "tags.h"
 #include "vbl.h"
@@ -120,6 +122,7 @@ inline short memory_error() {return 0;}
 
 /* ---------- structures */
 #include "vbl_definitions.h"
+#include "DurandalCheats.h"	// Durandal: testing cheats
 
 /* ---------- globals */
 
@@ -267,6 +270,12 @@ int get_replay_speed()
 bool game_is_being_replayed()
 {
 	return replay.game_is_being_replayed;
+}
+
+// Durandal: whether this game is being recorded as a film (testing cheats)
+bool game_is_being_recorded()
+{
+	return replay.game_is_being_recorded;
 }
 
 bool is_saved_game_replay()
@@ -568,7 +577,9 @@ bool setup_for_replay_from_file(
 		byte Header[SIZEOF_recording_header];
 		FilmFile.Read(SIZEOF_recording_header,Header);
 		unpack_recording_header(Header,&replay.header,1);
-		replay.header.game_information.cheat_flags = _allow_crosshair | _allow_tunnel_vision | _allow_behindview | _allow_overlay_map;
+		// Durandal: the testing cheats the film was recorded with stay
+		replay.header.game_information.cheat_flags = (replay.header.game_information.cheat_flags & DurandalCheats::kFlagMask) |
+			_allow_crosshair | _allow_tunnel_vision | _allow_behindview | _allow_overlay_map;
 
 		replay.extension_header.extension_type = recording_extension_type::none;
 		replay.extension_header.length = 0;
@@ -1110,6 +1121,15 @@ uint8 *unpack_recording_header(uint8 *Stream, recording_header *Objects, size_t 
 		for (int m = 0; m < MAXIMUM_NUMBER_OF_PLAYERS; m++)
 			StreamToPlayerStart(S,ObjPtr->starts[m]);
 		StreamToGameData(S,ObjPtr->game_information);
+		// Durandal: a film's header has no cheat_flags field, so the testing
+		// cheats a solo game began with travel in its spare second game
+		// parameter (zero in every film made without them)
+		ObjPtr->game_information.cheat_flags = 0;
+		if (ObjPtr->num_players == 1)
+		{
+			ObjPtr->game_information.cheat_flags = int16(uint16(ObjPtr->game_information.parameters[1]) & DurandalCheats::kFlagMask);
+			ObjPtr->game_information.parameters[1] = int16(uint16(ObjPtr->game_information.parameters[1]) & ~DurandalCheats::kFlagMask);
+		}
 	}
 	
 	assert(static_cast<size_t>(S - Stream) == (Count*SIZEOF_recording_header));
@@ -1130,7 +1150,13 @@ uint8 *pack_recording_header(uint8 *Stream, recording_header *Objects, size_t Co
 		ValueToStream(S,ObjPtr->version);
 		for (size_t m = 0; m < MAXIMUM_NUMBER_OF_PLAYERS; m++)
 			PlayerStartToStream(S,ObjPtr->starts[m]);
-		GameDataToStream(S,ObjPtr->game_information);
+		// Durandal: the testing cheats go in the spare second game parameter
+		// (see unpack_recording_header)
+		game_data information = ObjPtr->game_information;
+		if (ObjPtr->num_players == 1)
+			information.parameters[1] = int16(uint16(information.parameters[1]) |
+											  (uint16(information.cheat_flags) & DurandalCheats::kFlagMask));
+		GameDataToStream(S,information);
 	}
 	
 	assert(static_cast<size_t>(S - Stream) == (Count*SIZEOF_recording_header));
@@ -1311,7 +1337,11 @@ uint32 parse_keymap(void)
 	  }
 
 	  if (input_preferences->input_device == _mouse_yaw_pitch) {
-		  flags = process_aim_input(flags, pull_mouselook_delta());
+		  // Durandal (C3): Free Look may ask the tick for the aim's limit instead of the mouse's pitch
+		  const auto look_delta = DurandalCamera::FreeLookTickInput(pull_mouselook_delta());
+		  const auto residual_before = virtual_aim_delta();
+		  flags = process_aim_input(flags, look_delta);
+		  Durandal::NoteTickLook(look_delta, residual_before);	// Durandal (F1): records only
 	  }
 
 	  flags = process_joystick_axes(flags);

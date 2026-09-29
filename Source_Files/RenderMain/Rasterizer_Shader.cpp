@@ -25,6 +25,7 @@
 #include "preferences.h"
 #include "fades.h"
 #include "screen.h"
+#include "DurandalMetal.h"
 
 #ifdef HAVE_OPENGL
 
@@ -149,6 +150,9 @@ void Rasterizer_Shader_Class::Begin()
 
 void Rasterizer_Shader_Class::End()
 {
+	// Durandal: parity check capture, from the world FBO before gamma
+	if (DurandalMetal::CaptureRequested())
+		DurandalMetal::CaptureGLFramebuffer(view_width * MainScreenPixelScale(), view_height * MainScreenPixelScale());
 	swapper->deactivate();
 	swapper->swap();
 	

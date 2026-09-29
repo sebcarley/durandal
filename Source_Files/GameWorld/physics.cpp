@@ -73,6 +73,7 @@ running backwards shouldn’t mean doom in a fistfight
 #endif
 
 #include "cseries.h"
+#include "DurandalCheats.h"	// Durandal: noclip cheat
 #include "render.h"
 #include "map.h"
 #include "player.h"
@@ -447,6 +448,26 @@ uint32 process_aim_input(uint32 action_flags, fixed_yaw_pitch delta)
 	if (PLAYER_IS_DEAD(player)) new_location.z+= FIXED_TO_WORLD(DROP_DEAD_HEIGHT);
 	if (take_action && !first_time && player->last_supporting_polygon_index!=player->supporting_polygon_index) changed_polygon(player->last_supporting_polygon_index, player->supporting_polygon_index, player_index);
 	player->last_supporting_polygon_index= first_time ? NONE : player->supporting_polygon_index;
+	// Durandal (noclip cheat, carried in the game's cheat flags): walls,
+	// monsters and scenery do not stop the local player; only the void does
+	const bool noclip= DurandalCheats::Noclip(player_index);
+	if (noclip)
+	{
+		world_point2d from= {legs->location.x, legs->location.y};
+		world_point2d to= {new_location.x, new_location.y};
+		short polygon_index= find_new_object_polygon(&from, &to, legs->polygon);
+		if (polygon_index==NONE)
+		{
+			new_location.x= legs->location.x, new_location.y= legs->location.y;
+			clipped= true;
+			polygon_index= legs->polygon;
+		}
+		struct polygon_data *polygon= get_polygon_data(polygon_index);
+		adjusted_floor_height= polygon->floor_height;
+		adjusted_ceiling_height= polygon->ceiling_height;
+		player->supporting_polygon_index= polygon_index;
+	}
+	else
 	clipped= keep_line_segment_out_of_walls(legs->polygon, &legs->location, &new_location,
 		WORLD_ONE/3, FIXED_TO_WORLD(variables->actual_height), &adjusted_floor_height, &adjusted_ceiling_height,
 		&player->supporting_polygon_index);
@@ -455,6 +476,7 @@ uint32 process_aim_input(uint32 action_flags, fixed_yaw_pitch delta)
 	/* check for 2d collisions with solid objects and knock the player back out of the object.
 		ONLY MODIFY THE PLAYER’S FIXED_POINT3D POSITION IF WE HAD A COLLISION. */
 	object_floor= INT16_MIN;
+	if (!noclip)
 	{
 		short obstruction_index= legal_player_move(player->monster_index, &new_location, &object_floor);
 		

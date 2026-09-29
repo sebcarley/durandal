@@ -32,7 +32,13 @@
 
 #include <set>
 #include <string>
+#include <vector>
 #include <boost/unordered_map.hpp>
+#include <dispatch/dispatch.h>	// Durandal: parallel image decoding
+#include <chrono>
+#include <cstdlib>
+#include "DurandalMetal.h"
+#include "DurandalTextureCache.h"
 
 #ifdef HAVE_OPENGL
 
@@ -63,8 +69,45 @@ int OGL_CountTextures(short Collection)
 
 extern void OGL_ProgressCallback(int);
 
+// Durandal: one entry's images, for dispatch_apply_f
+static void load_texture_entry(void* context, size_t index)
+{
+	(*static_cast<std::vector<OGL_TextureOptions*>*>(context))[index]->Load();
+}
+
 void OGL_LoadTextures(short Collection)
 {
+	// Durandal: DURANDAL_CACHE_LOG=1 prints each collection's load time
+	struct Done {
+		short collection; size_t entries; bool timing; std::chrono::steady_clock::time_point started;
+		~Done() {
+			char what[48];
+			snprintf(what, sizeof(what), "collection %d, %zu entries", collection, entries);
+			DurandalTextureCache::Report(what);
+			if (timing)
+			{
+				char line[96];
+				snprintf(line, sizeof(line), "textures of %s loaded in %.0f ms", what,
+					std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count());
+				DurandalTextureCache::Mark(line);
+			}
+		}
+	} done = {Collection, Collections[Collection].size(), getenv("DURANDAL_CACHE_LOG") != nullptr, std::chrono::steady_clock::now()};
+	// Durandal: HD art packs are hundreds of PNGs per level (the weapons in
+	// hand at 2048x2048), decoded serially here at every level start. On the
+	// Metal display they are decoded across the cores instead: each entry's
+	// Load() touches only its own files and images, and the upload to the
+	// GPU happens later, on the main thread, at first use.
+	if (DurandalMetal::DisplayActive() && Collections[Collection].size() > 1)
+	{
+		std::vector<OGL_TextureOptions*> entries;
+		for (TOHash::iterator it = Collections[Collection].begin(); it != Collections[Collection].end(); ++it)
+			entries.push_back(&it->second);
+		dispatch_apply_f(entries.size(), dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), &entries, load_texture_entry);
+		for (size_t i = 0; i < entries.size(); ++i)
+			OGL_ProgressCallback(1);
+		return;
+	}
 
 	for (TOHash::iterator it = Collections[Collection].begin(); it != Collections[Collection].end(); ++it)
 	{

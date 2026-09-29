@@ -49,6 +49,12 @@ Jan 12, 2001 (Loren Petrich):
 #include "shape_descriptors.h"
 #include "screen_drawing.h"
 #include "screen.h"
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalPreferences.h"
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
+
 
 #ifdef HAVE_OPENGL
 std::set<FontSpecifier*> *FontSpecifier::m_font_registry = NULL;
@@ -93,14 +99,10 @@ void FontSpecifier::Init()
 #endif
 }
 
-void FontSpecifier::Update()
+// Durandal: the font's specification, optionally scaled (for crisp text);
+// Scale 1 is exactly the original Update() specification
+TextSpec FontSpecifier::Spec(float Scale) const
 {
-	// Clear away
-	if (Info) {
-		unload_font(Info);
-		Info = NULL;
-	}
-		
 	TextSpec Spec;
 	Spec.size = Size;
 	Spec.style = Style;
@@ -135,7 +137,23 @@ void FontSpecifier::Update()
 		Spec.normal = File;
 	}
 
-	Info = load_font(Spec);
+	if (Scale != 1)
+	{
+		Spec.size = short(lround(Spec.size * Scale));
+		Spec.adjust_height = short(lround(Spec.adjust_height * Scale));
+	}
+	return Spec;
+}
+
+void FontSpecifier::Update()
+{
+	// Clear away
+	if (Info) {
+		unload_font(Info);
+		Info = NULL;
+	}
+		
+	Info = load_font(Spec(1));
 	
 	if (Info) {
 		Ascent = Info->get_ascent();
@@ -194,15 +212,41 @@ void FontSpecifier::OGL_Reset(bool IsStarting)
 	for (int i=0; i<256; i++) {
 	  widths_p[i] = Widths[i] + 2*Pad;
 	}
+
+	// Durandal (roadmap T2): the glyphs may be rasterised at OGL_Scale
+	// texture pixels per text unit, from the font loaded at that size.
+	// Layout (advances, ascent, line spacing) stays that of the base size;
+	// each glyph's cell is simply drawn with more texels.
+	float Scale = OGL_Scale;
+	font_info *RasterInfo = Info;
+	if (Scale != 1)
+	{
+		RasterInfo = load_font(Spec(Scale));
+		if (!RasterInfo)
+		{
+			RasterInfo = Info;
+			Scale = OGL_Scale = 1;
+		}
+	}
+	int widths_t[256];
+	for (int i=0; i<256; i++)
+		widths_t[i] = int(ceil(widths_p[i] * Scale));
+	const int pad_t = int(lround(Pad * Scale));
+	const int ascent_t = int(lround(ascent_p * Scale));
+
 	// Now for the totals and dimensions
 	int TotalWidth = 0;
 	for (int k=0; k<256; k++)
-		TotalWidth += widths_p[k];
+		TotalWidth += widths_t[k];
 	
 	// For an empty font, clear out
-	if (TotalWidth <= 0) return;
+	if (TotalWidth <= 0)
+	{
+		if (RasterInfo != Info) unload_font(RasterInfo);
+		return;
+	}
 	
-	int GlyphHeight = ascent_p + descent_p;
+	int GlyphHeight = int(ceil((ascent_p + descent_p) * Scale));
 	
 	int EstDim = int(sqrt(static_cast<float>(TotalWidth*GlyphHeight)) + 0.5);
 	TxtrWidth = MAX(128, NextPowerOfTwo(EstDim));
@@ -216,12 +260,12 @@ void FontSpecifier::OGL_Reset(bool IsStarting)
 	for (int k=0; k<256; k++)
 	{
 		// Over the edge? If so, then start a new line
-		short NewPos = Pos + widths_p[k];
+		short NewPos = Pos + widths_t[k];
 		if (NewPos > TxtrWidth)
 		{
 			LastLine++;
 			CharStarts[LastLine] = k;
-			Pos = widths_p[k];
+			Pos = widths_t[k];
 			CharCounts[LastLine] = 1;
 		} else {
 			Pos = NewPos;
@@ -233,7 +277,10 @@ void FontSpecifier::OGL_Reset(bool IsStarting)
 	// Render the font glyphs into the SDL surface
 	SDL_Surface *FontSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, TxtrWidth, TxtrHeight, 32, 0xff0000, 0x00ff00, 0x0000ff, 0);
 	if (FontSurface == NULL)
+	{
+		if (RasterInfo != Info) unload_font(RasterInfo);
 		return;
+	}
 
 	// Set background to black
 	SDL_FillRect(FontSurface, NULL, SDL_MapRGB(FontSurface->format, 0, 0, 0));
@@ -243,15 +290,17 @@ void FontSpecifier::OGL_Reset(bool IsStarting)
 	for (int k = 0; k <= LastLine; k++)
 	{
 		char Which = CharStarts[k];
-		int VPos = (k * GlyphHeight) + ascent_p;
-		int HPos = Pad;
+		int VPos = (k * GlyphHeight) + ascent_t;
+		int HPos = pad_t;
 		for (int m = 0; m < CharCounts[k]; m++)
 		{
 		  
-		  ::draw_text(FontSurface, &Which, 1, HPos, VPos, White, Info, Style);
-		  HPos += widths_p[(unsigned char) (Which++)];
+		  ::draw_text(FontSurface, &Which, 1, HPos, VPos, White, RasterInfo, Style);
+		  HPos += widths_t[(unsigned char) (Which++)];
 		}
 	}
+	if (RasterInfo != Info)
+		unload_font(RasterInfo);
  	
  	// Non-MacOS-specific: allocate the texture buffer
  	// Its format is LA 88, where L is the luminosity and A is the alpha channel
@@ -307,7 +356,7 @@ void FontSpecifier::OGL_Reset(bool IsStarting)
  		for (int m=0; m<CharCounts[k]; m++)
  		{
  			short Width = widths_p[Which];
- 			int NewPos = Pos + Width;
+ 			int NewPos = Pos + widths_t[Which];
  			GLfloat Left = TWidNorm*Pos;
  			GLfloat Right = TWidNorm*NewPos;
  			
@@ -333,12 +382,40 @@ void FontSpecifier::OGL_Reset(bool IsStarting)
 }
 
 
+// Durandal (roadmap T2): with Crisp Text in Metal display mode, glyphs are
+// rasterised at the number of screen pixels per text unit at which they are
+// being drawn (HUD scale, Retina), in quarter steps from 1 to 8; otherwise 1.
+// Inside a display list (on-screen messages) the transform is not known
+// yet, and those are drawn in screen units.
+float FontSpecifier::Durandal_TextScale()
+{
+	if (!DurandalGL::Active() || !Durandal::Enabled(Durandal::kCrispText))
+		return 1;
+	// Development runs: DURANDAL_TEXT_SCALE forces the scale (to check glyph
+	// placement without a Retina or scaled HUD)
+	static const float forced = (std::getenv("DURANDAL_TEXT_SCALE") && std::getenv("DURANDAL_BENCHMARK")) ?
+		float(std::atof(std::getenv("DURANDAL_TEXT_SCALE"))) : 0.f;
+	if (forced > 0)
+		return forced;
+	float s = DurandalGL::PixelsPerUnit();
+	if (s <= 0)
+		s = MainScreenPixelScale();
+	s = roundf(s * 4) / 4;
+	return s < 1 ? 1 : (s > 8 ? 8 : s);
+}
+
 // Renders a C-style string in OpenGL.
 // assumes screen coordinates and that the left baseline point is at (0,0).
 // Alters the modelview matrix so that the next characters will be drawn at the proper place.
 // One can surround it with glPushMatrix() and glPopMatrix() to remember the original.
 void FontSpecifier::OGL_Render(const char *Text)
 {
+	// Durandal (T2): rebuild the glyphs when they are drawn at another scale
+	const float Scale = Durandal_TextScale();
+	if (OGL_Texture && Scale != OGL_Scale)
+		OGL_Reset(false);
+	OGL_Scale = Scale;
+
 	// Bug out if no texture to render
 	if (!OGL_Texture)
 	{

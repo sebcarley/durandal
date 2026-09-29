@@ -346,6 +346,7 @@ static void encode_text(terminal_text_t *terminal_text);
 static void decode_text(terminal_text_t *terminal_text);
 
 #include "sdl_fonts.h"
+#include "DurandalTerminal.h"
 #include "joystick.h" // for AO_SCANCODE_BASE_JOYSTICK_BUTTON
 
 
@@ -667,6 +668,7 @@ void _render_computer_interface(void)
 	if(TERMINAL_IS_DIRTY(terminal_data))
 	{
 		SET_TERMINAL_IS_DIRTY(terminal_data, false);
+		DurandalTerminal::Redraw durandal_redraw(draw_surface);	// Durandal: crisp terminals
 
 		terminal_text_t *terminal_text;
 		struct terminal_groupings *current_group;

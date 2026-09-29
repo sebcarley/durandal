@@ -99,6 +99,10 @@ May 3, 2003 (Br'fin (Jeremy Parsons))
 #include "OGL_Setup.h"
 #include "OGL_Render.h"
 #include "OGL_Textures.h"
+#include "DurandalMetal.h"
+#include "DurandalBC7.h"
+#include "DurandalRelief.h"
+#include "DurandalGlow.h"
 #include "screen.h"
 
 #ifdef _WIN32
@@ -106,6 +110,10 @@ May 3, 2003 (Br'fin (Jeremy Parsons))
 #include <windows.h>
 #include <GL/GLU.h>
 #endif
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
 
 using std::min;
 using std::max;
@@ -184,9 +192,24 @@ bool TextureState::Allocate(short txType)
 	return false;
 }
 
+bool TextureState::NeedsImages() const
+{
+	if (!IsUsed)
+		return true;
+	if (DurandalMetal::InWorldPass())
+		return !MetalTextures[Normal] || (IsGlowing && !MetalTextures[Glowing]);
+	// Only possible when the Metal renderer set this state up first
+	return MetalTextures[Normal] && (!TexGened[Normal] || (IsGlowing && !TexGened[Glowing]));
+}
+
 // Use a texture and indicate whether to load it
 bool TextureState::Use(int Which)
 {
+	if (DurandalMetal::InWorldPass())	// Durandal: Metal world pass
+	{
+		IDUsage[Which]++;
+		return DurandalMetal::UseTexture(*this, Which);
+	}
 	glBindTexture(GL_TEXTURE_2D,IDs[Which]);
 	bool result = !TexGened[Which];
 	TexGened[Which] = true;
@@ -204,6 +227,7 @@ void TextureState::Reset()
 		gGLTxStats.inUse--;
 		glDeleteTextures(NUMBER_OF_TEXTURES,IDs);
 	}
+	DurandalMetal::ReleaseTextures(*this);	// Durandal
 	IsUsed = IsGlowing = IsBumped = TexGened[Normal] = TexGened[Glowing] = TexGened[Bump] = false;
 	IDUsage[Normal] = IDUsage[Glowing] = IDUsage[Bump] = unusedFrames = 0;
 }
@@ -506,7 +530,7 @@ bool TextureManager::Setup()
 	// If "Use()" is true, then load, otherwise, assume the texture is loaded and skip
 	TxtrStatePtr = &CBTS.CTStates[CTable];
 	TextureState &CTState = *TxtrStatePtr;
-	if (!CTState.IsUsed)
+	if (CTState.NeedsImages())	// Durandal: was !CTState.IsUsed
 	{
 		// Initial sprite scale/offset
 		U_Scale = V_Scale = 1;
@@ -538,6 +562,10 @@ bool TextureManager::Setup()
 		}
 		
 		CTState.IsGlowing = IsGlowing;
+
+		// Durandal: colour indices for the Metal renderer's 8-bit shading
+		if (!substitute && DurandalMetal::InWorldPass())
+			PlaceIndexImage();
 		
 		if (substitute && OffsetImage.get() && OffsetImage.get()->IsPresent()) {
 			CTState.IsBumped = true;
@@ -1147,6 +1175,53 @@ uint32 *TextureManager::GetOGLTexture(uint32 *ColorTable)
 }
 
 
+// Durandal: the colour indices, opacities and glow of a shapes texture, laid
+// out exactly as GetOGLTexture() lays out its colours, for the Metal
+// renderer's 8-bit shading (DurandalShading.h). Tinted, silhouette and
+// infravision tables and landscapes stay in true colour.
+void TextureManager::PlaceIndexImage()
+{
+	if (Collection == 0 || IsSilhouetteTable(CTable) || IsInfravisionTable(CTable))
+		return;
+	if (TextureType != OGL_Txtr_Wall && TextureType != OGL_Txtr_Inhabitant && TextureType != OGL_Txtr_WeaponsInHand)
+		return;
+
+	uint32 IndexTable[MAXIMUM_SHADING_TABLE_INDEXES];
+	for (int k = 0; k < MAXIMUM_SHADING_TABLE_INDEXES; k++)
+	{
+		uint8 *Entry = (uint8 *)(IndexTable + k);
+		Entry[0] = k;
+		Entry[1] = Entry[2] = 0;
+		Entry[3] = ((uint8 *)(NormalColorTable + k))[3];
+	}
+	uint32 *Buffer = GetOGLTexture(IndexTable);
+
+	// Glow (E1): Marathon 2's reviewed wall lights (DurandalGlow.h)
+	uint8 GlowByIndex[MAXIMUM_SHADING_TABLE_INDEXES] = {0};
+	const size_t n = size_t(TxtrWidth) * TxtrHeight;
+	const int GlowMode = (TextureType == OGL_Txtr_Wall) ?
+		DurandalGlow::ModeFor(Collection, Bitmap, DurandalGlow::Fingerprint(Texture)) : DurandalGlow::kNone;
+	if (GlowMode)
+		for (int k = 1; k < MAXIMUM_SHADING_TABLE_INDEXES; k++)
+			GlowByIndex[k] = DurandalGlow::Mask(GlowMode, (const uint8 *)(NormalColorTable + k));
+
+	std::vector<uint8> texels(4 * n);
+	for (size_t i = 0; i < n; i++)
+	{
+		const uint8 *Pixel = (const uint8 *)(Buffer + i);
+		texels[4 * i] = Pixel[0];
+		texels[4 * i + 1] = Pixel[3];
+		texels[4 * i + 2] = GlowByIndex[Pixel[0]];
+		texels[4 * i + 3] = 0;
+	}
+	delete[] Buffer;
+	// Surface relief (M1): heights from the art; walls only, reviewed wall
+	// lights flat (DurandalRelief.h)
+	DurandalRelief::Derive(texels.data(), TxtrWidth, TxtrHeight, (const uint32_t *)NormalColorTable,
+						   TextureType != OGL_Txtr_Wall || GlowMode != DurandalGlow::kNone);
+	DurandalMetal::PlaceIndexTexture(*TxtrStatePtr, texels.data(), TxtrWidth, TxtrHeight, NormalColorTable);
+}
+
 uint32 *TextureManager::GetFakeLandscape() const
 {
 	// Allocate and set to black and transparent
@@ -1210,6 +1285,15 @@ void TextureManager::PlaceTexture(const ImageDescriptor *Image, bool normal_map)
 	bool mipmapsLoaded = false;
 
 	TxtrTypeInfoData& TxtrTypeInfo = TxtrTypeInfoList[TextureType];
+
+	if (DurandalMetal::InWorldPass())	// Durandal: Metal world pass
+	{
+		const bool srgb = Wanting_sRGB && !normal_map &&
+			Collection != _collection_interface && Collection != _collection_weapons_in_hand;
+		DurandalMetal::PlaceTexture(*TxtrStatePtr, TxtrStatePtr->MetalLastUsed, Image, TextureType, LandscapeVertRepeat,
+			TxtrTypeInfo.NearFilter, TxtrTypeInfo.FarFilter, Get_OGL_ConfigureData().AnisotropyLevel, srgb);
+		return;
+	}
 
 	GLenum internalFormat = TxtrTypeInfo.ColorFormat;
 	// some optimizations here:
@@ -1506,6 +1590,34 @@ void TextureManager::SetupTextureMatrix()
 		}
 		glMatrixMode(GL_MODELVIEW);
 		break;
+	}
+}
+
+void TextureManager::GetTextureMatrix(float m[16]) const
+{
+	// Same transforms as SetupTextureMatrix(), composed on the CPU
+	for (int i = 0; i < 16; ++i)
+		m[i] = (i % 5 == 0) ? 1.f : 0.f;
+	switch (TextureType)
+	{
+	case OGL_Txtr_Wall:
+	case OGL_Txtr_WeaponsInHand:
+	case OGL_Txtr_HUD:
+	case OGL_Txtr_Inhabitant:
+		if (TxtrOptsPtr->Substitution) {
+			// glRotatef(90, 0, 0, 1) then glScalef(1, -1, 1)
+			m[0] = 0; m[1] = 1;		// column 0 = R * (1,0,0)
+			m[4] = 1; m[5] = 0;		// column 1 = R * (0,-1,0)
+		}
+		break;
+	case OGL_Txtr_Landscape:
+	{
+		// glScalef(1, s, 1) then glTranslatef(0, U_Offset, 0)
+		const float s = TxtrOptsPtr->Substitution ? -U_Scale : U_Scale;
+		m[5] = s;
+		m[13] = s * U_Offset;
+		break;
+	}
 	}
 }
 
@@ -1846,6 +1958,10 @@ void FindSilhouetteVersion(ImageDescriptorManager &imageManager)
 	{
 		FindSilhouetteVersionDXTC35(imageManager.edit()->GetBufferSize(), (unsigned char *) imageManager.edit()->GetBuffer());
 	}
+	else if (imageManager.get()->GetFormat() == ImageDescriptor::BC7)	// Durandal: texture cache
+	{
+		DurandalBC7::Blacken((unsigned char *) imageManager.edit()->GetBuffer(), imageManager.edit()->GetBufferSize());
+	}
 	imageManager.edit()->PremultipliedAlpha = false;
 }
 
@@ -2040,3 +2156,4 @@ void MakeConversion_16to32(int BitDepth)
 */
 
 #endif // def HAVE_OPENGL
+

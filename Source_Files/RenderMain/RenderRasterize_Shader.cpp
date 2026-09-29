@@ -23,6 +23,8 @@
 #include "ChaseCam.h"
 #include "preferences.h"
 #include "screen.h"
+#include "DurandalPreferences.h"
+#include <cmath>
 
 #ifdef HAVE_OPENGL
 
@@ -544,7 +546,87 @@ std::unique_ptr<TextureManager> RenderRasterize_Shader::setupWallTexture(const s
 	return TMgr;
 }
 
+// Durandal (F2): when the world is interpolated, scrolling and wobbling
+// textures follow the same in-between world time as everything else
+// (tick_count - 1 + fraction) instead of stepping at 30 Hz.
+extern bool world_is_interpolated;
+
+static bool durandal_smooth_transfer(const view_data *view)
+{
+	return Durandal::Enabled(Durandal::kSmoothWorld) && world_is_interpolated && view->heartbeat_fraction <= 1.f;
+}
+
+static double durandal_transfer_time(const view_data *view)
+{
+	return view->tick_count - 1 + view->heartbeat_fraction;
+}
+
+// Same slides as below, at fractional time. Returns false for other modes.
+static bool durandal_slide(const view_data *view, short transfer_mode, world_distance &x0, world_distance &y0)
+{
+	double t = durandal_transfer_time(view);
+	switch (transfer_mode) {
+		case _xfer_fast_horizontal_slide: case _xfer_fast_vertical_slide:
+		case _xfer_reverse_fast_horizontal_slide: case _xfer_reverse_fast_vertical_slide:
+			t *= 2;
+			break;
+		case _xfer_horizontal_slide: case _xfer_vertical_slide:
+		case _xfer_reverse_horizontal_slide: case _xfer_reverse_vertical_slide:
+			break;
+		default:
+			return false;
+	}
+	const int64_t offset = static_cast<int64_t>(std::floor(t * 4));
+	x0 = y0 = 0;
+	switch (transfer_mode) {
+		case _xfer_fast_horizontal_slide: case _xfer_horizontal_slide:
+			x0 = offset & (WORLD_ONE - 1); break;
+		case _xfer_fast_vertical_slide: case _xfer_vertical_slide:
+			y0 = offset & (WORLD_ONE - 1); break;
+		case _xfer_reverse_fast_horizontal_slide: case _xfer_reverse_horizontal_slide:
+			x0 = (WORLD_ONE - offset) & (WORLD_ONE - 1); break;
+		case _xfer_reverse_fast_vertical_slide: case _xfer_reverse_vertical_slide:
+			y0 = (WORLD_ONE - offset) & (WORLD_ONE - 1); break;
+	}
+	return true;
+}
+
+// Same triangle wave as calcWobble(), at fractional time.
+static float durandal_wobble(short transferMode, double phase)
+{
+	switch (transferMode) {
+		case _xfer_fast_wobble:
+			phase *= 15;
+		case _xfer_pulsate:
+		case _xfer_wobble: {
+			double p = std::fmod(phase, WORLD_ONE / 16);
+			if (p < 0) p += WORLD_ONE / 16;
+			p = (p >= WORLD_ONE / 32) ? (WORLD_ONE / 32 + WORLD_ONE / 64 - p) : (p - WORLD_ONE / 64);
+			return p / 1024.0;
+		}
+	}
+	return 0;
+}
+
+float calcWobble(short transferMode, short transfer_phase);
+
+static float durandal_calc_wobble(const view_data *view, short transferMode)
+{
+	return durandal_smooth_transfer(view) ?
+		durandal_wobble(transferMode, durandal_transfer_time(view)) :
+		calcWobble(transferMode, view->tick_count);
+}
+
+// Durandal: shared with RenderRasterize_Metal.cpp
+float durandal_calc_wobble_for(const view_data *view, short transferMode)
+{
+	return durandal_calc_wobble(view, transferMode);
+}
+
 void instantiate_transfer_mode(struct view_data *view, short transfer_mode, world_distance &x0, world_distance &y0) {
+	if (durandal_smooth_transfer(view) && durandal_slide(view, transfer_mode, x0, y0))
+		return;	// Durandal (F2)
+
 	short alternate_transfer_phase;
 	short transfer_phase = view->tick_count;
 
@@ -667,7 +749,7 @@ void RenderRasterize_Shader::render_node_floor_or_ceiling(clipping_window_data *
 
 	const shape_descriptor& texture = AnimTxtr_Translate(surface->texture);
 	float intensity = get_light_intensity(surface->lightsource_index) / float(FIXED_ONE - 1);
-	float wobble = calcWobble(surface->transfer_mode, view->tick_count);
+	float wobble = durandal_calc_wobble(view, surface->transfer_mode);	// Durandal (F2)
 	// note: wobble and pulsate behave the same way on floors and ceilings
 	// note 2: stronger wobble looks more like classic with default shaders
 	auto TMgr = setupWallTexture(texture, surface->transfer_mode, wobble * 4.0, 0, intensity, offset, renderStep);
@@ -780,7 +862,7 @@ void RenderRasterize_Shader::render_node_side(clipping_window_data *window, vert
 
 	const shape_descriptor& texture = AnimTxtr_Translate(surface->texture_definition->texture);
 	float intensity = (get_light_intensity(surface->lightsource_index) + surface->ambient_delta) / float(FIXED_ONE - 1);
-	float wobble = calcWobble(surface->transfer_mode, view->tick_count);
+	float wobble = durandal_calc_wobble(view, surface->transfer_mode);	// Durandal (F2)
 	float pulsate = 0;
 	if (surface->transfer_mode == _xfer_pulsate) {
 		pulsate = wobble;

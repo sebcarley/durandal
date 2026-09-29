@@ -129,6 +129,7 @@ extern TP2PerfGlobals perf_globals;
 
 #include "map.h"
 #include "shell.h"
+#include "DurandalCheats.h"
 #include "interface.h"
 #include "player.h"
 #include "network.h"
@@ -151,6 +152,7 @@ extern TP2PerfGlobals perf_globals;
 #include "Plugins.h"
 #include "Statistics.h"
 #include "shell_options.h"
+#include "DurandalBenchmark.h"
 #include "OpenALManager.h"
 
 #define PL_MPEG_IMPLEMENTATION
@@ -1137,7 +1139,9 @@ bool idle_game_state(uint64_t time)
 	{
 		// ZZZ change: update_world() whether or not get_keyboard_controller_status() is true
 		// This way we won't fill up queues and stall netgames if one player switches out for a bit.
+		DurandalBenchmark::StageBegin(DurandalBenchmark::kStageTick);	// Durandal: development timing
 		std::pair<bool, int16> theUpdateResult= update_world();
+		DurandalBenchmark::StageEnd(DurandalBenchmark::kStageTick);
 		short ticks_elapsed= theUpdateResult.second;
 		bool redraw = false;
 
@@ -1149,7 +1153,9 @@ bool idle_game_state(uint64_t time)
 			auto heartbeat_fraction = get_heartbeat_fraction();
 			if (theUpdateResult.first || (last_heartbeat_fraction != -1 && last_heartbeat_fraction != heartbeat_fraction)) {
 				last_heartbeat_fraction = heartbeat_fraction;
+				DurandalBenchmark::StageBegin(DurandalBenchmark::kStageRender);	// Durandal: development timing
 				render_screen(ticks_elapsed);
+				DurandalBenchmark::StageEnd(DurandalBenchmark::kStageRender);
 				first_frame_rendered = ticks_elapsed > 0;
 				is_network_pregame = false;
 			}
@@ -1165,7 +1171,9 @@ bool idle_game_state(uint64_t time)
 			if (current_player && machine_tick_count() > last_redraw + MACHINE_TICKS_PER_SECOND / 30)
 			{
 				last_redraw = machine_tick_count();
+				DurandalBenchmark::StageBegin(DurandalBenchmark::kStageRender);	// Durandal: development timing
 				render_screen(ticks_elapsed);
+				DurandalBenchmark::StageEnd(DurandalBenchmark::kStageRender);
 				if (ticks_elapsed) is_network_pregame = false;
 			}
 		}
@@ -2584,7 +2592,7 @@ static bool begin_game(
 			break;
 			
 		case _single_player:
-			if(cheat)
+			if(cheat || DurandalCheats::LevelSelect())	// Durandal: level-select cheat
 			{
 				entry.level_number= get_level_number_from_user();
 				if(entry.level_number==NONE) success= false; /* Cancelled */
@@ -2608,6 +2616,7 @@ static bool begin_game(
 			game_information.game_options= _burn_items_on_death|_ammo_replenishes|_weapons_replenish|_monsters_replenish;
 			game_information.initial_random_seed= machine_tick_count();
 			game_information.difficulty_level= get_difficulty_level();
+			game_information.cheat_flags= DurandalCheats::NewGameFlags();	// Durandal: testing cheats, so the film replays them
 			std::fill_n(game_information.parameters, 2, 0);
 				
                         // ZZZ: until film files store player behavior flags, we must require
@@ -2858,6 +2867,7 @@ static void finish_game(
 	{
 		if (!shell_options.replay_directory.empty())
 		{
+			DurandalBenchmark::Finish();	// Durandal
 			game_state.state = _quit_game;
 			return_to_main_menu = false;
 		}

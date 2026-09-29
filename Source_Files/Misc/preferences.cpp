@@ -100,6 +100,8 @@ May 22, 2003 (Woody Zenfell):
 #include <boost/algorithm/hex.hpp>
 
 #include "shell_options.h"
+#include "DurandalBenchmark.h"
+#include "DurandalPreferences.h"
 #include "OpenALManager.h"
 #include "resource_manager.h"
 #include "XML_LevelScript.h"
@@ -245,6 +247,9 @@ void handle_preferences(void)
 	d.add(w_environment);
 	w_button *w_plugins = new w_button("PLUGINS", plugins_dialog, &d);
 	d.add(w_plugins);
+	w_button *w_durandal = Durandal::Available() ? new w_button("DURANDAL", Durandal::Dialog, &d) : nullptr;	// Durandal
+	if (w_durandal)
+		d.add(w_durandal);
 
 	w_button *w_return = new w_button("RETURN", dialog_cancel, &d);
 	d.add(w_return);
@@ -258,6 +263,8 @@ void handle_preferences(void)
 	placer->add(w_controls);
 	placer->add(w_environment);
 	placer->add(w_plugins);
+	if (w_durandal)
+		placer->add(w_durandal);
 	placer->add(new w_spacer, true);
 	placer->add(w_return);
 
@@ -3494,6 +3501,7 @@ void read_preferences ()
 	default_input_preferences(input_preferences);
 	*sound_preferences = SoundManager::Parameters();
 	default_environment_preferences(environment_preferences);
+	Durandal::SetDefaults();
 
 	// Slurp in the file and parse it
 
@@ -3564,6 +3572,8 @@ void read_preferences ()
 #endif
 			for (const InfoTree &child : root.children_named("environment"))
 				parse_environment_preferences(child, version);
+			for (const InfoTree &child : root.children_named("durandal"))
+				Durandal::Parse(child);
 			
 		} catch (const InfoTree::parse_error& ex) {
 			logError("Error parsing preferences file (%s): %s", FileSpec.GetPath(), ex.what());
@@ -3598,6 +3608,7 @@ void read_preferences ()
 	validate_player_preferences(player_preferences);
 	validate_input_preferences(input_preferences);
 	validate_environment_preferences(environment_preferences);
+	Durandal::AfterRead();
 	
 	// jkvw: If we try to load a default file, but can't, we'll have set the game error.
 	//       But that's not useful, because we're just going to try loading the file
@@ -4085,6 +4096,10 @@ InfoTree environment_preferences_tree()
 
 void write_preferences()
 {
+	// Durandal: the benchmark's overrides must never reach the player's file
+	if (DurandalBenchmark::DevRun())
+		return;
+
 	InfoTree root;
 	root.put_attr("version", A1_DATE_VERSION);
 	
@@ -4096,6 +4111,8 @@ void write_preferences()
 	root.put_child("network", network_preferences_tree());
 #endif
 	root.put_child("environment", environment_preferences_tree());
+	if (Durandal::ShouldWrite())
+		root.put_child("durandal", Durandal::Tree());
 	
 	InfoTree fileroot;
 	fileroot.put_child("mara_prefs", root);

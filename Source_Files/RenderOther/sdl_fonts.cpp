@@ -284,6 +284,18 @@ static TTF_Font *load_ttf_font(const std::string& path, uint16 style, int16 size
 	return font;	
 }
 
+// Durandal (crisp terminals): kept loaded for the session
+TTF_Font *durandal_scaled_ttf(const ttf_font_key_t &key, int k)
+{
+	static std::map<std::pair<ttf_font_key_t, int>, TTF_Font *> fonts;
+	auto it = fonts.find(std::make_pair(key, k));
+	if (it != fonts.end())
+		return it->second;
+	TTF_Font *font = load_ttf_font(std::get<0>(key), std::get<1>(key), std::get<2>(key) * k);
+	fonts[std::make_pair(key, k)] = font;
+	return font;
+}
+
 static const char *locate_font(const std::string& path)
 {
 	builtin_fonts_t::iterator j = builtin_fonts.find(path);

@@ -153,6 +153,7 @@ May 3, 2003 (Br'fin (Jeremy Parsons))
 #include "OGL_Blitter.h"
 #include "AnimatedTextures.h"
 #include "Crosshairs.h"
+#include "DurandalCamera.h"	// Durandal (C3)
 #include "VecOps.h"
 #include "Random.h"
 #include "ViewControl.h"
@@ -163,6 +164,10 @@ May 3, 2003 (Br'fin (Jeremy Parsons))
 #include "OGL_Shader.h"
 
 #include <cmath>
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
 
 extern bool use_lua_hud_crosshairs;
 
@@ -388,6 +393,8 @@ OGL_FogData* OGL_GetCurrFogData()
 
 // Current fog color; may be different from the fog color above because of infravision being on
 static GLfloat CurrFogColor[4] = {0,0,0,0};
+// Durandal: the fog colour OGL_StartMain() set up, for the Metal renderer
+const GLfloat* OGL_GetCurrFogColor() { return CurrFogColor; }
 
 #ifndef USE_STIPPLE_STATIC_EFFECT
 // For doing static effects with stenciling
@@ -2911,7 +2918,9 @@ void SetupShaders()
 bool OGL_RenderCrosshairs()
 {
 	if (!OGL_IsActive()) return false;
-	if (use_lua_hud_crosshairs) return false;
+	// Durandal (C3): with the aim away from the centre the Lua HUD's own
+	// reticle is hidden and this crosshair marks the aim
+	if (use_lua_hud_crosshairs && !DurandalCamera::AimOffCentre()) return false;
 	
 	// Crosshair features
 	CrosshairData& Crosshairs = GetCrosshairData();
@@ -2937,9 +2946,23 @@ bool OGL_RenderCrosshairs()
 	SglColor4fv(Crosshairs.GLColorsPreCalc);
 	
 	// Create a new modelview matrix for the occasion
+	// Durandal (C3): the crosshair marks the aim, which Free Look may
+	// leave away from the centre of the view
+	int aim_dx = 0, aim_dy = 0;
+	DurandalCamera::CrosshairOffset(ViewWidth, ViewHeight, aim_dx, aim_dy);
+	// Away from the centre it is an aim marker, scaled with the view so it
+	// reads at any size (the sizes were chosen for 480 rows)
+	CrosshairData marker = Crosshairs;
+	if (DurandalCamera::AimOffCentre())
+	{
+		const int scale = std::max(1, ViewHeight / 360);
+		marker.Thickness *= scale;
+		marker.FromCenter *= scale;
+		marker.Length *= scale;
+	}
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
-	glTranslated(ViewWidth / 2, ViewHeight / 2, 1);
+	glTranslated(ViewWidth / 2 + aim_dx, ViewHeight / 2 + aim_dy, 1);
 	
 	// To keep pixels aligned, we have to draw on pixel boundaries.
 	// The SW renderer always offsets down and to the right when faced
@@ -2948,8 +2971,8 @@ bool OGL_RenderCrosshairs()
 	//
 	// We precalculate the offsets for crosshair thickness below,
 	// for each of the four quadrants.
-	int halfWidthMin = -Crosshairs.Thickness / 2;
-	int halfWidthMax = halfWidthMin - (Crosshairs.Thickness % 2);
+	int halfWidthMin = -marker.Thickness / 2;
+	int halfWidthMax = halfWidthMin - (marker.Thickness % 2);
 	int offsets[4][2] = {   // [quadrant][local x/y]
 		{ halfWidthMin, halfWidthMin },
 		{ halfWidthMax, halfWidthMin },
@@ -2959,18 +2982,18 @@ bool OGL_RenderCrosshairs()
 	for (int quad = 0; quad < 4; quad++)
 	{
 		int WidthMin = offsets[quad][0];
-		int WidthMax = WidthMin + Crosshairs.Thickness;
+		int WidthMax = WidthMin + marker.Thickness;
 		int HeightMin = offsets[quad][1];
-		int HeightMax = HeightMin + Crosshairs.Thickness;
+		int HeightMax = HeightMin + marker.Thickness;
 
-		switch(Crosshairs.Shape)
+		switch(marker.Shape)
 		{
 		case CHShape_RealCrosshairs:
 			{
 				// Four simple rectangles
 				
-				int LenMin = Crosshairs.FromCenter;
-				int LenMax = LenMin + Crosshairs.Length;
+				int LenMin = marker.FromCenter;
+				int LenMax = LenMin + marker.Length;
 				
 				// at the initial rotation, this is the rectangle at 3:00
 				OGL_RenderRect(LenMin, HeightMin, LenMax - LenMin, HeightMax - HeightMin);
@@ -2985,9 +3008,9 @@ bool OGL_RenderCrosshairs()
 				// Depending on the crosshair parameters, some segments
 				// have zero length: this happens when LenMid == LenMin.
 				
-				int LenMax = Crosshairs.Length;
+				int LenMax = marker.Length;
 				int LenMid = LenMax / 2;
-				int LenMin = std::min(LenMid, static_cast<int>(Crosshairs.FromCenter));
+				int LenMin = std::min(LenMid, static_cast<int>(marker.FromCenter));
 				
 				// at the initial rotation, this is the bottom right
 				GLint vertices[16] = {
@@ -3268,3 +3291,4 @@ bool OGL_IsActive()
 }
 
 #endif // def HAVE_OPENGL
+

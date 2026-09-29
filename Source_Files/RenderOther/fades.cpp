@@ -60,6 +60,8 @@ Jan 31, 2001 (Loren Petrich):
 	Added delayed action for the fader effect, so as to get around certain MacOS oddities
 */
 
+#include <algorithm>
+#include <cmath>
 #include "cseries.h"
 #include "fades.h"
 #include "screen.h"
@@ -271,7 +273,8 @@ void initialize_fades(
 }
 
 bool update_fades(
-	bool game_in_progress)
+	bool game_in_progress,
+	float frame_offset_ticks)
 {
   if (FADE_IS_ACTIVE(fade))
 	{
@@ -279,11 +282,17 @@ bool update_fades(
 		// LP change: idiot-proofing
 		if (!definition) return false;
 		
+		// Durandal (F2): random-transparency fades keep their per-tick flicker
+		if (frame_offset_ticks != 0.f && (definition->flags & _random_transparency_flag))
+			return true;
+		
 		_fixed transparency;
 		short phase;
 		if (game_in_progress)
 		{
 			phase = (dynamic_world->tick_count - fade->last_update_game_tick) * MACHINE_TICKS_PER_SECOND/TICKS_PER_SECOND;
+			if (frame_offset_ticks != 0.f)	// Durandal (F2)
+				phase = std::max<short>(0, static_cast<short>(std::lround((dynamic_world->tick_count - fade->last_update_game_tick + frame_offset_ticks) * MACHINE_TICKS_PER_SECOND / TICKS_PER_SECOND)));
 		}
 		else
 		{

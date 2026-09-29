@@ -25,6 +25,7 @@
 
 #include "cseries.h"
 #include "Crosshairs.h"
+#include "DurandalCamera.h"	// Durandal (C3)
 #include "screen_drawing.h"
 #include "world.h" // for struct world_point2d :(
 
@@ -56,7 +57,7 @@ bool Crosshairs_Render(SDL_Surface *s)
 {
 	if (!_Crosshairs_IsActive)
 		return false;
-	if (use_lua_hud_crosshairs)
+	if (use_lua_hud_crosshairs && !DurandalCamera::AimOffCentre())	// Durandal (C3): see OGL_RenderCrosshairs
 		return false;
 
 	// Get the crosshair data
@@ -66,7 +67,11 @@ bool Crosshairs_Render(SDL_Surface *s)
 	uint32 pixel = SDL_MapRGB(s->format, Crosshairs.Color.red >> 8, Crosshairs.Color.green >> 8, Crosshairs.Color.blue >> 8);
 
 	// Get coordinates
-	int xcen = s->w / 2 - 1, ycen = s->h / 2 - 1;
+	// Durandal (C3): the crosshair marks the aim, which Free Look may
+	// leave away from the centre of the view
+	int aim_dx = 0, aim_dy = 0;
+	DurandalCamera::CrosshairOffset(s->w, s->h, aim_dx, aim_dy);
+	int xcen = s->w / 2 - 1 + aim_dx, ycen = s->h / 2 - 1 + aim_dy;
 
 	if (Crosshairs.Shape == CHShape_RealCrosshairs)
 	{

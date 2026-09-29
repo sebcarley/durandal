@@ -115,5 +115,6 @@ void OGL_RenderLines(const std::vector<world_point2d>& points, float thickness);
 bool OGL_Get2D();
 
 OGL_FogData* OGL_GetCurrFogData();
+const GLfloat* OGL_GetCurrFogColor(); // Durandal
 
 #endif

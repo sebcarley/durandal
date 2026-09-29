@@ -23,6 +23,7 @@
 */
 
 #include <ctype.h>
+#include <vector>
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
@@ -128,6 +129,21 @@ bool LoadModel_Wavefront(FileSpecifier& Spec, Model3D& Model)
 		return false;
 	}
 
+	// Durandal: the file is read whole and parsed from memory (a byte at a
+	// time through the file was a system call each: half a second for a
+	// pack of 21 models)
+	std::vector<char> Contents;
+	{
+		int32 Length = 0;
+		if (OFile.GetLength(Length) && Length > 0)
+		{
+			Contents.resize(Length);
+			if (!OFile.Read(Length, &Contents[0]))
+				Contents.clear();
+		}
+	}
+	size_t ContentsAt = 0;
+
 	// Reading loop; create temporary lists of positions, texture coordinates, and normals
 
 	// Load the lines, one by one, and then parse them. Be sure to take care of the continuation
@@ -144,8 +160,9 @@ bool LoadModel_Wavefront(FileSpecifier& Spec, Model3D& Model)
 			// Try to read a character; if it is not possible to read anymore,
 			// the line has ended
 			char c;
-			MoreLines = OFile.Read(1,&c);
+			MoreLines = ContentsAt < Contents.size();	// Durandal: from memory
 			if (!MoreLines) break;
+			c = Contents[ContentsAt++];
 			
 			// End-of-line characters; ignore if the line is to be continued
 			if (c == '\r' || c == '\n')

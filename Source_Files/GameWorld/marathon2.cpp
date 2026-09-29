@@ -130,6 +130,9 @@ Feb 8, 2003 (Woody Zenfell):
 #include "Plugins.h"
 #include "SoundsPatch.h"
 #include "shell_options.h"
+#include "DurandalCheats.h"	// Durandal: testing cheats
+#include "DurandalCrash.h"	// Durandal: crash record
+#include "DurandalTextureCache.h"	// Durandal: load timing marks
 
 /* ---------- constants */
 
@@ -467,6 +470,7 @@ update_world_elements_one_tick(bool& call_postidle)
 std::pair<bool, int16>
 update_world()
 {
+        DurandalCrash::Phase("update_world");	// Durandal: crash record
         short theElapsedTime = 0;
         bool canUpdate = true;
         int theUpdateResult = kUpdateNormalCompletion;
@@ -680,6 +684,7 @@ bool entering_map(bool restoring_saved)
 	MarkLuaHUDCollections(true);
 
 	load_collections(true, get_screen_mode()->acceleration != _no_acceleration);
+	DurandalTextureCache::Mark("entering_map: collections loaded");	// Durandal: load timing
 
 	sounds_patches.clear();
 	Plugins::instance()->load_sounds_patches();
@@ -687,6 +692,7 @@ bool entering_map(bool restoring_saved)
 	load_sounds_patch_data();
 	
 	load_all_monster_sounds();
+	DurandalTextureCache::Mark("entering_map: sounds loaded");	// Durandal: load timing
 	load_all_game_sounds(static_world->environment_code);
 
 #if !defined(DISABLE_NETWORKING)
@@ -696,6 +702,7 @@ bool entering_map(bool restoring_saved)
 
 	/* make sure nobody’s holding a weapon illegal in the new environment */
 	check_player_weapons_for_environment_change();
+	DurandalCheats::LevelBegins();	// Durandal: testing cheats (all weapons)
 
 #if !defined(DISABLE_NETWORKING)
 	if (dynamic_world->player_count>1 && !restoring_saved) initialize_net_game();

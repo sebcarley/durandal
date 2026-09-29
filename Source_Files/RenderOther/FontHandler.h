@@ -74,6 +74,8 @@ public:
 	// Do the updating: must be called before using the font; however, it is called by Init(),
 	// and it will be called by the XML parser if it updates the parameters
 	void Update();
+	// Durandal: the load_font() specification, at Scale times the size
+	TextSpec Spec(float Scale) const;
 	
 	// Get text width for text that must be centered (map title)
 	int TextWidth(const char *Text);
@@ -128,6 +130,9 @@ public:
 	// if OGL_Texture is NULL, then there is no OpenGL font texture to render.
 	uint8 *OGL_Texture;
 	short TxtrWidth, TxtrHeight;
+	// Durandal: texture pixels per text unit the glyphs were built at (T2)
+	float OGL_Scale = 1;
+	static float Durandal_TextScale();
 	int GetTxtrSize() {return int(TxtrWidth)*int(TxtrHeight);}
 	GLuint TxtrID;
 	GLuint NearFilter = GL_LINEAR;

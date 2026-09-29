@@ -631,8 +631,10 @@ void RenderVisTreeClass::initialize_clip_data()
 		line->top_y = 0;
 		line->bottom_y = view->screen_height;
 		// Top clip vector is negated to clip upward
-		line->top_vector = {-view->world_to_screen_y, -(+view->half_screen_height + view->dtanpitch)}; // {i, k}
-		line->bottom_vector = {view->world_to_screen_y, -view->half_screen_height + view->dtanpitch}; // {i, k}
+		// Durandal (True Look): the top and bottom extents of the rotated
+		// frustum (equal to dtanpitch when the screen is sheared as before)
+		line->top_vector = {-view->world_to_screen_y, -(+view->half_screen_height + view->dtanpitch_top)}; // {i, k}
+		line->bottom_vector = {view->world_to_screen_y, -view->half_screen_height + view->dtanpitch_bottom}; // {i, k}
 	}
 
 	// LP change:
@@ -708,8 +710,9 @@ void RenderVisTreeClass::calculate_line_clipping_information(
 				transformed_z= z*view->world_to_screen_y;
 				
 				/* calculate and clip y0 and y1 (screen y-coordinates of each side of the line) */
-				y0= (p0.x>0) ? (view->half_screen_height - transformed_z/p0.x + view->dtanpitch) : 0;
-				y1= (p1.x>0) ? (view->half_screen_height - transformed_z/p1.x + view->dtanpitch) : 0;
+				// Durandal (True Look): the top extent of the rotated frustum
+				y0= (p0.x>0) ? (view->half_screen_height - transformed_z/p0.x + view->dtanpitch_top) : 0;
+				y1= (p1.x>0) ? (view->half_screen_height - transformed_z/p1.x + view->dtanpitch_top) : 0;
 		
 				/* pick the highest (closest to zero) and pin it to the screen */
 				if (y0<y1) y= y0, p= &p0; else y= y1, p= &p1;
@@ -733,8 +736,9 @@ void RenderVisTreeClass::calculate_line_clipping_information(
 				transformed_z= z*view->world_to_screen_y;
 				
 				/* calculate and clip y0 and y1 (screen y-coordinates of each side of the line) */
-				y0= (p0.x>0) ? (view->half_screen_height - transformed_z/p0.x + view->dtanpitch) : view->screen_height;
-				y1= (p1.x>0) ? (view->half_screen_height - transformed_z/p1.x + view->dtanpitch) : view->screen_height;
+				// Durandal (True Look): the bottom extent of the rotated frustum
+				y0= (p0.x>0) ? (view->half_screen_height - transformed_z/p0.x + view->dtanpitch_bottom) : view->screen_height;
+				y1= (p1.x>0) ? (view->half_screen_height - transformed_z/p1.x + view->dtanpitch_bottom) : view->screen_height;
 				
 				/* pick the highest (closest to zero screen_height) and pin it to the screen */
 				if (y0>y1) y= y0, p= &p0; else y= y1, p= &p1;

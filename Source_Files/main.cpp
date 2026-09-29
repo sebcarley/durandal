@@ -3,6 +3,7 @@
 #include "csstrings.h"
 #include "Logging.h"
 #include "alephversion.h"
+#include "DurandalCrash.h"	// Durandal: crash record for play sessions
 #include <SDL2/SDL_main.h>
 
 int main(int argc, char** argv)
@@ -34,6 +35,7 @@ int main(int argc, char** argv)
 	);
 
 	shell_options.parse(argc, argv);
+	DurandalCrash::Install();	// Durandal: crash record for play sessions
 
 	auto code = 0;
 	try {

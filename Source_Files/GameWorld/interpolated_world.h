@@ -32,7 +32,8 @@ void enter_interpolated_world();
 void exit_interpolated_world();
 
 void update_interpolated_world(float heartbeat_fraction);
-void interpolate_world_view(float heartbeat_fraction);
+// Durandal: returns false when it left the view at the latest tick
+bool interpolate_world_view(float heartbeat_fraction);
 
 void track_contrail_interpolation(int16_t projectile_index, int16_t effect_index);
 bool get_interpolated_weapon_display_information(short* count, weapon_display_information* data);

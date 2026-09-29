@@ -237,6 +237,14 @@ extern WindowPtr screen_window;
 #ifdef HAVE_OPENGL
 #include "Rasterizer_OGL.h"
 #include "RenderRasterize_Shader.h"
+#include "RenderRasterize_Metal.h"
+#include "Rasterizer_Metal.h"
+#include "DurandalMetal.h"
+#include "DurandalGL.h"
+#include "DurandalPreferences.h"
+#include "DurandalCamera.h"
+#include "DurandalCrash.h"
+#include <algorithm>
 #include "Rasterizer_Shader.h"
 #endif
 #include "preferences.h"
@@ -294,6 +302,8 @@ static Rasterizer_SW_Class Rasterizer_SW;			// Software rasterizer
 static Rasterizer_OGL_Class Rasterizer_OGL;			// OpenGL rasterizer
 static Rasterizer_Shader_Class Rasterizer_Shader;   // Shader rasterizer
 static RenderRasterize_Shader Render_Shader;       // Shader clipping and rasterization class
+static Rasterizer_Metal_Class Rasterizer_Metal;     // Durandal: Metal world rasterizer
+static RenderRasterize_Metal Render_Metal;         // Durandal: Metal clipping and rasterization class
 #endif
 
 // In Marathon 1-style exploration missions, we check
@@ -309,8 +319,12 @@ void OGL_Rasterizer_Init() {
 	
 #ifdef HAVE_OPENGL
 	if (graphics_preferences->screen_mode.acceleration == _opengl_acceleration) {
-		Rasterizer_Shader.setupGL();
-		Render_Shader.setupGL(Rasterizer_Shader);
+		if (!DurandalGL::Active()) {	// Durandal: no OpenGL context in Metal display mode
+			Rasterizer_Shader.setupGL();
+			Render_Shader.setupGL(Rasterizer_Shader);
+		}
+		Rasterizer_Metal.setupGL();	// Durandal
+		Render_Metal.setupGL(Rasterizer_Metal);
 	}
 #endif
 }
@@ -355,7 +369,7 @@ void allocate_render_memory(
 	RenderPlaceObjs.RVPtr = &RenderVisTree;
 	RenderPlaceObjs.RSPtr = &RenderSortPoly;
 #ifdef HAVE_OPENGL	
-	Render_Classic.RSPtr = Render_Shader.RSPtr = &RenderSortPoly;
+	Render_Classic.RSPtr = Render_Shader.RSPtr = Render_Metal.RSPtr = &RenderSortPoly;
 #else
 	Render_Classic.RSPtr = &RenderSortPoly;	
 #endif	
@@ -412,6 +426,19 @@ void initialize_view_data(
 		view->billboard_xy = Get_OGL_ConfigureData().BillboardXY;
 	}
 
+	// Durandal (True Look, Round 10): with the Metal world renderer the
+	// camera rotates when looking up or down instead of shearing the
+	// screen; the world view only, never the M1 exploration view
+	view->true_look = false;
+#ifdef HAVE_OPENGL
+	if (!ignore_preferences && graphics_preferences->screen_mode.acceleration == _opengl_acceleration &&
+		DurandalMetal::WorldRendererActive() && Durandal::Enabled(Durandal::kTrueLook))
+	{
+		view->true_look = true;
+		view->mimic_sw_perspective = false;
+	}
+#endif
+
 	/* reset any active effects */
 	// LP: this is now called in render_screen(), so we need to disable the initializing
 }
@@ -421,6 +448,7 @@ void render_view(
 	struct view_data *view,
 	struct bitmap_definition *software_render_dest)
 {
+	DurandalCrash::Phase("render_view");	// Durandal: crash record
 	update_view_data(view);
 
 	/* clear the render flags */
@@ -466,8 +494,10 @@ void render_view(
 			// LP addition: set the current rasterizer to whichever is appropriate here
 			RasterizerClass *RasPtr;
 #ifdef HAVE_OPENGL
+			// Durandal: the Metal world renderer, when switched on
+			const bool metal_world = OGL_IsActive() && DurandalMetal::WorldRendererActive();
 			if (OGL_IsActive())
-				RasPtr = &Rasterizer_Shader;
+				RasPtr = metal_world ? static_cast<RasterizerClass*>(&Rasterizer_Metal) : &Rasterizer_Shader;
 			else
 			{
 #endif
@@ -486,7 +516,8 @@ void render_view(
 			
 			// LP: now from the clipping/rasterizer class
 #ifdef HAVE_OPENGL			
-			RenderRasterizerClass *RenPtr = (graphics_preferences->screen_mode.acceleration == _opengl_acceleration) ? &Render_Shader : &Render_Classic;
+			RenderRasterizerClass *RenPtr = (graphics_preferences->screen_mode.acceleration == _opengl_acceleration) ?
+				(metal_world ? static_cast<RenderRasterizerClass*>(&Render_Metal) : &Render_Shader) : &Render_Classic;
 #else
 			RenderRasterizerClass *RenPtr = &Render_Classic;
 #endif
@@ -599,6 +630,92 @@ void check_m1_exploration(void)
 
 /* ---------- private code */
 
+// Durandal (True Look, Round 10): with the camera really pitched (and
+// rolled by Sidestep Sway), what is visible is no longer the yaw interval
+// and level screen the 2.5D visibility walk assumes. Upstream's OpenGL
+// path widens the cone by a fixed 1.3 for its "3D perspective" option;
+// here the cone and the vertical extents come from the four corner rays
+// of the rotated frustum, exactly, every frame. As upstream, world_to_screen
+// is derived from the widened cone, so the tree's screen coordinates span
+// the whole cone and every window the walk finds lies within
+// [0, screen_width]; the GPU viewport clips the excess. The projection
+// itself is built by the rasteriser from the same tangents
+// (Rasterizer_Metal::SetView). Called after the render effect has set
+// world_to_screen for the frame.
+static void durandal_true_look_view(
+	struct view_data *view)
+{
+	const double two_pi= 8.0*atan(1.0);
+	const double deg2rad= two_pi/360.0;
+
+	// The frustum's half tangents, as Rasterizer_Metal::SetView builds
+	// them, including the teleport fold's distortion
+	double xtan, ytan;
+	DurandalCamera::FrustumTangents(view, xtan, ytan);
+	const double effect_x= view->real_world_to_screen_x/double(view->world_to_screen_x);
+	const double effect_y= view->real_world_to_screen_y/double(view->world_to_screen_y);
+	xtan*= effect_x;
+	ytan*= effect_y;
+
+	// Sidestep Sway: this frame's roll, from read-only player state
+	view->durandal_roll= DurandalCamera::FrameRoll(view);
+
+	double pitch= view->virtual_pitch*(two_pi/(double(FIXED_ONE)*FULL_CIRCLE));
+	if (pitch > two_pi/2) pitch-= two_pi;
+	const double roll= view->durandal_roll*deg2rad;
+	const double cp= cos(pitch), sp= sin(pitch), cr= cos(roll), sr= sin(roll);
+
+	// The four corner rays (forward 1, right x, up y on the screen), rolled
+	// about the view axis, then pitched: their widest yaw is the cone,
+	// their highest and lowest elevations the vertical extents. Both are
+	// linear-fractional over the screen rectangle, so the extremes are at
+	// its corners. Capped at 89 degrees: the walk needs a cone.
+	const double cap= tan(89.0*deg2rad);
+	double widest= 0, t_top= -cap, t_bottom= cap;
+	for (int i= 0; i<4; ++i)
+	{
+		const double sx= (i&1) ? xtan : -xtan;
+		const double sy= (i&2) ? ytan : -ytan;
+		const double rx= cr*sx - sr*sy;
+		const double ry= sr*sx + cr*sy;
+		const double forward= cp - ry*sp;
+		const double up= sp + ry*cp;
+		double yaw_tan, elevation;
+		if (forward > 1e-6)
+		{
+			yaw_tan= std::min(std::abs(rx)/forward, cap);
+			elevation= std::clamp(up/forward, -cap, cap);
+		}
+		else
+		{
+			yaw_tan= cap;
+			elevation= up >= 0 ? cap : -cap;
+		}
+		widest= std::max(widest, yaw_tan);
+		t_top= std::max(t_top, elevation);
+		t_bottom= std::min(t_bottom, elevation);
+	}
+
+	// The cone (with the rounding margin initialize_view_data() uses) and
+	// world_to_screen from it, then the effect's distortion put back
+	const double half_cone= atan(widest);
+	view->half_cone= (angle) (half_cone*((double)NUMBER_OF_ANGLES)/two_pi+1.0);
+	view->landscape_yaw= view->yaw - view->half_cone;
+	const double world_to_screen= view->half_screen_width/tan(half_cone);
+	view->real_world_to_screen_x= (short) ((world_to_screen/view->horizontal_scale)+0.5);
+	view->real_world_to_screen_y= (short) ((world_to_screen/view->vertical_scale)+0.5);
+	view->world_to_screen_x= (short) (view->real_world_to_screen_x/effect_x+0.5);
+	view->world_to_screen_y= (short) (view->real_world_to_screen_y/effect_y+0.5);
+	view->half_vertical_cone= (angle) (NUMBER_OF_ANGLES*atan(((double)view->half_screen_height*view->vertical_scale)/world_to_screen)/two_pi+1.0);
+
+	// The shear for what still reads it, at the new scale; and the extents:
+	// the screen's top row is the frustum's highest ray, its bottom row the
+	// lowest (see render.h)
+	view->dtanpitch= (view->world_to_screen_y*sine_table[view->pitch])/cosine_table[view->pitch];
+	view->dtanpitch_top= (short) PIN(lround(view->world_to_screen_y*t_top) - view->half_screen_height, SHRT_MIN, SHRT_MAX);
+	view->dtanpitch_bottom= (short) PIN(lround(view->world_to_screen_y*t_bottom) + view->half_screen_height, SHRT_MIN, SHRT_MAX);
+}
+
 static void update_view_data(
 	struct view_data *view)
 {
@@ -619,6 +736,12 @@ static void update_view_data(
 	
 	/* calculate world_to_screen_y*tan(pitch) */
 	view->dtanpitch= (view->world_to_screen_y*sine_table[view->pitch])/cosine_table[view->pitch];
+
+	// Durandal (True Look): the rotated frustum's cone and extents
+	view->dtanpitch_top= view->dtanpitch_bottom= view->dtanpitch;
+	view->durandal_roll= 0;
+	if (view->true_look)
+		durandal_true_look_view(view);
 
 	/* calculate left cone vector */
 	theta= NORMALIZE_ANGLE(view->yaw-view->half_cone);

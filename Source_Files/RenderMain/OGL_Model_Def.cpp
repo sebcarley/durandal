@@ -26,6 +26,7 @@
 
 #include "cseries.h"
 #include "OGL_Model_Def.h"
+#include "DurandalMetal.h"	// Durandal: 3D pickups
 #include "OGL_Setup.h"
 
 #ifdef HAVE_OPENGL
@@ -618,6 +619,7 @@ void OGL_LoadModels(short Collection)
 
 void OGL_UnloadModels(short Collection)
 {
+	DurandalMetal::ReleaseModels();	// Durandal: the Metal renderer's copies
 	vector<ModelDataEntry>& ML = MdlList[Collection];
 	for (vector<ModelDataEntry>::iterator MdlIter = ML.begin(); MdlIter < ML.end(); MdlIter++)
 	{

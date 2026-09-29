@@ -31,6 +31,7 @@ Tuesday, January 17, 1995 2:53:17 PM  (Jason')
 
 void enter_mouse(short type);
 fixed_yaw_pitch pull_mouselook_delta();
+fixed_yaw_pitch peek_mouselook_delta(); // Durandal: pending look, not consumed
 void exit_mouse(short type);
 void mouse_idle(short type);
 void recenter_mouse(void);

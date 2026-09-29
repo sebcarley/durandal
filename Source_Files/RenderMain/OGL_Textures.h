@@ -84,6 +84,18 @@ struct TextureState
     GLdouble V_Scale;
     GLdouble U_Offset;
     GLdouble V_Offset;
+
+	// Durandal: Metal copies of the textures (retained id<MTLTexture>),
+	// created on first use in the Metal world pass (DurandalMetal.mm)
+	void* MetalTextures[NUMBER_OF_TEXTURES] = {nullptr, nullptr, nullptr};
+	uint32 MetalSamplerKey[NUMBER_OF_TEXTURES] = {0, 0, 0};
+	int MetalLastUsed = Normal;
+	void* MetalIndexTexture = nullptr;	// colour indices, for 8-bit shading
+
+	// Durandal: whether Setup() must (re)build the images: always for a
+	// new state, and when the renderer now drawing (OpenGL or Metal) has
+	// not made its own copy yet, since the images aren't kept after upload.
+	bool NeedsImages() const;
 	
 	TextureState() {IsUsed = false; Reset(); TextureType = NONE; U_Scale = V_Scale = 1; U_Offset = V_Offset = 0;}
 	~TextureState() {Reset();}
@@ -178,6 +190,9 @@ class TextureManager
 	
 	// Pointer to texture-options object
 	OGL_TextureOptions *TxtrOptsPtr;
+
+	// Durandal: the colour-index image, for the Metal renderer's 8-bit shading
+	void PlaceIndexImage();
 		
 	// Private methods
 	
@@ -270,6 +285,13 @@ public:
 
 	void SetupTextureMatrix();
 	void RestoreTextureMatrix();
+	// Durandal: the matrix SetupTextureMatrix() would load, column-major
+	void GetTextureMatrix(float m[16]) const;
+	// Durandal: the texture state Setup() chose (Metal renderer)
+	TextureState* GetTextureState() const {return TxtrStatePtr;}
+	// Durandal: whether a replacement image was substituted for the shapes
+	// file's bitmap (HD art)
+	bool IsSubstitute() const {return TxtrOptsPtr && TxtrOptsPtr->Substitution;}
 	
 	TextureManager(const TextureManager&) = delete;
 	TextureManager& operator= (const TextureManager&) = delete;

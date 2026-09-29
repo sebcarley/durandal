@@ -7,6 +7,48 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D9FE47F36EAF7165E10482D6 /* DurandalTextureCache.mm in Sources */ = {isa = PBXBuildFile; fileRef = 024D69AE648F28BFA5CC9F3D /* DurandalTextureCache.mm */; };
+		60B12AA66ADE5B23563C6B41 /* DurandalTextureCache.mm in Sources */ = {isa = PBXBuildFile; fileRef = 024D69AE648F28BFA5CC9F3D /* DurandalTextureCache.mm */; };
+		1A6D3EDCBD737601AD88237E /* DurandalBC7.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E5D9AB1540F38EBD954D52CB /* DurandalBC7.cpp */; };
+		BECD5475875A6974C8AF5BC7 /* DurandalBC7.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E5D9AB1540F38EBD954D52CB /* DurandalBC7.cpp */; };
+		1057E3803BCF597F1DEA4E87 /* DurandalArt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 94FFBBD6D5FCBDD079F4B6E8 /* DurandalArt.cpp */; };
+		4540D07DE2EFC538D3D0895F /* DurandalArt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 94FFBBD6D5FCBDD079F4B6E8 /* DurandalArt.cpp */; };
+		859871C7EF8D2D38D136ABF1 /* DurandalCrash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 553A0AA00647674963F614C0 /* DurandalCrash.cpp */; };
+		9468E7E0C96B0394C9EBBC65 /* DurandalCrash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 553A0AA00647674963F614C0 /* DurandalCrash.cpp */; };
+		0E84D5A714931B315D32BBFA /* DurandalCamera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 86B44F09090BD1E139661791 /* DurandalCamera.cpp */; };
+		FC5B3446A9C31C6CC643CC80 /* DurandalCamera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 86B44F09090BD1E139661791 /* DurandalCamera.cpp */; };
+		1BBC16F20B51F17B3235E75B /* DurandalReverb.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 920AC117280F1028382245D3 /* DurandalReverb.cpp */; };
+		4CD9AFEA1BB5E8C98A29E2BF /* DurandalReverb.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 920AC117280F1028382245D3 /* DurandalReverb.cpp */; };
+		A5AA14FF4D48330F4A61D8A1 /* DurandalRelief.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 31BA7EDC777CD8F3352556C5 /* DurandalRelief.cpp */; };
+		CFE8103EDF2605BCA08D122F /* DurandalRelief.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 31BA7EDC777CD8F3352556C5 /* DurandalRelief.cpp */; };
+		E083E8D6E93F7B16CE7B200A /* DurandalRadiance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9F4BA757FE22CDA8FA62A0CF /* DurandalRadiance.cpp */; };
+		9C542ECB244AF8A088E9F3BC /* DurandalRadiance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9F4BA757FE22CDA8FA62A0CF /* DurandalRadiance.cpp */; };
+		7EE49E6A7C45FE706C51C310 /* DurandalLights.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E19CA8AEC2ADB45ADAA0228B /* DurandalLights.cpp */; };
+		264EF4A4DDD0683E7EE7E811 /* DurandalLights.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E19CA8AEC2ADB45ADAA0228B /* DurandalLights.cpp */; };
+		A4413CCC5E4BC89A60AA469F /* DurandalGlow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D5F5F55B36486F6D6FBEECAC /* DurandalGlow.cpp */; };
+		F1B6699BC2AAC9F0D40B3D53 /* DurandalGlow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D5F5F55B36486F6D6FBEECAC /* DurandalGlow.cpp */; };
+		ECC173D75E8C19EFDE518153 /* DurandalCheats.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4751E7992AD00C9691A3559 /* DurandalCheats.cpp */; };
+		BC365B1DB91C3409EB2C2E7B /* DurandalCheats.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4751E7992AD00C9691A3559 /* DurandalCheats.cpp */; };
+		227126BB5CE2F85AF5102378 /* DurandalTerminal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0CAB455D47AAD5877BB3A5B /* DurandalTerminal.cpp */; };
+		A9B8144DE1D8A32C4F7A7C32 /* DurandalTerminal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0CAB455D47AAD5877BB3A5B /* DurandalTerminal.cpp */; };
+		7100C526B140FB96315A46BF /* DurandalShading.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DB0EC26AC8A956A92995046 /* DurandalShading.cpp */; };
+		F84168C091F15909119B09F0 /* DurandalShading.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DB0EC26AC8A956A92995046 /* DurandalShading.cpp */; };
+		8136758265586295AE0B8046 /* DurandalEDR.mm in Sources */ = {isa = PBXBuildFile; fileRef = 592F3E0C3A6F91FDAB6CE675 /* DurandalEDR.mm */; };
+		C2302E19EABF7A7AFA8806B0 /* DurandalEDR.mm in Sources */ = {isa = PBXBuildFile; fileRef = 592F3E0C3A6F91FDAB6CE675 /* DurandalEDR.mm */; };
+		8DF7830A2EE6546FBE1CFD6B /* DurandalGL.mm in Sources */ = {isa = PBXBuildFile; fileRef = 3F8BF1EA83A21D4BC68A7F44 /* DurandalGL.mm */; };
+		38684E36B41450F744285D78 /* DurandalGL.mm in Sources */ = {isa = PBXBuildFile; fileRef = 3F8BF1EA83A21D4BC68A7F44 /* DurandalGL.mm */; };
+		E64F6834FDFC22A57E0FCED1 /* RenderRasterize_Metal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6DE16209C3276FFBE6923B /* RenderRasterize_Metal.cpp */; };
+		AD0842C42F18C6168488B4D3 /* RenderRasterize_Metal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6DE16209C3276FFBE6923B /* RenderRasterize_Metal.cpp */; };
+		159231A50F34077928C441BD /* Rasterizer_Metal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 606BF30F974369F831E3F48C /* Rasterizer_Metal.cpp */; };
+		8D947A0A4B41732420219C46 /* Rasterizer_Metal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 606BF30F974369F831E3F48C /* Rasterizer_Metal.cpp */; };
+		7B38E30A8C625288E5F0AD6D /* DurandalMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 888266B339913DA5612F2560 /* DurandalMetal.mm */; };
+		4F41DB882A2AE32389D4DB9C /* DurandalMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 888266B339913DA5612F2560 /* DurandalMetal.mm */; };
+		56036E0E01D4E3C417AE3C48 /* DurandalAcoustics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A3D4B4DC1513394B33CC4FC1 /* DurandalAcoustics.cpp */; };
+		19B91C4F754A1AEB2E1BE3DC /* DurandalAcoustics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A3D4B4DC1513394B33CC4FC1 /* DurandalAcoustics.cpp */; };
+		104ACFF6CC2FDC6BAEE1255A /* DurandalView.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 432C900E0A1F907D9CFEF0E6 /* DurandalView.cpp */; };
+		21F6592B2DBD506D457E4276 /* DurandalView.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 432C900E0A1F907D9CFEF0E6 /* DurandalView.cpp */; };
+		DF9B47071A8345B1296D0F5F /* DurandalPreferences.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EC85E96031FD55376B8852E9 /* DurandalPreferences.cpp */; };
+		26E98D36B6662628EDE0A80B /* DurandalPreferences.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EC85E96031FD55376B8852E9 /* DurandalPreferences.cpp */; };
 		4F13315C2F3738B700B981C2 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AE9975032661D63700DDD370 /* CoreMedia.framework */; };
 		4F13315D2F3738B700B981C2 /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = AE99750C2661D71000DDD370 /* libcurl.tbd */; };
 		4F13315E2F3738B700B981C2 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = AE99750F2661D81600DDD370 /* libz.tbd */; };
@@ -259,6 +301,8 @@
 		4F556B702F3940D400C9207C /* crc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F5567002F3940D400C9207C /* crc.cpp */; };
 		4F556B712F3940D400C9207C /* lua_objects.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F5567942F3940D400C9207C /* lua_objects.cpp */; };
 		4F556B722F3940D400C9207C /* shell_options.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F5568F72F3940D400C9207C /* shell_options.cpp */; };
+		1DF12CEBA03C5FDB4A3EB917 /* DurandalBenchmark.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6EC25D6DB975F5F460DB7BB /* DurandalBenchmark.cpp */; };
+		883EBC706B7DCCADDDBCF3D9 /* DurandalBenchmark.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6EC25D6DB975F5F460DB7BB /* DurandalBenchmark.cpp */; };
 		4F556B732F3940D400C9207C /* TextLayoutHelper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F5568B52F3940D400C9207C /* TextLayoutHelper.cpp */; };
 		4F556B742F3940D400C9207C /* game_errors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4F5567C02F3940D400C9207C /* game_errors.cpp */; };
 		4F556B752F3940D400C9207C /* lstrlib.c in Sources */ = {isa = PBXBuildFile; fileRef = 4F55677F2F3940D400C9207C /* lstrlib.c */; };
@@ -1247,6 +1291,49 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		024D69AE648F28BFA5CC9F3D /* DurandalTextureCache.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = DurandalTextureCache.mm; sourceTree = "<group>"; };
+		3533B4D9BDD4AFAA16D4A05F /* DurandalTextureCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalTextureCache.h; sourceTree = "<group>"; };
+		E5D9AB1540F38EBD954D52CB /* DurandalBC7.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalBC7.cpp; sourceTree = "<group>"; };
+		FF7C92C81F2D21461D3707AF /* DurandalBC7.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalBC7.h; sourceTree = "<group>"; };
+		407BD53FF2CC60E286E5F508 /* DurandalArt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalArt.h; sourceTree = "<group>"; };
+		94FFBBD6D5FCBDD079F4B6E8 /* DurandalArt.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalArt.cpp; sourceTree = "<group>"; };
+		563C5F7E0353B3013E416CF0 /* DurandalCrash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalCrash.h; sourceTree = "<group>"; };
+		553A0AA00647674963F614C0 /* DurandalCrash.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalCrash.cpp; sourceTree = "<group>"; };
+		1C5BB6E215E3BB4E1B41EBCD /* DurandalCamera.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalCamera.h; sourceTree = "<group>"; };
+		86B44F09090BD1E139661791 /* DurandalCamera.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalCamera.cpp; sourceTree = "<group>"; };
+		920AC117280F1028382245D3 /* DurandalReverb.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalReverb.cpp; sourceTree = "<group>"; };
+		550894BE2A0FD60B039D11AA /* DurandalReverb.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalReverb.h; sourceTree = "<group>"; };
+		31BA7EDC777CD8F3352556C5 /* DurandalRelief.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalRelief.cpp; sourceTree = "<group>"; };
+		C4019D9ACF2B655D02049DDE /* DurandalRelief.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalRelief.h; sourceTree = "<group>"; };
+		9F4BA757FE22CDA8FA62A0CF /* DurandalRadiance.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalRadiance.cpp; sourceTree = "<group>"; };
+		CDE0458791777B6F1DC042EA /* DurandalRadiance.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalRadiance.h; sourceTree = "<group>"; };
+		E19CA8AEC2ADB45ADAA0228B /* DurandalLights.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalLights.cpp; sourceTree = "<group>"; };
+		88FA97CCE51016E876AE206F /* DurandalLights.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalLights.h; sourceTree = "<group>"; };
+		D5F5F55B36486F6D6FBEECAC /* DurandalGlow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalGlow.cpp; sourceTree = "<group>"; };
+		CA47D757F0BDFAB25E2E90E3 /* DurandalGlow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalGlow.h; sourceTree = "<group>"; };
+		F4751E7992AD00C9691A3559 /* DurandalCheats.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalCheats.cpp; sourceTree = "<group>"; };
+		9B43CEFF0464445D877EAB5B /* DurandalCheats.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalCheats.h; sourceTree = "<group>"; };
+		B0CAB455D47AAD5877BB3A5B /* DurandalTerminal.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalTerminal.cpp; sourceTree = "<group>"; };
+		52753FECE0444333B916D0C3 /* DurandalTerminal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalTerminal.h; sourceTree = "<group>"; };
+		2DB0EC26AC8A956A92995046 /* DurandalShading.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalShading.cpp; sourceTree = "<group>"; };
+		4B814FBCCABC42528181EE97 /* DurandalShading.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalShading.h; sourceTree = "<group>"; };
+		592F3E0C3A6F91FDAB6CE675 /* DurandalEDR.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = DurandalEDR.mm; sourceTree = "<group>"; };
+		AA92D37610EBB02773FD7441 /* DurandalGLShim.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalGLShim.h; sourceTree = "<group>"; };
+		3F8BF1EA83A21D4BC68A7F44 /* DurandalGL.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = DurandalGL.mm; sourceTree = "<group>"; };
+		125B68FBB8907A13B30AF868 /* DurandalGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalGL.h; sourceTree = "<group>"; };
+		4B6DE16209C3276FFBE6923B /* RenderRasterize_Metal.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RenderRasterize_Metal.cpp; sourceTree = "<group>"; };
+		BD4A3D8886FF75C18C584514 /* RenderRasterize_Metal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RenderRasterize_Metal.h; sourceTree = "<group>"; };
+		606BF30F974369F831E3F48C /* Rasterizer_Metal.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Rasterizer_Metal.cpp; sourceTree = "<group>"; };
+		1C9D5A158463878A4D0CB7A0 /* Rasterizer_Metal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Rasterizer_Metal.h; sourceTree = "<group>"; };
+		0AC168CC9A82F4E2072612A9 /* DurandalMetalShaders.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalMetalShaders.h; sourceTree = "<group>"; };
+		888266B339913DA5612F2560 /* DurandalMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = DurandalMetal.mm; sourceTree = "<group>"; };
+		5ECE35E2DC4046FC25B352F1 /* DurandalMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalMetal.h; sourceTree = "<group>"; };
+		A3D4B4DC1513394B33CC4FC1 /* DurandalAcoustics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalAcoustics.cpp; sourceTree = "<group>"; };
+		881C5FEC43B3888EB34C46F9 /* DurandalAcoustics.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalAcoustics.h; sourceTree = "<group>"; };
+		432C900E0A1F907D9CFEF0E6 /* DurandalView.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalView.cpp; sourceTree = "<group>"; };
+		8867D7C61D1B03F562107413 /* DurandalView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalView.h; sourceTree = "<group>"; };
+		EC85E96031FD55376B8852E9 /* DurandalPreferences.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalPreferences.cpp; sourceTree = "<group>"; };
+		106288DC011EBEF7E84A8347 /* DurandalPreferences.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalPreferences.h; sourceTree = "<group>"; };
 		4F427E0D2F3761EB000FB3DA /* AlephOne Tests.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AlephOne Tests.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4F4280472F3781F6000FB3DA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4F42804D2F3781F6000FB3DA /* Marathon 2.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "Marathon 2.icns"; sourceTree = "<group>"; };
@@ -1778,6 +1865,8 @@
 		4F5568F52F3940D400C9207C /* shell_misc.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = shell_misc.cpp; sourceTree = "<group>"; };
 		4F5568F62F3940D400C9207C /* shell_options.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = shell_options.h; sourceTree = "<group>"; };
 		4F5568F72F3940D400C9207C /* shell_options.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = shell_options.cpp; sourceTree = "<group>"; };
+		8D06DC4A1BC38D02FEB383CB /* DurandalBenchmark.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalBenchmark.h; sourceTree = "<group>"; };
+		D6EC25D6DB975F5F460DB7BB /* DurandalBenchmark.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalBenchmark.cpp; sourceTree = "<group>"; };
 		4F9CB1462F39442500F91C02 /* libalephonesteam.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libalephonesteam.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		4F9CB1472F39470600F91C02 /* Info-Steam.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-Steam.plist"; sourceTree = "<group>"; };
 		4F9CB1482F39470F00F91C02 /* Info-Steam.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-Steam.plist"; sourceTree = "<group>"; };
@@ -1894,7 +1983,7 @@
 		AE120B942BC77447001873DD /* libsteam_api.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsteam_api.dylib; path = "../vcpkg/installed-x64-osx/x64-osx/lib/libsteam_api.dylib"; sourceTree = SOURCE_ROOT; };
 		AE120D642BC77645001873DD /* Classic Marathon Steam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Classic Marathon Steam.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE1321FD2C1CB4D2009D34AA /* Classic Marathon 2 Steam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Classic Marathon 2 Steam.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		AE505D0B141D45E600915344 /* Classic Marathon 2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Classic Marathon 2.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AE505D0B141D45E600915344 /* Durandal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Durandal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE5A16B42BCF634900931FEE /* SteamLauncher.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SteamLauncher.entitlements; sourceTree = "<group>"; };
 		AE8729C12BD1FBEA00426095 /* Classic Marathon Launcher */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Classic Marathon Launcher"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE941DE713E783F30077218A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -2144,7 +2233,7 @@
 				4FADF1C62F37EB8C00643799 /* libalephone.a */,
 				AEC3C89609AD68AE003258E4 /* Aleph One.app */,
 				AEFD87C313EB84CF00C1E687 /* Classic Marathon.app */,
-				AE505D0B141D45E600915344 /* Classic Marathon 2.app */,
+				AE505D0B141D45E600915344 /* Durandal.app */,
 				AEB4A2AD14296CAE00537AE7 /* Classic Marathon Infinity.app */,
 				4F9CB1462F39442500F91C02 /* libalephonesteam.a */,
 				AE120D642BC77645001873DD /* Classic Marathon Steam.app */,
@@ -2514,6 +2603,14 @@
 		4F5567F22F3940D400C9207C /* Misc */ = {
 			isa = PBXGroup;
 			children = (
+				563C5F7E0353B3013E416CF0 /* DurandalCrash.h */,
+				553A0AA00647674963F614C0 /* DurandalCrash.cpp */,
+				F4751E7992AD00C9691A3559 /* DurandalCheats.cpp */,
+				9B43CEFF0464445D877EAB5B /* DurandalCheats.h */,
+				EC85E96031FD55376B8852E9 /* DurandalPreferences.cpp */,
+				106288DC011EBEF7E84A8347 /* DurandalPreferences.h */,
+				8D06DC4A1BC38D02FEB383CB /* DurandalBenchmark.h */,
+				D6EC25D6DB975F5F460DB7BB /* DurandalBenchmark.cpp */,
 				4F5567AB2F3940D400C9207C /* achievements.h */,
 				4F5567AC2F3940D400C9207C /* achievements.cpp */,
 				4F5567AD2F3940D400C9207C /* ActionQueues.h */,
@@ -2711,6 +2808,35 @@
 		4F5568822F3940D400C9207C /* RenderMain */ = {
 			isa = PBXGroup;
 			children = (
+				024D69AE648F28BFA5CC9F3D /* DurandalTextureCache.mm */,
+				3533B4D9BDD4AFAA16D4A05F /* DurandalTextureCache.h */,
+				E5D9AB1540F38EBD954D52CB /* DurandalBC7.cpp */,
+				FF7C92C81F2D21461D3707AF /* DurandalBC7.h */,
+				407BD53FF2CC60E286E5F508 /* DurandalArt.h */,
+				94FFBBD6D5FCBDD079F4B6E8 /* DurandalArt.cpp */,
+				1C5BB6E215E3BB4E1B41EBCD /* DurandalCamera.h */,
+				86B44F09090BD1E139661791 /* DurandalCamera.cpp */,
+				31BA7EDC777CD8F3352556C5 /* DurandalRelief.cpp */,
+				C4019D9ACF2B655D02049DDE /* DurandalRelief.h */,
+				9F4BA757FE22CDA8FA62A0CF /* DurandalRadiance.cpp */,
+				CDE0458791777B6F1DC042EA /* DurandalRadiance.h */,
+				E19CA8AEC2ADB45ADAA0228B /* DurandalLights.cpp */,
+				88FA97CCE51016E876AE206F /* DurandalLights.h */,
+				D5F5F55B36486F6D6FBEECAC /* DurandalGlow.cpp */,
+				CA47D757F0BDFAB25E2E90E3 /* DurandalGlow.h */,
+				2DB0EC26AC8A956A92995046 /* DurandalShading.cpp */,
+				4B814FBCCABC42528181EE97 /* DurandalShading.h */,
+				592F3E0C3A6F91FDAB6CE675 /* DurandalEDR.mm */,
+				AA92D37610EBB02773FD7441 /* DurandalGLShim.h */,
+				3F8BF1EA83A21D4BC68A7F44 /* DurandalGL.mm */,
+				125B68FBB8907A13B30AF868 /* DurandalGL.h */,
+				4B6DE16209C3276FFBE6923B /* RenderRasterize_Metal.cpp */,
+				BD4A3D8886FF75C18C584514 /* RenderRasterize_Metal.h */,
+				606BF30F974369F831E3F48C /* Rasterizer_Metal.cpp */,
+				1C9D5A158463878A4D0CB7A0 /* Rasterizer_Metal.h */,
+				0AC168CC9A82F4E2072612A9 /* DurandalMetalShaders.h */,
+				888266B339913DA5612F2560 /* DurandalMetal.mm */,
+				5ECE35E2DC4046FC25B352F1 /* DurandalMetal.h */,
 				4F5568492F3940D400C9207C /* Shaders */,
 				4F55684A2F3940D400C9207C /* AnimatedTextures.h */,
 				4F55684B2F3940D400C9207C /* AnimatedTextures.cpp */,
@@ -2775,6 +2901,10 @@
 		4F5568BA2F3940D400C9207C /* RenderOther */ = {
 			isa = PBXGroup;
 			children = (
+				B0CAB455D47AAD5877BB3A5B /* DurandalTerminal.cpp */,
+				52753FECE0444333B916D0C3 /* DurandalTerminal.h */,
+				432C900E0A1F907D9CFEF0E6 /* DurandalView.cpp */,
+				8867D7C61D1B03F562107413 /* DurandalView.h */,
 				4F5568832F3940D400C9207C /* ChaseCam.h */,
 				4F5568842F3940D400C9207C /* ChaseCam.cpp */,
 				4F5568852F3940D400C9207C /* computer_interface.h */,
@@ -2837,6 +2967,10 @@
 		4F5568D52F3940D400C9207C /* Sound */ = {
 			isa = PBXGroup;
 			children = (
+				920AC117280F1028382245D3 /* DurandalReverb.cpp */,
+				550894BE2A0FD60B039D11AA /* DurandalReverb.h */,
+				A3D4B4DC1513394B33CC4FC1 /* DurandalAcoustics.cpp */,
+				881C5FEC43B3888EB34C46F9 /* DurandalAcoustics.h */,
 				4F5568BB2F3940D400C9207C /* AudioPlayer.h */,
 				4F5568BC2F3940D400C9207C /* AudioPlayer.cpp */,
 				4F5568BD2F3940D400C9207C /* Decoder.h */,
@@ -3795,7 +3929,7 @@
 			);
 			name = "Marathon 2";
 			productName = "SDL Application";
-			productReference = AE505D0B141D45E600915344 /* Classic Marathon 2.app */;
+			productReference = AE505D0B141D45E600915344 /* Durandal.app */;
 			productType = "com.apple.product-type.application";
 		};
 		AE8729C02BD1FBEA00426095 /* Steam Launcher */ = {
@@ -4463,6 +4597,28 @@
 				4F556B702F3940D400C9207C /* crc.cpp in Sources */,
 				4F556B712F3940D400C9207C /* lua_objects.cpp in Sources */,
 				4F556B722F3940D400C9207C /* shell_options.cpp in Sources */,
+				60B12AA66ADE5B23563C6B41 /* DurandalTextureCache.mm in Sources */,
+				BECD5475875A6974C8AF5BC7 /* DurandalBC7.cpp in Sources */,
+				4540D07DE2EFC538D3D0895F /* DurandalArt.cpp in Sources */,
+				9468E7E0C96B0394C9EBBC65 /* DurandalCrash.cpp in Sources */,
+				FC5B3446A9C31C6CC643CC80 /* DurandalCamera.cpp in Sources */,
+				4CD9AFEA1BB5E8C98A29E2BF /* DurandalReverb.cpp in Sources */,
+				CFE8103EDF2605BCA08D122F /* DurandalRelief.cpp in Sources */,
+				9C542ECB244AF8A088E9F3BC /* DurandalRadiance.cpp in Sources */,
+				264EF4A4DDD0683E7EE7E811 /* DurandalLights.cpp in Sources */,
+				F1B6699BC2AAC9F0D40B3D53 /* DurandalGlow.cpp in Sources */,
+				BC365B1DB91C3409EB2C2E7B /* DurandalCheats.cpp in Sources */,
+				A9B8144DE1D8A32C4F7A7C32 /* DurandalTerminal.cpp in Sources */,
+				F84168C091F15909119B09F0 /* DurandalShading.cpp in Sources */,
+				C2302E19EABF7A7AFA8806B0 /* DurandalEDR.mm in Sources */,
+				38684E36B41450F744285D78 /* DurandalGL.mm in Sources */,
+				AD0842C42F18C6168488B4D3 /* RenderRasterize_Metal.cpp in Sources */,
+				8D947A0A4B41732420219C46 /* Rasterizer_Metal.cpp in Sources */,
+				4F41DB882A2AE32389D4DB9C /* DurandalMetal.mm in Sources */,
+				19B91C4F754A1AEB2E1BE3DC /* DurandalAcoustics.cpp in Sources */,
+				21F6592B2DBD506D457E4276 /* DurandalView.cpp in Sources */,
+				26E98D36B6662628EDE0A80B /* DurandalPreferences.cpp in Sources */,
+				1DF12CEBA03C5FDB4A3EB917 /* DurandalBenchmark.cpp in Sources */,
 				4F556B732F3940D400C9207C /* TextLayoutHelper.cpp in Sources */,
 				4F556B742F3940D400C9207C /* game_errors.cpp in Sources */,
 				4F556B752F3940D400C9207C /* lstrlib.c in Sources */,
@@ -4702,6 +4858,28 @@
 				4F9CB0F82F39442500F91C02 /* crc.cpp in Sources */,
 				4F9CB0F92F39442500F91C02 /* lua_objects.cpp in Sources */,
 				4F9CB0FA2F39442500F91C02 /* shell_options.cpp in Sources */,
+				D9FE47F36EAF7165E10482D6 /* DurandalTextureCache.mm in Sources */,
+				1A6D3EDCBD737601AD88237E /* DurandalBC7.cpp in Sources */,
+				1057E3803BCF597F1DEA4E87 /* DurandalArt.cpp in Sources */,
+				859871C7EF8D2D38D136ABF1 /* DurandalCrash.cpp in Sources */,
+				0E84D5A714931B315D32BBFA /* DurandalCamera.cpp in Sources */,
+				1BBC16F20B51F17B3235E75B /* DurandalReverb.cpp in Sources */,
+				A5AA14FF4D48330F4A61D8A1 /* DurandalRelief.cpp in Sources */,
+				E083E8D6E93F7B16CE7B200A /* DurandalRadiance.cpp in Sources */,
+				7EE49E6A7C45FE706C51C310 /* DurandalLights.cpp in Sources */,
+				A4413CCC5E4BC89A60AA469F /* DurandalGlow.cpp in Sources */,
+				ECC173D75E8C19EFDE518153 /* DurandalCheats.cpp in Sources */,
+				227126BB5CE2F85AF5102378 /* DurandalTerminal.cpp in Sources */,
+				7100C526B140FB96315A46BF /* DurandalShading.cpp in Sources */,
+				8136758265586295AE0B8046 /* DurandalEDR.mm in Sources */,
+				8DF7830A2EE6546FBE1CFD6B /* DurandalGL.mm in Sources */,
+				E64F6834FDFC22A57E0FCED1 /* RenderRasterize_Metal.cpp in Sources */,
+				159231A50F34077928C441BD /* Rasterizer_Metal.cpp in Sources */,
+				7B38E30A8C625288E5F0AD6D /* DurandalMetal.mm in Sources */,
+				56036E0E01D4E3C417AE3C48 /* DurandalAcoustics.cpp in Sources */,
+				104ACFF6CC2FDC6BAEE1255A /* DurandalView.cpp in Sources */,
+				DF9B47071A8345B1296D0F5F /* DurandalPreferences.cpp in Sources */,
+				883EBC706B7DCCADDDBCF3D9 /* DurandalBenchmark.cpp in Sources */,
 				4F9CB0FB2F39442500F91C02 /* TextLayoutHelper.cpp in Sources */,
 				4F9CB0FC2F39442500F91C02 /* game_errors.cpp in Sources */,
 				4F9CB0FD2F39442500F91C02 /* lstrlib.c in Sources */,
@@ -4905,9 +5083,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = App_Resources/AlephOne.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = 27XZ82KJ77;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					SDL,
@@ -4925,9 +5104,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = App_Resources/AlephOne.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = 27XZ82KJ77;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					SDL,
@@ -5259,9 +5439,9 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.action-games";
 				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(SRCROOT)/../vcpkg/installed-arm64-osx/arm64-osx/lib";
 				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(SRCROOT)/../vcpkg/installed-x64-osx/x64-osx/lib";
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				"MACOSX_DEPLOYMENT_TARGET[arch=arm64]" = 11.0;
-				"MACOSX_DEPLOYMENT_TARGET[arch=x86_64]" = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				"MACOSX_DEPLOYMENT_TARGET[arch=arm64]" = 12.0;
+				"MACOSX_DEPLOYMENT_TARGET[arch=x86_64]" = 12.0;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = (
 					"-lSDL2",
@@ -5270,6 +5450,7 @@
 					"-Wl,-weak_framework,CoreHaptics",
 					"-Wl,-weak_framework,QuartzCore",
 					"-Wl,-weak_framework,Metal",
+					"-Wl,-weak_framework,IOSurface",
 					"-Wl,-weak_framework,GameController",
 					"-Wl,-weak_framework,UniformTypeIdentifiers",
 					"-Wl,-current_version,15.0.0",
@@ -5406,9 +5587,9 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.action-games";
 				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(SRCROOT)/../vcpkg/installed-arm64-osx/arm64-osx/lib";
 				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(SRCROOT)/../vcpkg/installed-x64-osx/x64-osx/lib";
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				"MACOSX_DEPLOYMENT_TARGET[arch=arm64]" = 11.0;
-				"MACOSX_DEPLOYMENT_TARGET[arch=x86_64]" = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				"MACOSX_DEPLOYMENT_TARGET[arch=arm64]" = 12.0;
+				"MACOSX_DEPLOYMENT_TARGET[arch=x86_64]" = 12.0;
 				OTHER_LDFLAGS = (
 					"-lSDL2",
 					"-liconv",
@@ -5416,6 +5597,7 @@
 					"-Wl,-weak_framework,CoreHaptics",
 					"-Wl,-weak_framework,QuartzCore",
 					"-Wl,-weak_framework,Metal",
+					"-Wl,-weak_framework,IOSurface",
 					"-Wl,-weak_framework,GameController",
 					"-Wl,-weak_framework,UniformTypeIdentifiers",
 					"-Wl,-current_version,15.0.0",
@@ -5481,9 +5663,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = App_Resources/AlephOne.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = 27XZ82KJ77;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					PREFER_APP_NAME_TO_BUNDLE_ID,
@@ -5498,8 +5681,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.bungie.source.Marathon2;
-				PRODUCT_NAME = "Classic Marathon 2";
+				PRODUCT_BUNDLE_IDENTIFIER = local.durandal.Durandal;
+				PRODUCT_NAME = Durandal;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -5508,9 +5691,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = App_Resources/AlephOne.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = 27XZ82KJ77;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					PREFER_APP_NAME_TO_BUNDLE_ID,
@@ -5525,8 +5709,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.bungie.source.Marathon2;
-				PRODUCT_NAME = "Classic Marathon 2";
+				PRODUCT_BUNDLE_IDENTIFIER = local.durandal.Durandal;
+				PRODUCT_NAME = Durandal;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;

@@ -135,6 +135,7 @@ May 22, 2003 (Woody Zenfell):
 
 #include "cseries.h"
 #include "map.h"
+#include "DurandalCheats.h"
 #include "player.h"
 #include "monster_definitions.h"
 #include "monsters.h"
@@ -653,6 +654,7 @@ void update_players(ActionQueues* inActionQueuesToUse, bool inPredictive)
 	for (player_index= 0, player= players; player_index<dynamic_world->player_count; ++player_index, ++player)
 	{
 		uint32 action_flags = inActionQueuesToUse->dequeueActionFlags(player_index);
+		if (!inPredictive) DurandalCheats::PlayerTick(player_index);	// Durandal: testing cheats (god mode)
 
 		if (action_flags == 0xffffffff)
 		{
@@ -841,6 +843,11 @@ void damage_player(
 	
 	// LP change: made this more general
 	if (player->invincibility_duration && damage->type!=player_settings.Vulnerability)
+	{
+		damage_type= _damage_absorbed;
+	}
+	// Durandal: god mode (testing cheats; never in films or net games)
+	if (DurandalCheats::God(player_index))
 	{
 		damage_type= _damage_absorbed;
 	}

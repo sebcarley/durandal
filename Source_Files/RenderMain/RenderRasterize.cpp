@@ -39,6 +39,8 @@ Sep 2, 2000 (Loren Petrich):
 #include "map.h"
 #include "lightsource.h"
 #include "media.h"
+#include "DurandalMetal.h"
+#include "DurandalPreferences.h"
 #include "RenderRasterize.h"
 #include "AnimatedTextures.h"
 #include "OGL_Setup.h"
@@ -78,6 +80,9 @@ void RenderRasterizerClass::render_tree(RenderStep renderStep)
 	
 	// LP change: added support for semitransparent liquids
 	bool SeeThruLiquids = get_screen_mode()->acceleration != _no_acceleration ? TEST_FLAG(Get_OGL_ConfigureData().Flags,OGL_Flag_LiqSeeThru) : graphics_preferences->software_alpha_blending != _sw_alpha_off;
+	// Durandal: Real Liquids (W1) draw what is under the surface themselves
+	if (DurandalMetal::DisplayActive() && Durandal::Enabled(Durandal::kLiquids))
+		SeeThruLiquids = true;
 	
 	/* walls, ceilings, interior objects, floors, exterior objects for all nodes, back to front */
 	for (node= SortedNodes.begin(); node != SortedNodes.end(); ++node)

@@ -60,12 +60,22 @@ public:
 	void save_ini(FileSpecifier filename) const;
 	void save_ini(std::ostringstream& stream) const;
 
+	// Durandal: the node at a dotted path, or null. get_child() compares
+	// keys through the case-insensitive tree's locale and throws when the
+	// key is missing; an HD art pack's MML has thousands of elements with
+	// twenty optional attributes each, read at every level start, and that
+	// took over a second a level. ASCII keys compare the same either way.
+	const boost::property_tree::iptree* find_node(const std::string& path) const;
+
 	template<typename T> bool read(std::string path, T& value) const
 	{
+		const boost::property_tree::iptree* node = find_node(path);
+		if (!node)
+			return false;
 		try {
-			value = get_child(path).get_value<T>();
+			value = node->get_value<T>();
 			return true;
-		} catch (const path_error& ep) {} catch (const data_error& ed) {}
+		} catch (const data_error& ed) {}
 		return false;
 	}
 

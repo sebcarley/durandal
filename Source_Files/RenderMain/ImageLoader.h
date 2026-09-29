@@ -91,13 +91,23 @@ public:
 	void PremultiplyAlpha();
 	bool PremultipliedAlpha; // public so find silhouette version can unset
 
+	// Durandal (texture cache): takes ownership of a block-compressed image
+	// with its full mip chain; bytes is the size of all the levels together
+	void AdoptCompressed(int format, int width, int height, int mip_count, double vscale, double uscale, uint32* pixels, int bytes);
+	bool Opaque;	// Durandal: every level-0 pixel has full alpha (known for cached images; false = unknown)
+	// Durandal (texture cache): when set, Pixels points into this file
+	// mapping, released with munmap instead of delete[] (FreePixels)
+	void* MappedBase = nullptr;
+	size_t MappedLength = 0;
+	void FreePixels();
+
 	// Clearing
 	void Clear()
-		{Width = Height = Size = 0; delete []Pixels; Pixels = NULL;}
+		{Width = Height = Size = 0; FreePixels();}
 
 	ImageDescriptor(const ImageDescriptor &CopyFrom);
 	
-ImageDescriptor(): Width(0), Height(0), VScale(1.0), UScale(1.0), Pixels(NULL), Size(0), PremultipliedAlpha(false) {}
+ImageDescriptor(): Width(0), Height(0), VScale(1.0), UScale(1.0), Pixels(NULL), Size(0), PremultipliedAlpha(false), Opaque(false) {}
 
 	// asumes RGBA8
 	ImageDescriptor(int width, int height, uint32 *pixels);
@@ -107,13 +117,13 @@ ImageDescriptor(): Width(0), Height(0), VScale(1.0), UScale(1.0), Pixels(NULL), 
 		DXTC1,
 		DXTC3,
 		DXTC5,
+		BC7,	// Durandal: texture cache (DurandalBC7.h; mode 6 only)
 		Unknown
 	};
 
 	~ImageDescriptor()
 	{
-		delete []Pixels;
-		Pixels = NULL;
+		FreePixels();
 	}
 			
 private:

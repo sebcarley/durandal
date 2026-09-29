@@ -46,6 +46,7 @@ Dec 17, 2000 (Loren Petrich):
 #include "interface.h"
 #include "shell.h"
 #include "screen_drawing.h"
+#include "DurandalTerminal.h"
 #include "fades.h"
 #include "screen.h"
 
@@ -524,6 +525,14 @@ int sdl_font_info::_draw_text(SDL_Surface *s, const char *text, size_t length, i
 
 int ttf_font_info::_draw_text(SDL_Surface *s, const char *text, size_t length, int x, int y, uint32 pixel, uint16 style, bool utf8) const
 {
+	// Durandal (crisp terminals): recorded, and drawn later at a larger size
+	if (DurandalTerminal::Recording(s))
+	{
+		DurandalTerminal::Record(this, text, length, x, y, pixel, style, utf8,
+								 draw_clip_rect_active ? &draw_clip_rect : nullptr, s->format);
+		return _text_width(text, length, style, utf8);
+	}
+
 	int clip_top, clip_bottom, clip_left, clip_right;
 	if (draw_clip_rect_active) {
 		clip_top = draw_clip_rect.top;
@@ -603,6 +612,68 @@ int ttf_font_info::_draw_text(SDL_Surface *s, const char *text, size_t length, i
 
 	int width = text_surface->w;
 	SDL_FreeSurface(text_surface);
+	return width;
+}
+
+// Durandal (crisp terminals): as _draw_text, from the font at k times its
+// size, into a surface k times larger (see DurandalTerminal.h). Each glyph
+// is placed where the base-size font puts it, times k, so lines keep their
+// exact layout (hinted advances do not scale exactly).
+int ttf_font_info::durandal_draw_scaled(SDL_Surface *s, const char *text, size_t length, int x, int y, SDL_Color c,
+										uint16 style, bool utf8, int k, const screen_rectangle *clip) const
+{
+	TTF_Font *font = durandal_scaled_ttf(m_keys[style & (styleBold | styleItalic)], k);
+	if (!font)
+		return 0;
+
+	SDL_Rect clip_rect = { 0, 0, s->w, s->h };
+	if (clip)
+		clip_rect = { clip->left, clip->top, clip->right - clip->left, clip->bottom - clip->top };
+	SDL_SetClipRect(s, &clip_rect);
+	const int top = y - TTF_FontAscent(font);
+	int width = 0;
+	if (utf8)
+	{
+		// Only Lua uses UTF-8 text; drawn as one run
+		char *temp = process_printable(text, length);
+		SDL_Surface *text_surface = environment_preferences->smooth_text ? TTF_RenderUTF8_Blended(font, temp, c) : TTF_RenderUTF8_Solid(font, temp, c);
+		if (text_surface)
+		{
+			SDL_Rect dst_rect = { x, top, 0, 0 };
+			SDL_BlitSurface(text_surface, NULL, s, &dst_rect);
+			width = text_surface->w;
+			SDL_FreeSurface(text_surface);
+		}
+	}
+	else
+	{
+		// As process_macroman: control characters are dropped, tabs are spaces
+		int pen = 0;	// base-size units
+		for (size_t i = 0; i < length && text[i]; ++i)
+		{
+			char ch = text[i];
+			if (ch == '\t')
+				ch = ' ';
+			else if (static_cast<unsigned char>(ch) < ' ')
+				continue;
+			const uint16 code = mac_roman_to_unicode(ch);
+			SDL_Surface *glyph = environment_preferences->smooth_text ? TTF_RenderGlyph_Blended(font, code, c) : TTF_RenderGlyph_Solid(font, code, c);
+			if (glyph)
+			{
+				SDL_Rect dst_rect = { x + pen * k, top, 0, 0 };
+				SDL_BlitSurface(glyph, NULL, s, &dst_rect);
+				SDL_FreeSurface(glyph);
+			}
+			pen += char_width(static_cast<uint8>(ch), style);
+		}
+		width = pen * k;
+	}
+	if (style & styleUnderline)
+	{
+		SDL_Rect r = { x, y + k, width, k };
+		SDL_FillRect(s, &r, SDL_MapRGB(s->format, c.r, c.g, c.b));
+	}
+	SDL_SetClipRect(s, NULL);
 	return width;
 }
 

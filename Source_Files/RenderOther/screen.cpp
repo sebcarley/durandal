@@ -70,6 +70,12 @@
 #include "HUDRenderer_Lua.h"
 #include "Movie.h"
 #include "shell_options.h"
+#include "DurandalBenchmark.h"
+#include "DurandalView.h"
+#include "DurandalCamera.h"	// Durandal (C3)
+#include "DurandalPreferences.h"
+#include "DurandalTerminal.h"
+extern bool world_is_interpolated;
 
 #include <algorithm>
 
@@ -120,6 +126,11 @@ static int failed_multisamples = 0;		// remember when GL multisample setting did
 static bool passed_shader = false;      // remember when we passed Shader tests
 
 #include "screen_shared.h"
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
+
 
 using namespace alephone;
 
@@ -379,7 +390,14 @@ SDL_Rect Screen::view_rect()
 	else
 	{
 		int available_height = window_height() - hud_rect().h;
-		if (window_width() > available_height * 2)
+		if (window_width() > available_height * 2 && Durandal::Enabled(Durandal::kWidescreen))
+		{
+			// Durandal (widescreen): fill the width above the HUD (the
+			// field of view widens to match; see ViewControl.cpp)
+			r.w = window_width();
+			r.h = available_height;
+		}
+		else if (window_width() > available_height * 2)
 		{
 			r.w = available_height * 2;
 			r.h = available_height;
@@ -768,9 +786,13 @@ static bool need_mode_change(int window_width, int window_height,
 		}
 		
 		int want_vsync = Get_OGL_ConfigureData().WaitForVSync ? 1 : 0;
+		if (DurandalGL::Active())	// Durandal: Metal display
+			DurandalGL::SetVSync(want_vsync);
+		else {
 		int has_vsync = SDL_GL_GetSwapInterval();
 		if ((has_vsync == 0) != (want_vsync == 0))
 			SDL_GL_SetSwapInterval(want_vsync);
+		}
 	}
 #endif
 		
@@ -843,6 +865,8 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 	uint32 flags = (screen_mode.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 	if (screen_mode.high_dpi)
 		flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+	if (DurandalBenchmark::HiddenWindow())	// Durandal: unattended development runs
+		flags |= SDL_WINDOW_HIDDEN;
 	
 	int sdl_width = (flags & SDL_WINDOW_FULLSCREEN_DESKTOP) ? 0 : vmode_width;
 	int sdl_height = (flags & SDL_WINDOW_FULLSCREEN_DESKTOP) ? 0 : vmode_height;
@@ -889,7 +913,8 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 #ifdef HAVE_OPENGL
 	if (!nogl && screen_mode.acceleration != _no_acceleration) {
 		passed_shader = false;
-		flags |= SDL_WINDOW_OPENGL;
+		// Durandal: a Metal window with no OpenGL context when the Metal renderer is on
+		flags |= DurandalGL::Wanted() ? SDL_WINDOW_METAL : SDL_WINDOW_OPENGL;
 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
@@ -922,6 +947,7 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 		}
 	if (main_screen != NULL) {
 		Uint32 window_id = SDL_GetWindowID(main_screen);
+		DurandalGL::DestroyDisplay();	// Durandal
 	    SDL_DestroyWindow(main_screen);
 		main_screen = NULL;
 		SDL_FilterEvents(change_window_filter, &window_id);
@@ -931,6 +957,21 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 								   SDL_WINDOWPOS_CENTERED,
 								   sdl_width, sdl_height,
 								   flags);
+
+	// Durandal: set up the Metal display; if that fails, fall back to OpenGL
+	if (main_screen && (flags & SDL_WINDOW_METAL) &&
+		!DurandalGL::CreateDisplay(main_screen, Get_OGL_ConfigureData().WaitForVSync))
+	{
+		logError("Metal display could not be created; falling back to OpenGL");
+		SDL_DestroyWindow(main_screen);
+		DurandalGL::Disable();
+		flags = (flags & ~SDL_WINDOW_METAL) | SDL_WINDOW_OPENGL;
+		main_screen = SDL_CreateWindow(get_application_name().c_str(),
+									   SDL_WINDOWPOS_CENTERED,
+									   SDL_WINDOWPOS_CENTERED,
+									   sdl_width, sdl_height,
+									   flags);
+	}
 
 	bool context_created = false;
 #ifdef HAVE_OPENGL
@@ -960,7 +1001,11 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 		if (main_screen)
 			logWarning("Stencil buffer is not available");
 	}
-	if (main_screen != NULL && !nogl && screen_mode.acceleration == _opengl_acceleration)
+	if (main_screen != NULL && !nogl && screen_mode.acceleration == _opengl_acceleration && DurandalGL::Active())
+	{
+		passed_shader = true;	// Durandal: Metal display; the world shaders are Metal's
+	}
+	else if (main_screen != NULL && !nogl && screen_mode.acceleration == _opengl_acceleration)
 	{
 		// see if we can actually run shaders
 		if (!context_created) {
@@ -1057,7 +1102,7 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 		vhalt("Cannot find a working video mode.");
 	}
 #ifdef HAVE_OPENGL
-	if (!context_created && !nogl && screen_mode.acceleration != _no_acceleration) {
+	if (!context_created && !nogl && screen_mode.acceleration != _no_acceleration && !DurandalGL::Active()) {
 		SDL_GL_CreateContext(main_screen);
 		context_created = true;
 	}
@@ -1280,6 +1325,11 @@ void render_screen(short ticks_elapsed)
 	world_view->heartbeat_fraction = heartbeat_fraction;
 	update_interpolated_world(heartbeat_fraction);
 
+	// Durandal (F2): fades (damage, pickups) at the frame's world time
+	if (Durandal::Enabled(Durandal::kSmoothWorld) && world_is_interpolated && heartbeat_fraction < 1.f &&
+		get_game_state() == _game_in_progress && !Movie::instance()->IsRecording())
+		update_fades(true, heartbeat_fraction - 1.f);
+
 	bool SwitchedModes = false;
 	
 	// Suppress the overhead map if desired
@@ -1412,7 +1462,9 @@ void render_screen(short ticks_elapsed)
 		clear_next_screen = false;
 	}
 
-	interpolate_world_view(heartbeat_fraction);
+	const bool view_interpolated = interpolate_world_view(heartbeat_fraction);
+	Durandal::ApplyPerFrameLook(world_view, view_interpolated ? heartbeat_fraction : -1.f);	// Durandal (F1)
+	DurandalCamera::ApplyFreeLook(world_view, view_interpolated ? heartbeat_fraction : -1.f);	// Durandal (C3)
 
 #ifdef HAVE_OPENGL
 	// Is map to be drawn with OpenGL?
@@ -1441,6 +1493,9 @@ void render_screen(short ticks_elapsed)
 		software_render_dest = bitmap_definition_of_sdl_surface(world_pixels);
 	
 	// Render world view
+	// Durandal: OpenGL/Metal parity check (--benchmark-shots)
+	if (DurandalBenchmark::ShotDue())
+		DurandalBenchmark::ParityShot([] { render_view(world_view, software_render_dest.get()); });
 	render_view(world_view, software_render_dest.get());
 
     // clear Lua drawing from previous frame
@@ -1520,9 +1575,12 @@ void render_screen(short ticks_elapsed)
 			// Copy 2D rendering to screen
 
 			if (Term_RenderRequest) {
-				SDL_SetSurfaceBlendMode(Term_Buffer, SDL_BLENDMODE_NONE);
-				Term_Blitter.Load(*Term_Buffer);
+				// Durandal: the crisp terminal, if on (DurandalTerminal.h)
+				SDL_Surface *term = DurandalTerminal::Compose(Term_Buffer, int(TermRect.h * MainScreenPixelScale()));
+				SDL_SetSurfaceBlendMode(term, SDL_BLENDMODE_NONE);
+				Term_Blitter.Load(*term);
 				Term_RenderRequest = false;
+				DurandalBenchmark::TerminalPageShown();	// development only
 			}
 			Term_Blitter.nearFilter = TxtrTypeInfoList[OGL_Txtr_HUD].NearFilter;
 			Term_Blitter.Draw(TermRect);
@@ -1586,11 +1644,37 @@ void render_screen(short ticks_elapsed)
 			darken_world_window();
 		}
 
+		// Durandal: full-frame shot for OpenGL/Metal comparisons; with
+		// DURANDAL_BENCHMARK_OUTPUT_SHOTS, the Metal display's final output
+		// (bloom and glow included) is captured at the swap instead
+		const bool output_shot = DurandalGL::Active() && getenv("DURANDAL_BENCHMARK_OUTPUT_SHOTS");
+		if (output_shot && DurandalBenchmark::FrameShotDue())
+			DurandalGL::RequestOutputCapture();
+		else if (DurandalBenchmark::FrameShotDue())
+		{
+			const int w = MainScreenPixelWidth(), h = MainScreenPixelHeight();
+			std::vector<uint8_t> rgba(size_t(w) * h * 4), flipped(rgba.size());
+			glPixelStorei(GL_PACK_ALIGNMENT, 1);
+			glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+			glPixelStorei(GL_PACK_ALIGNMENT, 4);
+			for (size_t i = 3; i < rgba.size(); i += 4)	// the canvas alpha marks glow
+				rgba[i] = 255;
+			for (int y = 0; y < h; ++y)	// GL rows run bottom-up
+				std::copy(rgba.begin() + size_t(h - 1 - y) * w * 4, rgba.begin() + size_t(h - y) * w * 4, flipped.begin() + size_t(y) * w * 4);
+			DurandalBenchmark::SaveFrameShot(flipped, w, h);
+		}
 		OGL_SwapBuffers();
+		{
+			std::vector<uint8_t> rgba;
+			int w = 0, h = 0;
+			if (output_shot && DurandalGL::TakeOutputCapture(rgba, w, h))
+				DurandalBenchmark::SaveFrameShot(rgba, w, h);
+		}
 	}
 #endif
 	
 	Movie::instance()->AddFrame(Movie::FRAME_NORMAL);
+	DurandalBenchmark::FrameRendered(heartbeat_fraction);	// Durandal
 }
 
 /*
@@ -2232,7 +2316,9 @@ int MainScreenPixelWidth()
 	int w = 0;
 	int dummy = 0;				// SDL 2.24/Win crashes if you pass nullptr
 #ifdef HAVE_OPENGL
-	if (MainScreenIsOpenGL())
+	if (DurandalGL::Active())	// Durandal
+		DurandalGL::DrawableSize(w, dummy);
+	else if (MainScreenIsOpenGL())
 		SDL_GL_GetDrawableSize(main_screen, &w, &dummy);
 	else
 #endif
@@ -2244,7 +2330,9 @@ int MainScreenPixelHeight()
 	int h = 0;
 	int dummy = 0;				// SDL 2.24/Win crashes if you pass nullptr
 #ifdef HAVE_OPENGL
-	if (MainScreenIsOpenGL())
+	if (DurandalGL::Active())	// Durandal
+		DurandalGL::DrawableSize(dummy, h);
+	else if (MainScreenIsOpenGL())
 		SDL_GL_GetDrawableSize(main_screen, &dummy, &h);
 	else
 #endif
@@ -2261,10 +2349,19 @@ bool MainScreenIsOpenGL()
 }
 void MainScreenSwap()
 {
-	SDL_GL_SwapWindow(main_screen);
+	DurandalBenchmark::MenuShotBeforeSwap();	// Durandal: development only
+	DurandalBenchmark::StageEnd(DurandalBenchmark::kStageRender);	// Durandal: development timing
+	DurandalBenchmark::StageBegin(DurandalBenchmark::kStagePresent);
+	if (DurandalGL::Active())	// Durandal: present the Metal drawable
+		DurandalGL::Present();
+	else
+		SDL_GL_SwapWindow(main_screen);
+	DurandalBenchmark::StageEnd(DurandalBenchmark::kStagePresent);
 }
 void MainScreenCenterMouse()
 {
+	if (DurandalBenchmark::HiddenWindow())
+		return;	// Durandal: never move the mouse in unattended runs
 	int w, h;
 	SDL_GetWindowSize(main_screen, &w, &h);
 	SDL_WarpMouseInWindow(main_screen, w/2, h/2);

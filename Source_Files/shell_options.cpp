@@ -1,4 +1,5 @@
 #include "shell_options.h"
+#include <cstdlib>
 
 #include <iostream>
 #include <functional>
@@ -96,12 +97,19 @@ static const std::vector<ShellOptionsFlag> shell_options_flags {
 	{"i", "insecure_lua", "", shell_options.insecure_lua},
 	{"Q", "skip-intro", "Skip intro screens", shell_options.skip_intro},
 	{"e", "editor", "Use editor prefs; jump directly to map", shell_options.editor},
-	{"", "no-chooser", "Disable the scenario chooser", shell_options.no_chooser}
+	{"", "no-chooser", "Disable the scenario chooser", shell_options.no_chooser},
+	{"", "benchmark-hidden", "With --benchmark: never show the window", shell_options.benchmark_hidden}
 };
 
 static const std::vector<ShellOptionsString> shell_options_strings {
 	{"o", "output", "With -e, output to [file] and exit on quit", shell_options.output},
 	{"l", "replay-directory", "Directory with replays to load", shell_options.replay_directory},
+	{"", "benchmark", "Play the given film, log frame times to [file], quit", shell_options.benchmark_log},
+	{"", "benchmark-size", "With --benchmark: [WxH] window or native", shell_options.benchmark_size},
+	{"", "benchmark-fps", "With --benchmark: frame rate target, 0 = uncapped", shell_options.benchmark_fps},
+	{"", "benchmark-shots", "With --benchmark: save OpenGL/Metal parity shots to [dir]", shell_options.benchmark_shots},
+	{"", "benchmark-shot-every", "With --benchmark-shots: ticks between shots", shell_options.benchmark_shot_every},
+	{"", "benchmark-speed", "With --benchmark: film replay speed", shell_options.benchmark_speed},
 	{"NSDocumentRevisionsDebugMode", "", "", ignore} // annoying Xcode argument
 };
 
@@ -204,6 +212,27 @@ std::unordered_map<int, bool> ShellOptions::parse(int argc, char** argv, bool ig
 
 		results.insert({ i + 1, found });
 	}
+
+	// Durandal: benchmark settings may come from the environment instead,
+	// so nothing but dash flags appears on the command line. macOS treats
+	// other command-line words as documents to open and shows an error
+	// alert when it can't, which would appear on screen in an unattended run.
+	if (const char* v = getenv("DURANDAL_BENCHMARK"))
+		shell_options.benchmark_log = v;
+	if (const char* v = getenv("DURANDAL_BENCHMARK_FILM"))
+		shell_options.files.push_back(v);
+	if (const char* v = getenv("DURANDAL_BENCHMARK_SHOTS"))
+		shell_options.benchmark_shots = v;
+	if (const char* v = getenv("DURANDAL_BENCHMARK_SIZE"))
+		shell_options.benchmark_size = v;
+	if (const char* v = getenv("DURANDAL_BENCHMARK_FPS"))
+		shell_options.benchmark_fps = v;
+	if (const char* v = getenv("DURANDAL_BENCHMARK_SPEED"))
+		shell_options.benchmark_speed = v;
+	if (const char* v = getenv("DURANDAL_BENCHMARK_SHOT_EVERY"))
+		shell_options.benchmark_shot_every = v;
+	if (const char* v = getenv("DURANDAL_BENCHMARK_HIDDEN"))
+		shell_options.benchmark_hidden = std::string(v) == "1";
 
 	return results;
 }

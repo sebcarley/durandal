@@ -37,6 +37,11 @@ HUD_RENDERER_LUA.CPP
 #endif
 
 #include <math.h>
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
+
 
 extern bool MotionSensorActive;
 

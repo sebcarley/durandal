@@ -26,6 +26,10 @@
 
 #ifdef HAVE_OPENGL
 #include "OGL_Render.h"
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
 
 extern bool OGL_SwapBuffers();
 
@@ -180,3 +184,4 @@ void OGL_LoadScreen::Clear()
 }
 
 #endif
+

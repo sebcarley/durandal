@@ -110,6 +110,8 @@ private:
 	LoadedResource rsrc;
 };
 
+struct screen_rectangle;
+
 typedef std::tuple<std::string, uint16, int16> ttf_font_key_t;
 
 class ttf_font_info : public font_info { 
@@ -126,6 +128,10 @@ public:
 	int m_line_height;
 
 	int8 char_width(uint8, uint16) const;
+	// Durandal (crisp terminals): draws `text` at k times the font's size,
+	// at (x, y) in the k-times-larger surface; clip is in its pixels
+	int durandal_draw_scaled(SDL_Surface *s, const char *text, size_t length, int x, int y, SDL_Color c,
+							 uint16 style, bool utf8, int k, const screen_rectangle *clip) const;
 
 	ttf_font_info() { 
 		for (int i = 0; i < styleUnderline; i++) { m_styles[i] = 0; } 
@@ -149,6 +155,9 @@ private:
 
 // Initialize font management
 extern void initialize_fonts(bool last_chance);
+
+// Durandal: the TrueType font of `key` at k times its size (cached)
+TTF_Font *durandal_scaled_ttf(const ttf_font_key_t &key, int k);
 
 // Load font, return pointer to font info
 extern font_info *load_font(const TextSpec &spec);

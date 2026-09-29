@@ -111,7 +111,9 @@ enum
 /* ---------- prototypes/FADES.C */
 
 void initialize_fades(void);
-bool update_fades(bool game_in_progress = false);
+bool update_fades(bool game_in_progress = false, float frame_offset_ticks = 0.f);
+// Durandal (F2): re-evaluate the active fade at the frame's interpolated
+// world time (offset in ticks from the latest tick, in [-1, 0]).
 
 void start_fade(short type);
 void stop_fade(void);

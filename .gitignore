@@ -36,3 +36,6 @@ lib*.a
 .vscode/
 .cache/
 compile_commands.json
+
+# Durandal: local copies of third-party art packs for inspection (docs/HD_ASSETS.md); never committed
+/Assets/

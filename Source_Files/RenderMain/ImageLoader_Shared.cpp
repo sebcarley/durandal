@@ -37,6 +37,8 @@
 #include "cstypes.h"
 #include "DDS.h"
 #include "ImageLoader.h"
+#include "DurandalBC7.h"	// Durandal: texture cache
+#include <sys/mman.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_endian.h>
 #include "Logging.h"
@@ -74,6 +76,7 @@ int ImageDescriptor::GetMipMapSize(int level) const
 		break;
 	case ImageDescriptor::DXTC3:
 	case ImageDescriptor::DXTC5:
+	case ImageDescriptor::BC7:	// Durandal
 		return (max(1, (((Width >> level) + 3) / 4)) * max(1, (((Height >> level)  + 3) / 4)) * 16);
 		break;
 	default:
@@ -115,7 +118,7 @@ void ImageDescriptor::Resize(int _Width, int _Height)
 	Width = _Width;
 	Height = _Height;
 	Size = _Width * _Height * 4;
-	delete []Pixels;
+	FreePixels();
 	Pixels = new uint32[_Width * Height];
 }
 
@@ -124,7 +127,7 @@ void ImageDescriptor::Resize(int _Width, int _Height, int _TotalBytes)
 	Width = _Width;
 	Height = _Height;
 	Size = _TotalBytes;
-	delete []Pixels;
+	FreePixels();
 	Pixels = new uint32[_TotalBytes];
 }
 
@@ -140,7 +143,7 @@ bool ImageDescriptor::Minify()
 		Width = MAX(1, Width >> 1);
 		Height = MAX(1, Height >> 1);
 		Size = newSize;
-		delete []Pixels;
+		FreePixels();
 		Pixels = newPixels;
 		return true;
 	}  
@@ -155,7 +158,7 @@ bool ImageDescriptor::Minify()
 			
 			uint32 *newPixels = new uint32[newWidth * newHeight];
 			gluScaleImage(GL_RGBA, Width, Height, GL_UNSIGNED_BYTE, Pixels, newWidth, newHeight, GL_UNSIGNED_BYTE, newPixels);
-			delete []Pixels;
+			FreePixels();
 			Pixels = newPixels;
 			Width = newWidth;
 			Height = newHeight;
@@ -185,10 +188,11 @@ ImageDescriptor::ImageDescriptor(const ImageDescriptor &copyFrom) :
 	Size(copyFrom.Size),
 	MipMapCount(copyFrom.MipMapCount),
 	Format(copyFrom.Format),
-	PremultipliedAlpha(copyFrom.PremultipliedAlpha)
+	PremultipliedAlpha(copyFrom.PremultipliedAlpha),
+	Opaque(copyFrom.Opaque)
 {
 	if (copyFrom.Pixels) {
-		Pixels = new uint32[copyFrom.Size];
+		Pixels = new uint32[(copyFrom.Size + 3) / 4];	// Durandal: Size is bytes (was four times too much)
 		memcpy(Pixels, copyFrom.Pixels, copyFrom.Size);
 	} else {
 		Pixels = NULL;
@@ -203,9 +207,37 @@ ImageDescriptor::ImageDescriptor(int _Width, int _Height, uint32 *_Pixels) :
 	Pixels(_Pixels), 
 	Format(RGBA8), 
 	MipMapCount(0), 
-	PremultipliedAlpha(false)
+	PremultipliedAlpha(false),
+	Opaque(false)
 {
 	Size = _Width * _Height * 4;
+}
+
+// Durandal: texture cache
+void ImageDescriptor::FreePixels()
+{
+	if (MappedBase)
+	{
+		munmap(MappedBase, MappedLength);
+		MappedBase = NULL;
+		MappedLength = 0;
+	}
+	else
+		delete []Pixels;
+	Pixels = NULL;
+}
+
+void ImageDescriptor::AdoptCompressed(int format, int width, int height, int mip_count, double vscale, double uscale, uint32* pixels, int bytes)
+{
+	FreePixels();
+	Pixels = pixels;
+	Width = width;
+	Height = height;
+	Size = bytes;
+	MipMapCount = mip_count;
+	Format = ImageFormat(format);
+	VScale = vscale;
+	UScale = uscale;
 }
 
 static inline int padfour(int x)
@@ -569,7 +601,7 @@ bool ImageDescriptor::MakeDXTC3()
 	}
 
 	Size = Size * 2;
-	delete []Pixels;
+	FreePixels();
 	Pixels = NewPixels;
 	Format = DXTC3;
 	return true;
@@ -601,12 +633,14 @@ bool ImageDescriptor::MakeRGBA()
 			if (!DecompressDXTC3(RGBADesc.GetMipMapPtr(i), MAX(1, Width >> i), MAX(1, Height >> i), GetMipMapPtr(i))) return false;
 		} else if (Format == DXTC5) {
 			if (!DecompressDXTC5(RGBADesc.GetMipMapPtr(i), MAX(1, Width >> i), MAX(1, Height >> i), GetMipMapPtr(i))) return false;
+		} else if (Format == BC7) {	// Durandal: texture cache
+			if (!DurandalBC7::Decode(reinterpret_cast<const uint8*>(GetMipMapPtr(i)), MAX(1, Width >> i), MAX(1, Height >> i), reinterpret_cast<uint8*>(RGBADesc.GetMipMapPtr(i)))) return false;
 		} else {
 			return false;
 		}
 	}
 	
-	delete []Pixels;
+	FreePixels();
 	Pixels = RGBADesc.Pixels;
 	Size = RGBADesc.Size;
 	Format = RGBADesc.Format;

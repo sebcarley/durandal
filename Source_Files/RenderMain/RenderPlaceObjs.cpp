@@ -277,8 +277,10 @@ render_object_data *RenderPlaceObjsClass::build_render_object(
 				// Doing this with full-integer arithmetic to avoid mis-clipping;
 				x0= view->half_screen_width + (int(transformed_origin.y+shape_information->world_left)*view->world_to_screen_x)/DistanceRef;
 				x1= view->half_screen_width + (int(transformed_origin.y+shape_information->world_right)*view->world_to_screen_x)/DistanceRef;
-				y0=	view->half_screen_height - (view->world_to_screen_y*int(transformed_origin.z+shape_information->world_top))/DistanceRef + view->dtanpitch;
-				y1= view->half_screen_height - (view->world_to_screen_y*int(transformed_origin.z+shape_information->world_bottom))/DistanceRef + view->dtanpitch;
+				// Durandal (True Look): the rect spans the rotated frustum's
+				// extents (both equal dtanpitch when the screen is sheared)
+				y0=	view->half_screen_height - (view->world_to_screen_y*int(transformed_origin.z+shape_information->world_top))/DistanceRef + view->dtanpitch_bottom;
+				y1= view->half_screen_height - (view->world_to_screen_y*int(transformed_origin.z+shape_information->world_bottom))/DistanceRef + view->dtanpitch_top;
 			
 				size_t Length = RenderObjects.size();
 				POINTER_DATA OldROPointer = POINTER_CAST(RenderObjects.data());

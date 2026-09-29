@@ -21,6 +21,7 @@
 */
 
 #include "InfoTree.h"
+#include <strings.h>	// Durandal: find_node
 #include "cseries.h"
 #include "shell.h"
 #include "TextStrings.h"
@@ -332,6 +333,44 @@ bool InfoTree::read_font(FontSpecifier& font) const
 
 
 typedef boost::iterator_range<InfoTree::const_assoc_iterator> _match_range_type;
+
+// Durandal: see InfoTree.h. Small nodes are scanned in order; a node with
+// many children (a list of levels or textures) uses the tree's own index.
+const boost::property_tree::iptree* InfoTree::find_node(const std::string& path) const
+{
+	const boost::property_tree::iptree* node = this;
+	size_t start = 0;
+	while (start <= path.size())
+	{
+		size_t dot = path.find('.', start);
+		if (dot == std::string::npos)
+			dot = path.size();
+		const size_t length = dot - start;
+		const boost::property_tree::iptree* next = nullptr;
+		if (node->size() > 64)
+		{
+			auto it = node->find(path.substr(start, length));
+			if (it != node->not_found())
+				next = &it->second;
+		}
+		else
+		{
+			for (const auto& child : *node)
+			{
+				if (child.first.size() == length && strncasecmp(child.first.c_str(), path.c_str() + start, length) == 0)
+				{
+					next = &child.second;
+					break;
+				}
+			}
+		}
+		if (!next)
+			return nullptr;
+		node = next;
+		start = dot + 1;
+	}
+	return node;
+}
 
 InfoTree::const_child_range InfoTree::children_named(std::string key) const
 {

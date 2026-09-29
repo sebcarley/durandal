@@ -38,6 +38,39 @@ void SoundPlayer::Init(const SoundParameters& parameters) {
 	current_index_data = 0;
 }
 
+SoundBehavior SoundPlayer::BehaviorFor(const SoundParameters& soundParameters) {
+	const bool media_obstructed = soundParameters.obstruction_flags & _sound_was_media_obstructed;
+	const bool muffled = soundParameters.obstruction_flags & _sound_was_media_muffled;
+
+	if (soundParameters.occlusion < 0) { //upstream
+		const bool obstruction = (soundParameters.obstruction_flags & _sound_was_obstructed) || media_obstructed;
+		const bool double_obstruction = (soundParameters.obstruction_flags & _sound_was_obstructed) && media_obstructed;
+		return double_obstruction || (obstruction && muffled) ? sound_obstructed_and_muffled_behavior_parameters[soundParameters.behavior] :
+			obstruction || muffled ? sound_obstructed_or_muffled_behavior_parameters[soundParameters.behavior] :
+			sound_behavior_parameters[soundParameters.behavior];
+	}
+
+	//Durandal (A2): with g = geometric occlusion, the upstream rules become
+	//single = max(g, media) (or 1 if muffled), double = min(g, media) (or single if muffled)
+	const float g = std::clamp(soundParameters.occlusion, 0.f, 1.f);
+	const float m = media_obstructed ? 1.f : 0.f;
+	const float single = muffled ? 1.f : std::max(g, m);
+	const float twice = muffled ? std::max(g, m) : std::min(g, m);
+
+	auto mix = [](const SoundBehavior& a, const SoundBehavior& b, float t) {
+		return SoundBehavior{
+			a.distance_reference + (b.distance_reference - a.distance_reference) * t,
+			a.distance_max + (b.distance_max - a.distance_max) * t,
+			a.rolloff_factor + (b.rolloff_factor - a.rolloff_factor) * t,
+			a.max_gain + (b.max_gain - a.max_gain) * t,
+			a.high_frequency_gain + (b.high_frequency_gain - a.high_frequency_gain) * t };
+	};
+	const auto& clear = sound_behavior_parameters[soundParameters.behavior];
+	const auto& once = sound_obstructed_or_muffled_behavior_parameters[soundParameters.behavior];
+	const auto& both = sound_obstructed_and_muffled_behavior_parameters[soundParameters.behavior];
+	return mix(mix(clear, once, single), both, twice);
+}
+
 //Simulate what the volume of our sound would be if we play it
 //If the volume is 0 then we just don't play the sound and drop it
 float SoundPlayer::Simulate(const SoundParameters& soundParameters) {
@@ -51,13 +84,7 @@ float SoundPlayer::Simulate(const SoundParameters& soundParameters) {
 		std::pow((float)(soundParameters.source_location3d.point.z - listener.point.z) / WORLD_ONE, 2)
 	);
 
-	const bool obstruction = (soundParameters.obstruction_flags & _sound_was_obstructed) || (soundParameters.obstruction_flags & _sound_was_media_obstructed);
-	const bool double_obstruction = (soundParameters.obstruction_flags & _sound_was_obstructed) && (soundParameters.obstruction_flags & _sound_was_media_obstructed);
-	const bool muffled = soundParameters.obstruction_flags & _sound_was_media_muffled;
-
-	const auto& behaviorParameters = double_obstruction || (obstruction && muffled) ? sound_obstructed_and_muffled_behavior_parameters[soundParameters.behavior] :
-		obstruction || muffled ? sound_obstructed_or_muffled_behavior_parameters[soundParameters.behavior] :
-		sound_behavior_parameters[soundParameters.behavior];
+	const auto behaviorParameters = BehaviorFor(soundParameters);
 
 	if (distance > behaviorParameters.distance_max) {
 		return 0;
@@ -191,6 +218,10 @@ SetupALResult SoundPlayer::SetUpALSourceIdle() {
 
 		alSourcef(audio_source->source_id, AL_GAIN, finalVolume);
 		alSourcef(audio_source->source_id, AL_MAX_GAIN, finalVolume);
+
+		//Durandal (A1): world sounds lose their highs under a liquid
+		if (soundParameters.in_world)
+			alSourcei(audio_source->source_id, AL_DIRECT_FILTER, OpenALManager::Get()->IsUnderwater() ? OpenALManager::Get()->UnderwaterFilter() : AL_FILTER_NULL);
 	}
 	else { //3d sounds
 		const auto positionX = (float)(soundParameters.source_location3d.point.x) / WORLD_ONE;
@@ -225,6 +256,12 @@ bool SoundPlayer::SetUpALSourceInit() {
 	alSourcei(audio_source->source_id, AL_MAX_GAIN, 0);
 	alSourcei(audio_source->source_id, AL_MIN_GAIN, 0);
 	alSourcei(audio_source->source_id, AL_DIRECT_FILTER, AL_FILTER_NULL);
+
+	//Durandal (A1): world sounds send to the room reverb; others (and
+	//pooled sources reused from them) don't
+	const ALuint reverbSlot = OpenALManager::Get()->ReverbSlot();
+	if (reverbSlot)
+		alSource3i(audio_source->source_id, AL_AUXILIARY_SEND_FILTER, parameters.Get().in_world ? reverbSlot : AL_EFFECTSLOT_NULL, 0, AL_FILTER_NULL);
 
 	if (parameters.Get().is_2d) {
 		alSourcei(audio_source->source_id, AL_DISTANCE_MODEL, AL_NONE);
@@ -327,9 +364,6 @@ float SoundPlayer::ComputeVolumeForTransition(float targetVolume) {
 SetupALResult SoundPlayer::SetUpALSource3D() {
 
 	const auto& soundParameters = parameters.Get();
-	const bool obstruction = (soundParameters.obstruction_flags & _sound_was_obstructed) || (soundParameters.obstruction_flags & _sound_was_media_obstructed);
-	const bool double_obstruction = (soundParameters.obstruction_flags & _sound_was_obstructed) && (soundParameters.obstruction_flags & _sound_was_media_obstructed);
-	const bool muffled = soundParameters.obstruction_flags & _sound_was_media_muffled;
 	float volume = OpenALManager::Get()->GetMasterVolume();
 
 #if 0 //previous rulesets for obstructions
@@ -349,9 +383,7 @@ SetupALResult SoundPlayer::SetUpALSource3D() {
 
 #endif // 0
 
-	const auto& behaviorParameters = double_obstruction || (obstruction && muffled) ? sound_obstructed_and_muffled_behavior_parameters[soundParameters.behavior] :
-										obstruction || muffled ? sound_obstructed_or_muffled_behavior_parameters[soundParameters.behavior] :
-																sound_behavior_parameters[soundParameters.behavior];
+	const auto behaviorParameters = BehaviorFor(soundParameters); //Durandal (A2): upstream rows, blended when graded
 
 	const auto finalBehaviorParameters = ComputeVolumeForTransition(behaviorParameters);
 

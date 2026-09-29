@@ -34,6 +34,9 @@ INTERPOLATED_WORLD.CPP
 #include "preferences.h"
 #include "render.h"
 #include "weapons.h"
+#include "media.h"
+#include "lightsource.h"
+#include "DurandalPreferences.h"
 
 extern std::vector<int16_t> polygon_ephemera;
 
@@ -121,6 +124,96 @@ struct ContrailInfo {
 // contrails don't move; store the location of the projectile from the previous
 // tick and use that for interpolation
 static std::vector<ContrailInfo> contrail_tracking;
+
+// Durandal (F2): liquid heights and texture drift, and light intensities.
+// Captured every tick like the rest; only interpolated when the "smooth
+// world" enhancement is on, and always restored before the next tick.
+struct TickMediaData {
+	world_distance height;
+	world_point2d origin;
+};
+
+static std::vector<TickMediaData> previous_tick_medias;
+static std::vector<TickMediaData> current_tick_medias;
+static std::vector<_fixed> previous_tick_lights;
+static std::vector<_fixed> current_tick_lights;
+static bool durandal_world_smoothed = false;
+
+static void durandal_capture_tick(bool first)
+{
+	if (!first)
+	{
+		previous_tick_medias = current_tick_medias;
+		previous_tick_lights = current_tick_lights;
+	}
+
+	current_tick_medias.resize(MAXIMUM_MEDIAS_PER_MAP);
+	for (size_t i = 0; i < current_tick_medias.size(); ++i)
+	{
+		auto& media = MediaList[i];
+		current_tick_medias[i] = {media.height, media.origin};
+	}
+
+	current_tick_lights.resize(MAXIMUM_LIGHTS_PER_MAP);
+	for (size_t i = 0; i < current_tick_lights.size(); ++i)
+	{
+		current_tick_lights[i] = LightList[i].intensity;
+	}
+
+	// Lua can add liquids and lights; new ones start from their current value
+	if (first || previous_tick_medias.size() != current_tick_medias.size())
+		previous_tick_medias = current_tick_medias;
+	if (first || previous_tick_lights.size() != current_tick_lights.size())
+		previous_tick_lights = current_tick_lights;
+}
+
+static void durandal_restore_tick()
+{
+	if (!durandal_world_smoothed)
+		return;
+
+	for (size_t i = 0; i < current_tick_medias.size() && i < MAXIMUM_MEDIAS_PER_MAP; ++i)
+	{
+		MediaList[i].height = current_tick_medias[i].height;
+		MediaList[i].origin = current_tick_medias[i].origin;
+	}
+	for (size_t i = 0; i < current_tick_lights.size() && i < MAXIMUM_LIGHTS_PER_MAP; ++i)
+	{
+		LightList[i].intensity = current_tick_lights[i];
+	}
+
+	durandal_world_smoothed = false;
+}
+
+// Only lights whose current function is continuous are interpolated;
+// flicker, random and fluorescent keep their 30 Hz character.
+static bool light_function_is_smooth(const light_data& light)
+{
+	const static_light_data& s = light.static_data;
+	const lighting_function_specification* spec;
+	switch (light.state)
+	{
+		case _light_becoming_active: spec = &s.becoming_active; break;
+		case _light_primary_active: spec = &s.primary_active; break;
+		case _light_secondary_active: spec = &s.secondary_active; break;
+		case _light_becoming_inactive: spec = &s.becoming_inactive; break;
+		case _light_primary_inactive: spec = &s.primary_inactive; break;
+		case _light_secondary_inactive: spec = &s.secondary_inactive; break;
+		default: return false;
+	}
+	return spec->function == _constant_lighting_function ||
+		spec->function == _linear_lighting_function ||
+		spec->function == _smooth_lighting_function;
+}
+
+// Texture drift wraps within WORLD_ONE; interpolate the short way round.
+static world_distance lerp_wrapped(world_distance a, world_distance b, float t)
+{
+	int delta = b - a;
+	if (delta > WORLD_ONE / 2) delta -= WORLD_ONE;
+	else if (delta < -WORLD_ONE / 2) delta += WORLD_ONE;
+	return WORLD_FRACTIONAL_PART(static_cast<world_distance>(std::lround(a + delta * t)));
+}
 
 void init_interpolated_world()
 {
@@ -215,6 +308,9 @@ void init_interpolated_world()
 	{
 		contrail_tracking[i].projectile_index = NONE;
 	}
+
+	durandal_world_smoothed = false;
+	durandal_capture_tick(true);
 
 	world_is_interpolated = false;
 }
@@ -343,6 +439,8 @@ void enter_interpolated_world()
 		}
 	}
 
+	durandal_capture_tick(false);	// Durandal (F2)
+
 	world_is_interpolated = true;
 }
 
@@ -352,6 +450,8 @@ void exit_interpolated_world()
 	{
 		return;
 	}
+
+	durandal_restore_tick();	// Durandal (F2)
 
 	for (auto i = 0; i < MAXIMUM_OBJECTS_PER_MAP; ++i)
 	{
@@ -488,6 +588,32 @@ void update_interpolated_world(float heartbeat_fraction)
 	if (!world_is_interpolated || heartbeat_fraction > 1.f)
 	{
 		return;
+	}
+
+	// Durandal (F2): liquid heights, liquid texture drift and continuous
+	// light functions, which upstream leaves stepping at 30 Hz
+	if (Durandal::Enabled(Durandal::kSmoothWorld))
+	{
+		for (size_t i = 0; i < current_tick_medias.size() && i < MAXIMUM_MEDIAS_PER_MAP; ++i)
+		{
+			auto& media = MediaList[i];
+			if (!SLOT_IS_USED(&media))
+				continue;
+			auto& prev = previous_tick_medias[i];
+			auto& next = current_tick_medias[i];
+			media.height = lerp(prev.height, next.height, heartbeat_fraction);
+			media.origin.x = lerp_wrapped(prev.origin.x, next.origin.x, heartbeat_fraction);
+			media.origin.y = lerp_wrapped(prev.origin.y, next.origin.y, heartbeat_fraction);
+		}
+		for (size_t i = 0; i < current_tick_lights.size() && i < MAXIMUM_LIGHTS_PER_MAP; ++i)
+		{
+			auto& light = LightList[i];
+			if (SLOT_IS_USED(&light) && light_function_is_smooth(light))
+			{
+				light.intensity = lerp(previous_tick_lights[i], current_tick_lights[i], heartbeat_fraction);
+			}
+		}
+		durandal_world_smoothed = true;
 	}
 
 	for (auto i = 0; i < dynamic_world->polygon_count; ++i)
@@ -689,7 +815,7 @@ void update_interpolated_world(float heartbeat_fraction)
 	}
 }
 
-void interpolate_world_view(float heartbeat_fraction)
+bool interpolate_world_view(float heartbeat_fraction)
 {
 	auto prev = &previous_tick_world_view;
 	auto next = &current_tick_world_view;
@@ -700,7 +826,7 @@ void interpolate_world_view(float heartbeat_fraction)
 		prev->origin_polygon_index == NONE ||
 		!should_interpolate(prev->origin, next->origin))
 	{
-		return;
+		return false;
 	}
 
 	view->yaw = lerp_angle(prev->yaw,
@@ -750,6 +876,8 @@ void interpolate_world_view(float heartbeat_fraction)
 			view->origin_polygon_index = polygon_index;
 		}
 	}
+
+	return true;
 }
 
 extern bool game_is_being_replayed();

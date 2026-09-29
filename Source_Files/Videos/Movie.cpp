@@ -92,6 +92,10 @@ Movie::Movie() {}
 #include <matroska/KaxTrackAudio.h>
 #include <matroska/KaxTrackVideo.h>
 #include <matroska/KaxCues.h>
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
 
 using namespace libmatroska;
 
@@ -265,6 +269,13 @@ bool Movie::IsRecording()
 
 bool Movie::Setup()
 {
+    // Durandal: movie export reads frames back through OpenGL framebuffer
+    // objects, which the Metal display mode doesn't have yet
+    if (DurandalGL::Active())
+    {
+        ThrowUserError("Movie export is not yet available with the Metal renderer; turn it off in Preferences > DURANDAL to record a movie.");
+        return false;
+    }
     if (!IsRecording())
         return false;
     if (!av)
@@ -929,3 +940,4 @@ void Movie::StopRecording()
 }
 
 #endif
+

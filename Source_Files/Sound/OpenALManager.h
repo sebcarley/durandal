@@ -22,6 +22,8 @@
 #include "MusicPlayer.h"
 #include "SoundPlayer.h"
 #include "StreamPlayer.h"
+#include "DurandalReverb.h"
+#include <AL/efx.h>
 #include <queue>
 
 #if defined (_MSC_VER) && !defined (M_PI)
@@ -87,6 +89,14 @@ public:
 	bool IsPaused() const { return paused_audio; }
 	ALCint GetRenderingFormat() const { return openal_rendering_format; }
 	ALuint GetLowPassFilter(float highFrequencyGain) const;
+	// Durandal (A1): room reverb. SetReverb from the main thread; world
+	// sounds send to ReverbSlot() (0 when there is none); under a liquid
+	// they lose their highs (UnderwaterFilter(), or folded into
+	// GetLowPassFilter()).
+	void SetReverb(const DurandalReverb::Reverb& reverb) { reverb_target.Set(reverb); }
+	ALuint ReverbSlot() const { return reverb_slot; }
+	bool IsUnderwater() const { return reverb_current.underwater; }
+	ALuint UnderwaterFilter() const { return underwater_filter; }
 	bool IsExtensionSupported(OptionalExtension extension) const { return extension_support.at(extension); }
 private:
 	static OpenALManager* instance;
@@ -109,6 +119,7 @@ private:
 	bool OpenDevice();
 	bool CloseDevice();
 	void ProcessAudioQueue();
+	void UpdateReverb();
 	void ResyncPlayers(bool music_players_only = false);
 	bool is_using_recording_device = false;
 	std::queue<std::unique_ptr<AudioPlayer::AudioSource>> sources_pool;
@@ -130,6 +141,15 @@ private:
 	static LPALFILTERI alFilteri;
 	static LPALFILTERF alFilterf;
 
+	/* Durandal (A1): effect and effect slot functions */
+	static LPALGENEFFECTS alGenEffects;
+	static LPALDELETEEFFECTS alDeleteEffects;
+	static LPALEFFECTI alEffecti;
+	static LPALEFFECTF alEffectf;
+	static LPALGENAUXILIARYEFFECTSLOTS alGenAuxiliaryEffectSlots;
+	static LPALDELETEAUXILIARYEFFECTSLOTS alDeleteAuxiliaryEffectSlots;
+	static LPALAUXILIARYEFFECTSLOTI alAuxiliaryEffectSloti;
+
 	std::unordered_map<OptionalExtension, bool> extension_support;
 	bool LoadOptionalExtensions();
 
@@ -138,6 +158,11 @@ private:
 	AudioParameters audio_parameters;
 	ALCint openal_rendering_format = 0;
 	ALuint low_pass_filter;
+	ALuint reverb_effect = 0, reverb_slot = 0, underwater_filter = 0;
+	bool eax_reverb = false;
+	AtomicStructure<DurandalReverb::Reverb> reverb_target = {};
+	DurandalReverb::Reverb reverb_current;	// audio thread
+	bool reverb_applied = false;
 
 	/* format type we supports for mixing / rendering
 	* those are used from the first to the last of the list

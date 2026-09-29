@@ -19,6 +19,9 @@
 #include "OpenALManager.h"
 #include "Logging.h"
 
+// Durandal (A1): what is left of sounds' highs under a liquid
+static constexpr float kUnderwaterHighs = 0.25f;
+
 LPALCLOOPBACKOPENDEVICESOFT OpenALManager::alcLoopbackOpenDeviceSOFT;
 LPALCISRENDERFORMATSUPPORTEDSOFT OpenALManager::alcIsRenderFormatSupportedSOFT;
 LPALCRENDERSAMPLESSOFT OpenALManager::alcRenderSamplesSOFT;
@@ -27,6 +30,13 @@ LPALGENFILTERS OpenALManager::alGenFilters;
 LPALDELETEFILTERS OpenALManager::alDeleteFilters;
 LPALFILTERF OpenALManager::alFilterf;
 LPALFILTERI OpenALManager::alFilteri;
+LPALGENEFFECTS OpenALManager::alGenEffects;
+LPALDELETEEFFECTS OpenALManager::alDeleteEffects;
+LPALEFFECTI OpenALManager::alEffecti;
+LPALEFFECTF OpenALManager::alEffectf;
+LPALGENAUXILIARYEFFECTSLOTS OpenALManager::alGenAuxiliaryEffectSlots;
+LPALDELETEAUXILIARYEFFECTSLOTS OpenALManager::alDeleteAuxiliaryEffectSlots;
+LPALAUXILIARYEFFECTSLOTI OpenALManager::alAuxiliaryEffectSloti;
 
 OpenALManager* OpenALManager::instance = nullptr;
 
@@ -53,6 +63,13 @@ bool OpenALManager::Init(const AudioParameters& parameters) {
 			LOAD_PROC(LPALDELETEFILTERS, alDeleteFilters);
 			LOAD_PROC(LPALFILTERI, alFilteri);
 			LOAD_PROC(LPALFILTERF, alFilterf);
+			LOAD_PROC(LPALGENEFFECTS, alGenEffects);
+			LOAD_PROC(LPALDELETEEFFECTS, alDeleteEffects);
+			LOAD_PROC(LPALEFFECTI, alEffecti);
+			LOAD_PROC(LPALEFFECTF, alEffectf);
+			LOAD_PROC(LPALGENAUXILIARYEFFECTSLOTS, alGenAuxiliaryEffectSlots);
+			LOAD_PROC(LPALDELETEAUXILIARYEFFECTSLOTS, alDeleteAuxiliaryEffectSlots);
+			LOAD_PROC(LPALAUXILIARYEFFECTSLOTI, alAuxiliaryEffectSloti);
 #undef LOAD_PROC
 		} else {
 			logError("ALC_SOFT_loopback extension is not supported"); //Should never be the case as long as >= OpenAL 1.14
@@ -80,6 +97,7 @@ void OpenALManager::ProcessAudioQueue() {
 	}
 
 	UpdateListener();
+	UpdateReverb();
 	for (int i = 0; i < audio_players_queue.size(); i++) {
 
 		auto audio = audio_players_queue.front();
@@ -336,12 +354,84 @@ bool OpenALManager::GenerateEffects() {
 	alFilteri(low_pass_filter, AL_FILTER_TYPE, AL_FILTER_LOWPASS);
 	alFilterf(low_pass_filter, AL_LOWPASS_GAIN, 1.f);
 	alFilterf(low_pass_filter, AL_LOWPASS_GAINHF, 1.f);
-	return alGetError() == AL_NO_ERROR;
+	if (alGetError() != AL_NO_ERROR)
+		return false;
+
+	// Durandal (A1): one shared room reverb (EAX reverb where available),
+	// and the underwater filter for sounds without a 3D filter of their own
+	if (alGenEffects && alGenAuxiliaryEffectSlots && alcIsExtensionPresent(p_ALCDevice, "ALC_EXT_EFX")) {
+		alGenEffects(1, &reverb_effect);
+		alEffecti(reverb_effect, AL_EFFECT_TYPE, AL_EFFECT_EAXREVERB);
+		eax_reverb = alGetError() == AL_NO_ERROR;
+		if (!eax_reverb)
+			alEffecti(reverb_effect, AL_EFFECT_TYPE, AL_EFFECT_REVERB);
+		alGenAuxiliaryEffectSlots(1, &reverb_slot);
+		alGenFilters(1, &underwater_filter);
+		alFilteri(underwater_filter, AL_FILTER_TYPE, AL_FILTER_LOWPASS);
+		alFilterf(underwater_filter, AL_LOWPASS_GAIN, 1.f);
+		alFilterf(underwater_filter, AL_LOWPASS_GAINHF, kUnderwaterHighs);
+		if (alGetError() != AL_NO_ERROR) {
+			logWarning("Room reverb is not available");
+			reverb_slot = 0;
+		}
+	}
+	return true;
 }
 
 ALuint OpenALManager::GetLowPassFilter(float highFrequencyGain) const {
-	alFilterf(low_pass_filter, AL_LOWPASS_GAINHF, highFrequencyGain);
+	alFilterf(low_pass_filter, AL_LOWPASS_GAINHF, highFrequencyGain * (IsUnderwater() ? kUnderwaterHighs : 1.f));
 	return low_pass_filter;
+}
+
+// Durandal (A1): the room reverb, glided towards the main thread's estimate
+void OpenALManager::UpdateReverb() {
+	if (!reverb_slot) return;
+	const auto target = reverb_target.Get();
+	const float seconds = audio_parameters.rate ? float(audio_parameters.sample_frame_size) / audio_parameters.rate : 0.02f;
+	const auto next = DurandalReverb::Glide(reverb_current, target, seconds);
+	const bool underwaterChanged = next.underwater != reverb_current.underwater;
+	const bool changed = !reverb_applied || next != reverb_current;
+	reverb_current = next;
+	if (!changed) return;
+	reverb_applied = true;
+
+	if (!next.active) {
+		alAuxiliaryEffectSloti(reverb_slot, AL_EFFECTSLOT_EFFECT, AL_EFFECT_NULL);
+	} else {
+		if (eax_reverb) {
+			alEffectf(reverb_effect, AL_EAXREVERB_DENSITY, next.density);
+			alEffectf(reverb_effect, AL_EAXREVERB_DIFFUSION, next.diffusion);
+			alEffectf(reverb_effect, AL_EAXREVERB_GAIN, next.gain);
+			alEffectf(reverb_effect, AL_EAXREVERB_GAINHF, next.gain_hf);
+			alEffectf(reverb_effect, AL_EAXREVERB_DECAY_TIME, next.decay);
+			alEffectf(reverb_effect, AL_EAXREVERB_DECAY_HFRATIO, next.decay_hf_ratio);
+			alEffectf(reverb_effect, AL_EAXREVERB_REFLECTIONS_GAIN, next.reflections_gain);
+			alEffectf(reverb_effect, AL_EAXREVERB_REFLECTIONS_DELAY, next.reflections_delay);
+			alEffectf(reverb_effect, AL_EAXREVERB_LATE_REVERB_GAIN, next.late_gain);
+			alEffectf(reverb_effect, AL_EAXREVERB_LATE_REVERB_DELAY, next.late_delay);
+			alEffectf(reverb_effect, AL_EAXREVERB_AIR_ABSORPTION_GAINHF, next.air_absorption_hf);
+		} else {
+			alEffectf(reverb_effect, AL_REVERB_DENSITY, next.density);
+			alEffectf(reverb_effect, AL_REVERB_DIFFUSION, next.diffusion);
+			alEffectf(reverb_effect, AL_REVERB_GAIN, next.gain);
+			alEffectf(reverb_effect, AL_REVERB_GAINHF, next.gain_hf);
+			alEffectf(reverb_effect, AL_REVERB_DECAY_TIME, next.decay);
+			alEffectf(reverb_effect, AL_REVERB_DECAY_HFRATIO, next.decay_hf_ratio);
+			alEffectf(reverb_effect, AL_REVERB_REFLECTIONS_GAIN, next.reflections_gain);
+			alEffectf(reverb_effect, AL_REVERB_REFLECTIONS_DELAY, next.reflections_delay);
+			alEffectf(reverb_effect, AL_REVERB_LATE_REVERB_GAIN, next.late_gain);
+			alEffectf(reverb_effect, AL_REVERB_LATE_REVERB_DELAY, next.late_delay);
+			alEffectf(reverb_effect, AL_REVERB_AIR_ABSORPTION_GAINHF, next.air_absorption_hf);
+		}
+		// A slot takes a copy of the effect when it is attached
+		alAuxiliaryEffectSloti(reverb_slot, AL_EFFECTSLOT_EFFECT, reverb_effect);
+	}
+	alGetError();
+
+	// Sounds' direct filters change going in or out of a liquid
+	if (underwaterChanged)
+		for (auto& player : audio_players_queue)
+			player->is_sync_with_al_parameters = false;
 }
 
 bool OpenALManager::GenerateSources() {
@@ -427,6 +517,12 @@ void OpenALManager::CleanEverything() {
 	}
 
 	alDeleteFilters(1, &low_pass_filter);
+	if (reverb_slot) {
+		alDeleteAuxiliaryEffectSlots(1, &reverb_slot);
+		alDeleteEffects(1, &reverb_effect);
+		alDeleteFilters(1, &underwater_filter);
+		reverb_slot = 0;
+	}
 	bool closedDevice = CloseDevice();
 	assert(closedDevice && "Could not close audio device");
 }

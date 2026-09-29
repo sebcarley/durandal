@@ -86,6 +86,15 @@ Feb 5, 2002 (Br'fin (Jeremy Parsons)):
 #include "OGL_LoadScreen.h"
 #include "progress.h"
 #include "InfoTree.h"
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#include "DurandalMetal.h"		// Durandal: HD art (compressed images keep their mip chains)
+#include "DurandalTextureCache.h"	// Durandal: HD art kept block-compressed between runs
+#include <chrono>
+#include "DurandalPreferences.h"	// Durandal: HD art (Normal Maps reads the packs' offset images)
+#endif
+
+
 
 // Whether or not OpenGL is present and usable
 static bool _OGL_IsPresent = false;
@@ -284,6 +293,11 @@ void OGL_TextureOptionsBase::Load()
 	{
 			flags |= ImageLoader_LoadMipMaps;
 	}
+	// Durandal: the Metal renderer keeps a compressed (DDS) image's own mip
+	// chain whatever the type's filter setting, since it cannot generate
+	// mips for block-compressed textures (DurandalMetal::PlaceTexture)
+	if (DurandalMetal::DisplayActive())
+		flags |= ImageLoader_LoadMipMaps;
 
 	if (hasS3TC) 
 	{
@@ -297,11 +311,28 @@ void OGL_TextureOptionsBase::Load()
 	if (NormalImg.IsPresent()) return;
 
 	NormalImg.Clear();
+
+	// Durandal: texture cache (DurandalTextureCache.h). An image and its
+	// mask are one entry, keyed by both files and the loading parameters:
+	// on a hit the block-compressed image replaces the decode; on a miss
+	// the decoded image is compressed, written and kept compressed.
+	const bool cache = DurandalTextureCache::Active();
+	const int normal_flags = flags | (NormalIsPremultiplied ? ImageLoader_ImageIsAlreadyPremultiplied : 0);
+	std::string normal_key;
+	bool normal_cached = false;
+	if (cache)
+	{
+		normal_key = DurandalTextureCache::Key(NormalColors, NormalMask, normal_flags, actual_width, actual_height, maxTextureSize);
+		normal_cached = DurandalTextureCache::Fetch(normal_key, NormalImg);
+	}
 	
 	// Load the normal image if it has a filename specified for it
-	if (NormalColors != FileSpecifier() && NormalColors.Exists())
+	if (normal_cached)
 	{
-		if (!NormalImg.LoadFromFile(NormalColors,ImageLoader_Colors, flags | (NormalIsPremultiplied ? ImageLoader_ImageIsAlreadyPremultiplied : 0), actual_width, actual_height, maxTextureSize))
+	}
+	else if (NormalColors != FileSpecifier() && NormalColors.Exists())
+	{
+		if (!NormalImg.LoadFromFile(NormalColors,ImageLoader_Colors, normal_flags, actual_width, actual_height, maxTextureSize))
 		{
 			// A texture must have a normal colored part
 			return;
@@ -312,17 +343,36 @@ void OGL_TextureOptionsBase::Load()
 		return;
 	}
 
-	// load a heightmap
-	if (TEST_FLAG(Get_OGL_ConfigureData().Flags, OGL_Flag_BumpMap) && OffsetMap != FileSpecifier() && OffsetMap.Exists()) {
-		if(!OffsetImg.LoadFromFile(OffsetMap, ImageLoader_Colors, flags | (NormalIsPremultiplied ? ImageLoader_ImageIsAlreadyPremultiplied : 0), actual_width, actual_height, maxTextureSize)) {
-			return;
+	// load a heightmap (Durandal: also for its Normal Maps switch, which
+	// lights replacement walls from the pack's map in the Metal renderer)
+	if ((TEST_FLAG(Get_OGL_ConfigureData().Flags, OGL_Flag_BumpMap) || Durandal::Enabled(Durandal::kNormalMaps)) &&
+		OffsetMap != FileSpecifier() && OffsetMap.Exists()) {
+		std::string offset_key;
+		bool offset_cached = false;
+		if (cache)
+		{
+			offset_key = DurandalTextureCache::Key(OffsetMap, FileSpecifier(), normal_flags, actual_width, actual_height, maxTextureSize);
+			offset_cached = DurandalTextureCache::Fetch(offset_key, OffsetImg);
+		}
+		if (!offset_cached)
+		{
+			if(!OffsetImg.LoadFromFile(OffsetMap, ImageLoader_Colors, normal_flags, actual_width, actual_height, maxTextureSize)) {
+				return;
+			}
+			if (cache)
+				DurandalTextureCache::Store(offset_key, OffsetImg);
 		}
 	}
 
 	// Load the normal mask if it has a filename specified for it
-	if (NormalMask != FileSpecifier() && NormalMask.Exists())
+	if (!normal_cached)
 	{
-		NormalImg.LoadFromFile(NormalMask,ImageLoader_Opacity, flags, actual_width, actual_height, maxTextureSize);
+		if (NormalMask != FileSpecifier() && NormalMask.Exists())
+		{
+			NormalImg.LoadFromFile(NormalMask,ImageLoader_Opacity, flags, actual_width, actual_height, maxTextureSize);
+		}
+		if (cache)
+			DurandalTextureCache::Store(normal_key, NormalImg);
 	}
 
 	if (maxTextureSize)
@@ -347,7 +397,15 @@ void OGL_TextureOptionsBase::Load()
 		// Load the glow image if it has a filename specified for it
 		if (GlowColors != FileSpecifier() && GlowColors.Exists())
 		{
-			if (GlowImg.LoadFromFile(GlowColors,ImageLoader_Colors, flags | (GlowIsPremultiplied ? ImageLoader_ImageIsAlreadyPremultiplied : 0), actual_width, actual_height, maxTextureSize))
+			const int glow_flags = flags | (GlowIsPremultiplied ? ImageLoader_ImageIsAlreadyPremultiplied : 0);
+			std::string glow_key;
+			bool glow_cached = false;
+			if (cache)	// Durandal: texture cache
+			{
+				glow_key = DurandalTextureCache::Key(GlowColors, GlowMask, glow_flags, actual_width, actual_height, maxTextureSize);
+				glow_cached = DurandalTextureCache::Fetch(glow_key, GlowImg);
+			}
+			if (!glow_cached && GlowImg.LoadFromFile(GlowColors,ImageLoader_Colors, glow_flags, actual_width, actual_height, maxTextureSize))
 			{
 		
 				// Load the glow mask if it has a
@@ -358,6 +416,8 @@ void OGL_TextureOptionsBase::Load()
 				{
 					GlowImg.LoadFromFile(GlowMask,ImageLoader_Opacity, flags, actual_width, actual_height, maxTextureSize);
 				}
+				if (cache)
+					DurandalTextureCache::Store(glow_key, GlowImg);
 			}
 		}
 	}
@@ -426,7 +486,11 @@ void OGL_LoadModelsImages(short Collection)
 	
 	// For models, skins
 	if (TEST_FLAG(Get_OGL_ConfigureData().Flags, OGL_Flag_3D_Models))
+	{
+		const auto started = std::chrono::steady_clock::now();	// Durandal: load timing
 		OGL_LoadModels(Collection);
+		DurandalTextureCache::Tally("OGL_LoadModels", std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count());
+	}
 	else
 		OGL_UnloadModels(Collection);
 }

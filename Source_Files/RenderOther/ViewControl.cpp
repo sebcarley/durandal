@@ -42,6 +42,8 @@ Dec 17, 2000 (Loren Petrich:
 #include "ViewControl.h"
 #include "InfoTree.h"
 #include "preferences.h"
+#include "DurandalPreferences.h"
+#include "screen.h"
 
 struct view_settings_definition {
 	bool MapActive;
@@ -188,7 +190,19 @@ bool View_AdjustFOV(float& FOV, float FOV_Target)
 
 // Indicates whether to fix the horizontal or the vertical field-of-view angle
 // (default: fix vertical FOV angle)
-bool View_FOV_FixHorizontalNotVertical() {return get_screen_mode()->fix_h_not_v;}
+bool View_FOV_FixHorizontalNotVertical()
+{
+	// Durandal (widescreen): beyond 2:1 keep the vertical view the classic
+	// 2:1 view has and widen the horizontal, rather than cropping top and
+	// bottom. At 2:1 or narrower nothing changes.
+	if (Durandal::Enabled(Durandal::kWidescreen))
+	{
+		const SDL_Rect r = alephone::Screen::instance()->view_rect();
+		if (r.h > 0 && r.w > 2 * r.h)
+			return false;
+	}
+	return get_screen_mode()->fix_h_not_v;
+}
 
 // Landscape stuff: this is for being able to return a pointer to the default one
 static LandscapeOptions DefaultLandscape;

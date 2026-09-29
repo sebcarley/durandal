@@ -27,6 +27,7 @@
  *      Semi-hacky scheme to let mouse buttons simulate keypresses
  */
 
+#include "DurandalBenchmark.h"
 #include "cseries.h"
 #include <math.h>
 
@@ -54,7 +55,8 @@ void enter_mouse(short type)
 		MainScreenCenterMouse();
 		
 		SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, input_preferences->raw_mouse_input ? "0" : "1");
-		SDL_SetRelativeMouseMode(SDL_TRUE);
+		if (!DurandalBenchmark::HiddenWindow())	// Durandal: leave the mouse alone in unattended runs
+			SDL_SetRelativeMouseMode(SDL_TRUE);
 		mouse_active = true;
 		mouselook_delta = {0, 0};
 		snapshot_delta_scrollwheel = 0;
@@ -97,15 +99,13 @@ static inline float MIX(float start, float end, float factor)
  *  Take a snapshot of the current mouse state
  */
 
-void mouse_idle(short type)
+// Durandal: shared by mouse_idle() and peek_mouselook_delta(), so the
+// per-frame prediction uses exactly the same maths as the tick.
+static fixed_yaw_pitch mouselook_delta_for(int delta_x, int delta_y)
 {
-	if (mouse_active) {
-
 		// Calculate axis deltas
-		float dx = snapshot_delta_x;
-		float dy = -snapshot_delta_y;
-		snapshot_delta_x = 0;
-		snapshot_delta_y = 0;
+		float dx = delta_x;
+		float dy = -delta_y;
 		
 		// Mouse inversion
 		if (TEST_FLAG(input_preferences->modifiers, _inputmod_invert_mouse))
@@ -129,10 +129,26 @@ void mouse_idle(short type)
 		// Angular deltas
 		const fixed_angle dyaw = static_cast<fixed_angle>(sx * dx * FIXED_ONE);
 		const fixed_angle dpitch = static_cast<fixed_angle>(sy * dy * FIXED_ONE);
-		
+		return {dyaw, dpitch};
+}
+
+void mouse_idle(short type)
+{
+	if (mouse_active) {
 		// Push mouselook delta
-		mouselook_delta = {dyaw, dpitch};
+		mouselook_delta = mouselook_delta_for(snapshot_delta_x, snapshot_delta_y);
+		snapshot_delta_x = 0;
+		snapshot_delta_y = 0;
 	}
+}
+
+// Durandal: the look delta the next tick will receive from the mouse movement
+// gathered so far, without consuming it.
+fixed_yaw_pitch peek_mouselook_delta()
+{
+	if (!mouse_active)
+		return {0, 0};
+	return mouselook_delta_for(snapshot_delta_x, snapshot_delta_y);
 }
 
 fixed_yaw_pitch pull_mouselook_delta()

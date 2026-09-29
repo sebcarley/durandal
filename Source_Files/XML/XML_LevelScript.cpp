@@ -41,6 +41,7 @@ Jul 31, 2002 (Loren Petrich):
 #include <sstream>
 
 #include "cseries.h"
+#include "DurandalTextureCache.h"	// Durandal: load timing marks
 #include "shell.h"
 #include "game_wad.h"
 #include "Music.h"
@@ -166,6 +167,7 @@ extern bool get_text_resource_from_scenario(int resource_number, LoadedResource&
 // Loads all those in resource 128 in a map file (or some appropriate equivalent)
 void LoadLevelScripts(FileSpecifier& MapFile)
 {
+	DurandalTextureCache::Mark("LoadLevelScripts: start");	// Durandal: load timing
 	// Get rid of the previous level script
 	// ghs: unless it's the first time, in which case we would be clearing
 	// any external level scripts, so don't

@@ -75,6 +75,7 @@ public:
 	void StopAllSounds();
 
 	void UpdateListener();
+	void UpdateReverb(const world_location3d* listener);	// Durandal (A1)
 
 	void Idle();
 
@@ -132,6 +133,7 @@ private:
 	void AngleAndVolumeToStereoVolume(angle delta, short volume, short *right_volume, short *left_volume);
 	short GetRandomSoundPermutation(short sound_index);
 	uint16 GetSoundObstructionFlags(short sound_index, world_location3d* source);
+	float GetSoundOcclusion(short sound_index, world_location3d* source); // Durandal (A2): <0 when off
 	void UpdateAmbientSoundSources();
 	void ManagePlayers();
 	std::set<std::shared_ptr<SoundPlayer>> sound_players;

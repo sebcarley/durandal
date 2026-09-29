@@ -35,6 +35,11 @@ SHAPE_BLITTER.CPP
 
 #include "OGL_Headers.h"
 #endif
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
+
 
 extern bool shapes_file_is_m1();
 static bool shape_is_motion_blip(short collection, short frame_index)

@@ -24,6 +24,9 @@ SOUND.C
 #include <functional>
 
 #include "SoundManager.h"
+#include "DurandalAcoustics.h"
+#include "DurandalReverb.h"
+#include "DurandalCrash.h"
 #include "ReplacementSounds.h"
 #include "sound_definitions.h"
 #include "images.h"
@@ -380,6 +383,7 @@ std::shared_ptr<SoundPlayer> SoundManager::PlaySound(short sound_index,
 	parameters.pitch = pitch;
 	parameters.soft_rewind = soft_rewind;
 	parameters.is_2d = !source;
+	parameters.in_world = source != nullptr;	// Durandal (A1)
 	parameters.source_identifier = identifier;
 
 	if (source) {
@@ -389,6 +393,7 @@ std::shared_ptr<SoundPlayer> SoundManager::PlaySound(short sound_index,
 
 		if (this->parameters.flags & _3d_sounds_flag) {
 			parameters.obstruction_flags = GetSoundObstructionFlags(sound_index, source);
+			parameters.occlusion = GetSoundOcclusion(sound_index, source);
 		}
 		else {
 			SoundVolumes variables;
@@ -460,6 +465,9 @@ void SoundManager::ManagePlayers() {
 			auto obstruction_flags = parameters.obstruction_flags;
 			parameters.obstruction_flags = GetSoundObstructionFlags(parameters.identifier, &parameters.source_location3d);
 			updateParameters = updateParameters || obstruction_flags != parameters.obstruction_flags;
+			auto occlusion = parameters.occlusion;
+			parameters.occlusion = GetSoundOcclusion(parameters.identifier, &parameters.source_location3d);
+			updateParameters = updateParameters || std::fabs(occlusion - parameters.occlusion) > 0.02f;
 		} else if (parameters.stereo_parameters.is_panning && parameters.source_identifier != NONE) { //only occurs when 3D sounds is disabled
 			auto stereo_parameters = parameters.stereo_parameters;
 			SoundVolumes variables;
@@ -478,14 +486,39 @@ void SoundManager::UpdateListener()
 {
 	if (!active || !(parameters.flags & _3d_sounds_flag)) return;
 	auto listener = _sound_listener_proc();
+	world_location3d render_listener;	// Durandal (A2): per-frame camera, zero velocity
+	if (listener && Durandal::RenderListener(*listener, render_listener)) listener = &render_listener;
 	if (listener && *listener != OpenALManager::Get()->GetListener()) OpenALManager::Get()->UpdateListener(*listener);
+}
+
+// Durandal (A1): the room around the listener, sized up a few times a second
+void SoundManager::UpdateReverb(const world_location3d* listener)
+{
+	static uint64_t last = 0;
+	const uint64_t now = machine_tick_count();
+	if (last && now - last < 100) return;
+	last = now;
+	const auto reverb = listener ? DurandalReverb::Estimate(*listener) : DurandalReverb::Reverb();
+	OpenALManager::Get()->SetReverb(reverb);
+	// Development: DURANDAL_REVERB_LOG=1 prints the estimate as it changes
+	static const bool log = getenv("DURANDAL_REVERB_LOG") != nullptr;
+	static float logged = -1;
+	if (log && listener && std::fabs(reverb.decay - logged) > 0.1f * std::max(logged, 0.1f))
+	{
+		logged = reverb.decay;
+		fprintf(stderr, "reverb: polygon %d decay %.2f s reflections %.2f @ %.3f s late %.2f @ %.3f s density %.2f%s%s\n",
+				listener->polygon_index, reverb.decay, reverb.reflections_gain, reverb.reflections_delay, reverb.late_gain,
+				reverb.late_delay, reverb.density, reverb.underwater ? " underwater" : "", reverb.active ? "" : " (off)");
+	}
 }
 
 void SoundManager::Idle()
 {
 	if (!active || OpenALManager::Get()->IsPaused()) return;
+	DurandalCrash::Phase("sound idle");	// Durandal: crash record
 
 	UpdateListener();
+	UpdateReverb(_sound_listener_proc());	// Durandal (A1): 2D and 3D sound alike
 	CauseAmbientSoundSourceUpdate();
 	ManagePlayers();
 }
@@ -542,17 +575,53 @@ uint16 SoundManager::GetSoundObstructionFlags(short sound_index, world_location3
 	return returnedFlags;
 }
 
+float SoundManager::GetSoundOcclusion(short sound_index, world_location3d* source)
+{
+	const float occlusion = Durandal::SoundOcclusion(source);
+	if (occlusion < 0)
+		return occlusion;
+	SoundDefinition* definition = GetSoundDefinition(sound_index);
+	if (!definition || (definition->flags & _sound_cannot_be_obstructed))
+		return 0.f;
+	return occlusion;
+}
+
+// Durandal (A2): occlusion >= 0 blends the unobstructed and obstructed
+// depth curves instead of choosing one; < 0 is upstream.
 static short distance_to_volume(
 	SoundDefinition* definition,
 	world_distance distance,
-	uint16 flags)
+	uint16 flags,
+	float occlusion = -1.f)
 {
 	struct sound_behavior_definition* behavior = get_sound_behavior_definition(definition->behavior_index);
 	// LP change: idiot-proofing
 	if (!behavior) return 0; // Silence
 
+	auto curve_volume = [distance](const depth_curve_definition* depth_curve) -> short {
+		if (distance <= depth_curve->maximum_volume_distance)
+			return depth_curve->maximum_volume;
+		if (distance > depth_curve->minimum_volume_distance)
+			return depth_curve->minimum_volume;
+		return depth_curve->minimum_volume - ((depth_curve->minimum_volume - depth_curve->maximum_volume) * (depth_curve->minimum_volume_distance - distance)) /
+			(depth_curve->minimum_volume_distance - depth_curve->maximum_volume_distance);
+	};
+
 	struct depth_curve_definition* depth_curve;
 	short volume;
+
+	if (occlusion >= 0)
+	{
+		float amount = (definition->flags & _sound_cannot_be_obstructed) ? 0.f : std::clamp(occlusion, 0.f, 1.f);
+		if ((flags & _sound_was_media_obstructed) && !(definition->flags & _sound_cannot_be_media_obstructed))
+			amount = 1.f;
+		const short clear = curve_volume(&behavior->unobstructed_curve);
+		const short obstructed = curve_volume(&behavior->obstructed_curve);
+		volume = static_cast<short>(std::lround(clear + (obstructed - clear) * amount));
+		if ((flags & _sound_was_media_muffled) && !(definition->flags & _sound_cannot_be_media_obstructed))
+			volume >>= 1;
+		return volume;
+	}
 
 	if (((flags & _sound_was_obstructed) && !(definition->flags & _sound_cannot_be_obstructed)) ||
 		((flags & _sound_was_media_obstructed) && !(definition->flags & _sound_cannot_be_media_obstructed)))
@@ -652,7 +721,7 @@ void SoundManager::AddOneAmbientSoundSource(ambient_sound_data *ambient_sounds, 
 		int32 dx = int32(listener->point.x) - int32(source->point.x);
 		int32 dy = int32(listener->point.y) - int32(source->point.y);
 
-		volume = distance_to_volume(definition, distance, _sound_obstructed_proc(source));
+		volume = distance_to_volume(definition, distance, _sound_obstructed_proc(source), Durandal::SoundOcclusion(source));
 		volume = (absolute_volume * volume) >> MAXIMUM_SOUND_VOLUME_BITS;
 
 		if (dx || dy)
@@ -1094,7 +1163,7 @@ void SoundManager::CalculateSoundVariables(short sound_index, world_location3d* 
 		int32 dy = int32(listener->point.y) - int32(source->point.y);
 
 		// calculate the relative volume due to the given depth curve
-		variables.volume = distance_to_volume(definition, distance, _sound_obstructed_proc(source));
+		variables.volume = distance_to_volume(definition, distance, _sound_obstructed_proc(source), Durandal::SoundOcclusion(source));
 
 		if (dx || dy)
 		{

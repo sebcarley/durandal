@@ -21,6 +21,9 @@
 */
 
 #include "cseries.h"
+#include "DurandalTextureCache.h"	// Durandal: load timing marks
+#include <chrono>
+#include <vector>
 #include "Plugins.h"
 
 #include <algorithm>
@@ -183,7 +186,9 @@ static void load_mmls(const Plugin& plugin, bool load_menu_mml_only)
 		FileSpecifier file;
 		if (file.SetNameWithPath(it->c_str()))
 		{
+			const auto started = std::chrono::steady_clock::now();	// Durandal: load timing
 			ParseMMLFromFile(file, load_menu_mml_only);
+			DurandalTextureCache::Tally("ParseMMLFromFile", std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count());
 		}
 		else
 		{
@@ -194,6 +199,7 @@ static void load_mmls(const Plugin& plugin, bool load_menu_mml_only)
 
 void Plugins::load_mml(bool load_menu_mml_only) {
 	validate();
+	DurandalTextureCache::Mark(load_menu_mml_only ? "plugins: menu MML start" : "plugins: MML start");	// Durandal: load timing
 
 	for (std::vector<Plugin>::iterator it = m_plugins.begin(); it != m_plugins.end(); ++it) 
 	{
@@ -202,6 +208,7 @@ void Plugins::load_mml(bool load_menu_mml_only) {
 			load_mmls(*it, load_menu_mml_only);
 		}
 	}
+	DurandalTextureCache::Mark("plugins: MML done");
 }
 
 void load_shapes_patch(SDL_RWops* p, bool override_replacements);
@@ -225,7 +232,24 @@ void Plugins::load_shapes_patches(bool is_opengl)
 						OpenedFile ofile;
 						if (file.Open(ofile))
 						{
-							load_shapes_patch(ofile.GetRWops(), false);
+							// Durandal: read whole, then parse from memory (the
+							// parser reads two bytes at a time: a system call each)
+							int32 length = 0;
+							std::vector<unsigned char> contents;
+							if (ofile.GetLength(length) && length > 0)
+							{
+								contents.resize(length);
+								if (!ofile.Read(length, &contents[0]))
+									contents.clear();
+							}
+							if (!contents.empty())
+							{
+								SDL_RWops* mem = SDL_RWFromMem(&contents[0], int(contents.size()));
+								load_shapes_patch(mem, false);
+								SDL_RWclose(mem);
+							}
+							else
+								load_shapes_patch(ofile.GetRWops(), false);
 						}
 						
 					}

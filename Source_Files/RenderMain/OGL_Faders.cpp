@@ -32,6 +32,11 @@
 #include "OGL_Setup.h"
 #include "OGL_Faders.h"
 #include "OGL_Headers.h"
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
+
 
 #ifdef HAVE_OPENGL
 

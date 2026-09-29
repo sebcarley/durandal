@@ -47,6 +47,8 @@ struct SoundParameters {
 	bool soft_rewind = false; //if true the sound can only rewind after it's done playing
 	bool soft_start = false; //if true the sound will use transitions to fade in from silence to proper computed volume
 	uint16_t obstruction_flags = 0;
+	float occlusion = -1.f; //Durandal (A2): graded geometric occlusion 0..1, or <0 to use obstruction_flags as upstream
+	bool in_world = false; //Durandal (A1): a sound from somewhere in the world (room reverb, underwater)
 	uint16_t flags = 0;
 	sound_behavior behavior = _sound_is_normal;
 	world_location3d source_location3d = {};
@@ -131,6 +133,10 @@ private:
 	static constexpr uint32_t fast_rewind_time = 35U;
 	static constexpr float smooth_volume_transition_threshold = 0.1f;
 	static constexpr uint32_t smooth_volume_transition_time_ms = 300U;
+
+	// Durandal (A2): the behaviour for a sound, blending the rows below by
+	// its graded occlusion; identical to the upstream choice at 0 and 1.
+	static SoundBehavior BehaviorFor(const SoundParameters& soundParameters);
 
 	static constexpr SoundBehavior sound_behavior_parameters[] = {
 		{0.5f, 5.f, 1.f, 1.f, 1.f},

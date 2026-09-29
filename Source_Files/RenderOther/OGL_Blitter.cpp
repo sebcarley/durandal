@@ -31,6 +31,10 @@
 
 #ifdef HAVE_OPENGL
 #include "OGL_Render.h"
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
 
 const int OGL_Blitter::tile_size;
 std::set<OGL_Blitter*> *OGL_Blitter::m_blitter_registry = NULL;
@@ -52,8 +56,11 @@ void OGL_Blitter::_LoadTextures()
 	if (!m_surface)
 		return;
 	
-	m_tile_width  = std::min(NextPowerOfTwo(m_src.w), tile_size);
-	m_tile_height = std::min(NextPowerOfTwo(m_src.h), tile_size);
+	// Durandal: Metal display mode has no small texture limit; one tile
+	// avoids seams where a scaled image is filtered across tile edges
+	const int tile_limit = DurandalGL::Active() ? 8192 : tile_size;
+	m_tile_width  = std::min(NextPowerOfTwo(m_src.w), tile_limit);
+	m_tile_height = std::min(NextPowerOfTwo(m_src.h), tile_limit);
 	
 	if (Get_OGL_ConfigureData().Flags & OGL_Flag_TextureFix)
 	{
@@ -296,3 +303,4 @@ void OGL_Blitter::Deregister(OGL_Blitter *B)
 }
 
 #endif
+

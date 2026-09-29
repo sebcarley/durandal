@@ -112,10 +112,21 @@
 #endif
 
 #include "shell_options.h"
+#include "DurandalBenchmark.h"
+void DurandalEDR_IgnoreSavedState();	// DurandalEDR.mm
+#include "DurandalCheats.h"
+#include "DurandalCrash.h"
+#include "DurandalView.h"
+#include "DurandalGL.h"
 
 #ifdef HAVE_STEAM
 #include "steamshim_child.h"
 #endif
+#if defined(__APPLE__) && defined(HAVE_OPENGL)
+#include "DurandalGLShim.h"	// Durandal: 2D drawing also works in Metal display mode (DurandalGL.h)
+#endif
+
+
 
 // Data directories
 vector <DirectorySpecifier> data_search_path; // List of directories in which data files are searched for
@@ -233,6 +244,7 @@ void initialize_application(void)
 #endif
 
 	// Initialize SDL
+	DurandalEDR_IgnoreSavedState();	// Durandal: development runs only
 	int retval = SDL_Init(SDL_INIT_VIDEO |
 						  (shell_options.nosound ? 0 : SDL_INIT_AUDIO) |
 						  (shell_options.nojoystick ? 0 : SDL_INIT_JOYSTICK|SDL_INIT_GAMECONTROLLER) |
@@ -542,6 +554,7 @@ void initialize_application(void)
 		graphics_preferences->screen_mode.fullscreen = true;
 	if (shell_options.force_windowed)		// takes precedence over fullscreen because windowed is safer
 		graphics_preferences->screen_mode.fullscreen = false;
+	DurandalBenchmark::ApplyOverrides();	// Durandal: in-memory only
 	write_preferences();
 
 	Plugins::instance()->load_mml(true);
@@ -715,6 +728,18 @@ void main_event_loop(void)
 	short game_state;
 
 	while ((game_state = get_game_state()) != _quit_game) {
+		// Durandal: in game with the Metal display, wait for the display
+		// first, so input and the interpolated world are sampled as late
+		// as possible before the frame is shown
+		if (game_state == _game_in_progress && DurandalGL::Active()) {
+			DurandalBenchmark::StageBegin(DurandalBenchmark::kStageWait);	// Durandal: development timing
+			DurandalGL::WaitForFrame();
+			DurandalBenchmark::StageEnd(DurandalBenchmark::kStageWait);
+		}
+		DurandalBenchmark::MainLoopHook();	// Durandal: development only
+		DurandalCheats::Update();	// Durandal: testing cheats
+		DurandalCrash::Phase("main loop");	// Durandal: crash record and session diary
+		DurandalCrash::Heartbeat();
 		uint64_t cur_time = machine_tick_count();
 		bool yield_time = false;
 		bool poll_event = false;
@@ -722,7 +747,8 @@ void main_event_loop(void)
 		switch (game_state) {
 			case _game_in_progress:
 			case _change_level:
-				if ((get_fps_target() == 0 && get_keyboard_controller_status()) || Console::instance()->input_active() || cur_time - last_event_poll >= TICKS_BETWEEN_EVENT_POLL) {
+				if ((get_fps_target() == 0 && get_keyboard_controller_status()) || Console::instance()->input_active() || cur_time - last_event_poll >= TICKS_BETWEEN_EVENT_POLL ||
+					Durandal::PollEveryFrame()) {	// Durandal (F1)
 					poll_event = true;
 					last_event_poll = cur_time;
 			  } else {				  

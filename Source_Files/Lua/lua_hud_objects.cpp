@@ -49,6 +49,7 @@ LUA_HUD_OBJECTS.CPP
 #include "collection_definition.h"
 #include "FileHandler.h"
 #include "Crosshairs.h"
+#include "DurandalCamera.h"	// Durandal (C3)
 #include "OGL_Textures.h"
 #include "OGL_Setup.h"
 
@@ -2562,7 +2563,28 @@ typedef L_Class<Lua_Screen_Crosshairs_Name> Lua_Screen_Crosshairs;
 
 static int Lua_Screen_Crosshairs_Get_Active(lua_State *L)
 {
-	lua_pushboolean(L, NetAllowCrosshair() && Crosshairs_IsActive());
+	// Durandal (C3): while Free Look holds the aim away from the centre the
+	// engine draws the crosshair at the aim, so a Lua HUD's centred reticle
+	// should not be drawn (aim_x / aim_y say where the aim is)
+	lua_pushboolean(L, NetAllowCrosshair() && Crosshairs_IsActive() && !DurandalCamera::AimOffCentre());
+	return 1;
+}
+
+// Durandal (C3): the aim's offset from the centre of the world view, in
+// the view's pixels; 0 when the view looks where it aims
+static int Lua_Screen_Crosshairs_Get_AimX(lua_State *L)
+{
+	int dx = 0, dy = 0;
+	DurandalCamera::CrosshairOffset(world_view->screen_width, world_view->screen_height, dx, dy);
+	lua_pushnumber(L, dx);
+	return 1;
+}
+
+static int Lua_Screen_Crosshairs_Get_AimY(lua_State *L)
+{
+	int dx = 0, dy = 0;
+	DurandalCamera::CrosshairOffset(world_view->screen_width, world_view->screen_height, dx, dy);
+	lua_pushnumber(L, dy);
 	return 1;
 }
 
@@ -2580,6 +2602,8 @@ static int Lua_Screen_Crosshairs_Set_LuaHUD(lua_State *L)
 
 const luaL_Reg Lua_Screen_Crosshairs_Get[] = {
 {"active", Lua_Screen_Crosshairs_Get_Active},
+{"aim_x", Lua_Screen_Crosshairs_Get_AimX},	// Durandal (C3)
+{"aim_y", Lua_Screen_Crosshairs_Get_AimY},	// Durandal (C3)
 {"lua_hud", Lua_Screen_Crosshairs_Get_LuaHUD},
 {0, 0}
 };

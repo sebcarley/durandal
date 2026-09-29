@@ -563,6 +563,33 @@ short get_item_shape(
 	return definition->base_shape;
 }
 
+// Durandal (testing cheats, DurandalCheats.h): every weapon and full
+// ammunition, as if picked up one at a time but without a sound for each
+void durandal_give_all_weapons(short player_index)
+{
+	struct player_data *player= get_player_data(player_index);
+	const bool m1_weapons = (static_world->environment_flags & _environment_m1_weapons) != 0;
+	for (short type= 0; type<NUMBER_OF_DEFINED_ITEMS; ++type)
+	{
+		struct item_definition *definition= get_item_definition(type);
+		if (!definition || (definition->item_kind!=_weapon && definition->item_kind!=_ammunition)) continue;
+		// Only items this scenario has graphics for: the engine also knows
+		// Marathon Infinity's SMG, which Marathon 2 never had
+		if (definition->base_shape!=UNONE && !get_shape_animation_data(definition->base_shape)) continue;
+		const short maximum= definition->get_maximum_count_per_player(m1_weapons, dynamic_world->game_information.difficulty_level);
+		bool added= false;
+		while ((player->items[type]==NONE ? 0 : player->items[type]) < maximum)
+		{
+			player->items[type]= (player->items[type]==NONE) ? 1 : player->items[type]+1;
+			process_new_item_for_reloading(player_index, type);
+			added= true;
+		}
+		if (added) mark_player_inventory_as_dirty(player_index, type);
+	}
+	if (player_index==current_player_index)
+		SoundManager::instance()->PlaySound(Sound_GotItem(), nullptr, NONE);
+}
+
 bool try_and_add_player_item(
 	short player_index,
 	short type) 
