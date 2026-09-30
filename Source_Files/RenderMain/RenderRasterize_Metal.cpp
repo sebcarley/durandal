@@ -32,6 +32,7 @@
 #include "DurandalLights.h"
 #include "DurandalRadiance.h"
 #include "DurandalOccluders.h"
+#include "DurandalSurfaces.h"
 #include "DurandalGL.h"
 #include "DurandalBenchmark.h"
 
@@ -209,12 +210,38 @@ void RenderRasterize_Metal::render_tree()
 
 	// Traced shadows (R1, Rampant): the figures near the lights, as cards
 	// the shadow walk meets
+	// Traced ambient shadows (R3, Rampant): the figures around the viewer
+	// too, and the level's polygon grid, for the ambient pass after the world
 	u.rampant = simd_make_int4(0, 0, 0, 0);
-	if (shadows && Durandal::Enabled(Durandal::kTracedShadows) &&
-		DurandalOccluders::Gather(view, dynamic_lights, light_count) > 0)
-		u.rampant = simd_make_int4(1, dynamic_world->polygon_count, 0, 0);
+	const bool traced_shadows = shadows && Durandal::Enabled(Durandal::kTracedShadows);
+	const bool traced_ambient = Durandal::Enabled(Durandal::kAmbientShadows) && Durandal::Enabled(Durandal::kTracedAmbient);
+	int occluder_count = 0;
+	if (traced_shadows || traced_ambient)
+		occluder_count = DurandalOccluders::Gather(view, dynamic_lights, traced_shadows ? light_count : 0, traced_ambient);
 	else
 		DurandalOccluders::Gather(view, dynamic_lights, 0);
+	if (traced_shadows && occluder_count > 0)
+		u.rampant = simd_make_int4(1, dynamic_world->polygon_count, 0, 0);
+	if (traced_ambient) {
+		static std::vector<simd_int2> cells;
+		static std::vector<int> indices;
+		simd_float4 header;
+		int columns = 0, rows = 0;
+		if (DurandalLights::BuildGrid(header, columns, rows, cells, indices))
+			DurandalMetal::SetPolygonGrid(header, columns, rows, cells, indices);	// kept until the level changes
+	}
+	DurandalMetal::SetTracedAmbient(traced_ambient, occluder_count > 0 ? dynamic_world->polygon_count : 0);
+
+	// Reflecting liquids (R2, Rampant): the surfaces as a reflected ray sees
+	// them; the rays walk the map, so it is built for them too
+	const bool reflections = Durandal::Enabled(Durandal::kLiquids) && Durandal::Enabled(Durandal::kReflections);
+	if ((reflections || traced_ambient) && !(shadows || volumetric || redistribution)) {
+		static std::vector<simd_float4> map;
+		SetMap(map.data(), DurandalLights::BuildMap(map));
+	}
+	u.rampant.z = reflections && DurandalSurfaces::Frame() ? 1 : 0;
+	if (!u.rampant.z)
+		DurandalMetal::SetSurfaces(nullptr, 0);
 
 	// Contact shadows under items, monsters and scenery
 	DurandalMetal::Caster casters[kMaximumCasters];

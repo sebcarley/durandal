@@ -31,10 +31,12 @@ struct view_data;
 
 namespace DurandalOccluders {
 
-// Gathers the figures within reach of `light_list`, places their silhouettes
-// in the mask array, and hands them to the renderer
-// (DurandalMetal::SetOccluders). Returns how many; 0 clears them.
-int Gather(const view_data* view, const DurandalMetal::Light* light_list, int light_count);
+// Gathers the figures within reach of `light_list` (and, with
+// around_viewer, those within a few world units of the viewer, for traced
+// ambient shadows), places their silhouettes in the mask array, and hands
+// them to the renderer (DurandalMetal::SetOccluders). Returns how many; 0
+// clears them.
+int Gather(const view_data* view, const DurandalMetal::Light* light_list, int light_count, bool around_viewer = false);
 
 }
 

@@ -44,6 +44,15 @@ int GatherCasters(const view_data* view, const std::vector<sorted_node_data>& no
 // current floor and ceiling heights); returns the polygon count.
 int BuildMap(std::vector<simd_float4>& out);
 
+// Traced ambient shadows (R3): a coarse grid over the level, one world unit
+// a cell, listing the polygons whose outline's bounds touch each cell, so
+// a shader that knows only a point can find the polygon it is in (and
+// with it where to start walking). header: the grid's origin x, y, cells
+// per world unit, 0; cells: per cell (row by row) the first index into
+// `indices` and the count. Rebuilt only when the level changes; returns
+// whether it changed.
+bool BuildGrid(simd_float4& header, int& columns, int& rows, std::vector<simd_int2>& cells, std::vector<int>& indices);
+
 }
 
 #endif

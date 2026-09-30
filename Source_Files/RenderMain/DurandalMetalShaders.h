@@ -88,7 +88,8 @@ struct Uniforms {
 	float4 viewer_light;		// weapon lighting: the dynamic lights at the viewer, for the weapon in hand (rgb the tint, a the amount; 0 none)
 	int4 figure_patches;		// Bounced Light (R4): a sprite's floor and ceiling patches (x, y), -1 none;
 								//   z, w: a figure's own position (its card casts no shadow on itself)
-	int4 rampant;				// Rampant: x traced shadows (R1), y polygons in the occluder lists
+	int4 rampant;				// Rampant: x traced shadows (R1), y polygons in the occluder lists,
+								//   z reflecting liquids (R2)
 };
 
 // Light redistribution (E4): one surface's lumels in the surface cache
@@ -1178,6 +1179,116 @@ fragment WorldFrag shadow_fragment(WorldIn in [[stage_in]], constant Uniforms& u
 // lights and the headlight glint on it, stronger at grazing angles). Lava
 // is opaque and glows. Refraction of what is below would need a copy of
 // the frame, which a single pass does not have.
+// Reflecting liquids (R2, Rampant): a ray from the surface walked through
+// the map as the light shadows are (exact in 5D space) to the first floor,
+// ceiling or wall it meets, which is shaded from the surface table
+// (DurandalSurfaces.h): its wall art, placed as the rasteriser places it,
+// at its own light with the headlight by its distance from the viewer, as
+// Marathon lights it. Landscape surfaces show the sky by direction.
+struct SurfaceHit {
+	int poly;
+	int part;		// 0 floor, 1 ceiling, 2 + 2e edge e's upper part, 3 + 2e its lower part
+	int edge;
+	float t;
+	float3 at;
+};
+
+static bool trace_surfaces(device const float4* map, int poly, float3 o, float3 d, float far, thread SurfaceHit& hit)
+{
+	float t_prev = 0.0;
+	for (int step = 0; step < 48; ++step) {
+		if (poly < 0)
+			return false;
+		const float4 h = map[poly * 9];
+		const int n = int(h.x);
+		float leave = 1e9;
+		int next = -1, edge = -1;
+		for (int i = 0; i < n; ++i) {
+			const float4 e0 = map[poly * 9 + 1 + i];
+			const float4 e1 = map[poly * 9 + 1 + (i + 1 == n ? 0 : i + 1)];
+			const float2 e = e1.xy - e0.xy;
+			const float den = d.x * e.y - d.y * e.x;
+			if (abs(den) < 1e-6)
+				continue;
+			const float2 w = e0.xy - o.xy;
+			const float t = (w.x * e.y - w.y * e.x) / den;
+			const float sp = (w.x * d.y - w.y * d.x) / den;
+			if (t > t_prev + 1e-3 && t < leave && sp >= -1e-3 && sp <= 1.0 + 1e-3) {
+				leave = t;
+				next = int(e0.z);
+				edge = i;
+			}
+		}
+		float t_plane = 1e9;
+		int plane = -1;
+		if (d.z < -1e-5) { t_plane = (h.y - o.z) / d.z; plane = 0; }
+		else if (d.z > 1e-5) { t_plane = (h.z - o.z) / d.z; plane = 1; }
+		if (plane >= 0 && t_plane <= leave) {
+			if (t_plane > far)
+				return false;
+			hit.poly = poly; hit.part = plane; hit.edge = -1; hit.t = t_plane; hit.at = o + d * t_plane;
+			return true;
+		}
+		if (leave > far || edge < 0)
+			return false;
+		const float z = o.z + d.z * leave;
+		bool wall = next < 0;
+		bool upper = true;
+		if (!wall) {
+			const float4 hn = map[next * 9];
+			wall = z < hn.y || z > hn.z;
+			upper = z > hn.z;
+		}
+		if (wall) {
+			hit.poly = poly; hit.part = 2 + 2 * edge + (upper ? 0 : 1); hit.edge = edge; hit.t = leave;
+			hit.at = o + d * leave;
+			return true;
+		}
+		poly = next;
+		t_prev = leave;
+	}
+	return false;
+}
+
+static float3 sky_colour(float4 mapping, texture2d<float> sky, float3 d)
+{
+	const float turn = atan2(d.y, d.x) * 0.15915494;
+	const float elevation = asin(clamp(d.z * rsqrt(max(length_squared(d), 1e-9)), -1.0, 1.0));
+	const float2 uv = float2(mapping.x * (turn + mapping.y), clamp(0.5 - elevation / max(mapping.z, 1e-3), 0.0, 1.0));
+	constexpr sampler s(filter::linear, mip_filter::linear, address::repeat);
+	return sky.sample(s, uv, level(1.0)).rgb;
+}
+
+static float3 shade_hit(constant Uniforms& u, device const float4* surfaces, device const float4* map,
+						texture2d_array<float> walls, texture2d<float> sky, thread const SurfaceHit& hit, float3 d,
+						float travelled)
+{
+	const float4 e = surfaces[1 + hit.poly * 18 + hit.part];
+	if (e.x < -1.5)
+		return sky_colour(surfaces[0], sky, d);
+	float3 colour = float3(0.5);
+	if (e.x > -0.5) {
+		// The colour array holds the art as it lies on the surface: x across
+		// the wall (or the floor's y), y down it (or the floor's x)
+		float2 uv;
+		if (hit.part < 2) {
+			uv = float2(hit.at.y + e.z, hit.at.x + e.y) / 1024.0;
+		} else {
+			const float2 v0 = map[hit.poly * 9 + 1 + hit.edge].xy;
+			uv = float2(e.y + length(hit.at.xy - v0), e.z - hit.at.z) / 1024.0;
+		}
+		constexpr sampler s(filter::linear, mip_filter::linear, address::repeat);
+		colour = walls.sample(s, uv, uint(e.x), level(clamp(log2(max(travelled, 1.0) / 2048.0), 0.0, 5.0))).rgb;
+	}
+	// As classic_intensity: the surface's light and the headlight by the
+	// hit's distance from the viewer
+	const float depth = length(hit.at - u.camera.xyz) / 8192.0;
+	const float ml = clamp(u.self_luminosity + u.flare - depth, 0.0, 1.0);
+	const float light = min(e.w, 1.0);
+	const float intensity = light > ml ? light + ml * 0.5 : light * 0.5 + ml;
+	return colour * clamp(intensity, 0.0, 1.0);
+}
+
 struct LiquidFrag {
 	float4 color [[color(0)]];
 	float4 glow [[color(1)]];
@@ -1201,7 +1312,9 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 									texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]],
 									texture3d<float> volume [[texture(3)]],
 									float4 below [[color(0)]], float4 below_glow [[color(1)]],
-									float4 below_dist [[color(2)]])
+									float4 below_dist [[color(2)]],
+									device const float4* surfaces [[buffer(10)]],
+									texture2d_array<float> walls [[texture(7)]], texture2d<float> sky [[texture(8)]])
 {
 	const float below_distance = below_dist.r;	// the same type as WorldFrag writes
 	const float t = u.time / 30.0;
@@ -1258,6 +1371,19 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 	const float3 sheen = surface * fresnel + (glint + head * 0.25) * haze.a;
 
 	float3 colour = mix(seen, surface, opacity) + sheen * (1.0 - opacity * 0.5);
+	// Reflecting liquids (R2): the room above and the sky, broken by the
+	// ripples, in place of the surface's own colour in the sheen
+	if (u.rampant.z != 0 && camera.z > in.world.z && opacity < 0.99) {
+		const float3 r = reflect(v, n);
+		SurfaceHit hit;
+		float3 mirror = surface;	// nothing within reach: the surface's own colour, as before
+		if (trace_surfaces(map, u.polygon, in.world + float3(0.0, 0.0, 2.0), r, 32768.0, hit)) {
+			mirror = shade_hit(u, surfaces, map, walls, sky, hit, r, in.fog_distance + hit.t);
+			mirror = mix(u.fog_color.rgb, mirror, fog_factor(u, hit.t)) * haze.a + haze.rgb;
+		}
+		const float weight = fresnel * (1.0 - opacity * 0.5);
+		colour = mix(mix(seen, surface, opacity), mirror, weight) + (glint + head * 0.25) * haze.a * (1.0 - opacity * 0.5);
+	}
 	const float f = fog_factor(u, l.fog_distance);
 	colour = mix(u.fog_color.rgb, colour, f);
 
@@ -1817,7 +1943,38 @@ struct AOParams {
 	float strength;
 	float far;					// no occlusion beyond this distance
 	float view;					// 1: show the occlusion instead of the world (development)
+	float4 grid;				// traced (R3): the polygon grid's origin x, y, cells per world unit
+	int4 traced;				//   x on, y columns, z rows, w polygons in the occluder lists
 };
+
+// Traced ambient shadows (R3, Rampant): the polygon a point is in, from the
+// level's grid (DurandalLights::BuildGrid), its heights deciding between
+// rooms stacked over each other; -1 if none
+static int grid_polygon(constant AOParams& p, device const int2* cells, device const int* indices,
+						device const float4* map, float3 at);
+
+// The figure whose card, as the viewer sees it, a point lies on (a sprite's
+// own pixels must not be shadowed by its own card); far away if none
+static float2 figure_under(thread const Occluders& occ, int poly, float3 at, float3 camera)
+{
+	if (poly < 0 || poly >= occ.polygon_count)
+		return float2(1e9);
+	const int2 range = occ.polygons[poly];
+	for (int k = 0; k < range.y; ++k) {
+		const Occluder o = occ.list[occ.indices[range.x + k]];
+		const float2 to = o.position.xy - camera.xy;
+		if (length_squared(to) < 1.0)
+			continue;
+		const float2 forward = normalize(to);
+		const float2 side = float2(-forward.y, forward.x);
+		const float2 r = at.xy - o.position.xy;
+		const float h = dot(r, side), z = at.z - o.position.z;
+		if (abs(dot(r, forward)) < 48.0 && h >= min(o.extent.x, -o.extent.y) - 8.0 && h <= max(o.extent.y, -o.extent.x) + 8.0 &&
+			z >= o.extent.z - 8.0 && z <= o.extent.w + 8.0)
+			return o.position.xy;
+	}
+	return float2(1e9);
+}
 
 static float3 ao_world(constant AOParams& p, float2 uv, float distance)
 {
@@ -1835,8 +1992,30 @@ constant float3 kAOKernel[12] = {
 	float3(-0.10, -0.40,  0.91), float3( 0.35,  0.55,  0.76), float3(-0.50, -0.70,  0.51)
 };
 
+static int grid_polygon(constant AOParams& p, device const int2* cells, device const int* indices,
+						device const float4* map, float3 at)
+{
+	const int2 c = int2(floor((at.xy - p.grid.xy) * p.grid.z));
+	if (any(c < 0) || c.x >= p.traced.y || c.y >= p.traced.z)
+		return -1;
+	const int2 range = cells[c.y * p.traced.y + c.x];
+	for (int k = 0; k < range.y; ++k) {
+		const int poly = indices[range.x + k];
+		const float4 h = map[poly * 9];
+		if (at.z < h.y - 16.0 || at.z > h.z + 16.0)
+			continue;
+		if (inside_polygon(map, poly, at.xy))
+			return poly;
+	}
+	return -1;
+}
+
 fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffer(0)]],
-						   texture2d<float> dist [[texture(0)]])
+						   texture2d<float> dist [[texture(0)]],
+						   device const float4* map [[buffer(1)]], device const int2* grid_cells [[buffer(2)]],
+						   device const int* grid_indices [[buffer(3)]], device const Occluder* occluders [[buffer(4)]],
+						   device const int2* occluder_polygons [[buffer(5)]], device const int* occluder_indices [[buffer(6)]],
+						   texture2d_array<float> masks [[texture(1)]])
 {
 	constexpr sampler near(filter::nearest, address::clamp_to_edge);
 	const float d = dist.sample(near, in.uv).r;
@@ -1882,6 +2061,31 @@ fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffe
 	const float ca = cos(angle), sa = sin(angle);
 	const float3 T = T0 * ca + B0 * sa;
 	const float3 B = cross(N, T);
+	// Traced (R3): short rays walked through the map from the point, and the
+	// figures standing near it, so what is off screen still shades it
+	if (p.traced.x != 0) {
+		const float3 o = P + N * 8.0;
+		const int poly = grid_polygon(p, grid_cells, grid_indices, map, o);
+		if (poly >= 0) {
+			Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, p.traced.w, float2(1e9) };
+			occ.self = figure_under(occ, poly, P, p.camera.xyz);
+			const float4 dirs[4] = { float4(0.50, 0.00, 0.866, 0.0), float4(0.0, 0.87, 0.50, 0.0),
+									 float4(-0.71, 0.0, 0.71, 0.0), float4(0.0, -0.94, 0.34, 0.0) };
+			float traced = 0.0;
+			for (int i = 0; i < 4; ++i) {
+				const float3 dir = normalize(T * dirs[i].x + B * dirs[i].y + N * dirs[i].z);
+				SurfaceHit hit;
+				float hit_weight = 0.0;
+				if (trace_surfaces(map, poly, o, dir, p.radius, hit)) {
+					const float f = 1.0 - saturate(hit.t / p.radius);
+					hit_weight = f * f;
+				}
+				const float through = figures_between(occ, poly, o, dir * p.radius, 0.0, 1.0, p.radius * 0.5);
+				traced += max(hit_weight, 1.0 - through);
+			}
+			return saturate(1.0 - p.strength * traced / 4.0);
+		}
+	}
 	float occlusion = 0.0;
 	for (int i = 0; i < 8; ++i) {
 		const float scale = mix(0.15, 1.0, float(i * i) / 49.0);

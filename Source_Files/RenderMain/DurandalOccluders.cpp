@@ -156,7 +156,7 @@ const Mask* mask_for(short collection_code, short low_level_shape)
 
 }
 
-int Gather(const view_data* view, const DurandalMetal::Light* light_list, int light_count)
+int Gather(const view_data* view, const DurandalMetal::Light* light_list, int light_count, bool around_viewer)
 {
 	static std::vector<DurandalMetal::Occluder> found;
 	static std::vector<float> distance2;
@@ -165,7 +165,7 @@ int Gather(const view_data* view, const DurandalMetal::Light* light_list, int li
 	static std::vector<int> indices;
 
 	const int polygons = dynamic_world->polygon_count;
-	if (light_count <= 0 || polygons <= 0)
+	if ((light_count <= 0 && !around_viewer) || polygons <= 0)
 	{
 		DurandalMetal::SetOccluders(nullptr, 0, nullptr, 0, nullptr, 0);
 		return 0;
@@ -210,6 +210,11 @@ int Gather(const view_data* view, const DurandalMetal::Light* light_list, int li
 		if (object->polygon < 0 || object->polygon >= polygons)
 			continue;
 		bool near = false;
+		if (around_viewer)
+		{
+			const float dx = object->location.x - camera.x, dy = object->location.y - camera.y;
+			near = dx * dx + dy * dy < 12.0f * WORLD_ONE * 12.0f * WORLD_ONE;
+		}
 		for (int l = 0; l < light_count && !near; ++l)
 		{
 			const simd_float4 p = light_list[l].position_radius;

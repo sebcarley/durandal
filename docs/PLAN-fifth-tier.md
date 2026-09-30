@@ -289,6 +289,11 @@ Also in R1:
 
 ### R2 Water that reflects and refracts
 
+**Reflection built (30 Sep 2026), awaiting a look:** traced with the
+walk, shaded from the new surface table (`DurandalSurfaces`) and the
+level's own wall art and sky. Refraction, figures in reflections and HD
+art in reflections come next. See CLAUDE.md, Round 13.
+
 **What.**
 - Water, sewage and goo show the room above them, sky included, broken up
   by their ripples.
@@ -322,6 +327,11 @@ offset is near zero, or a seam shows at the shoreline.
 - **Fallback:** the reflected ray at half resolution if it costs too much.
 
 ### R3 Ambient shadows from the world
+
+**Built (30 Sep 2026), awaiting a look:** no polygon-id attachment
+after all. A coarse grid of the level gives each pixel its polygon, so
+the world pipelines are untouched; four rays per pixel through the walk
+and the figure cards. See CLAUDE.md, Round 13.
 
 **What.** Occlusion that comes from the geometry and figures around each
 point, not from the picture:

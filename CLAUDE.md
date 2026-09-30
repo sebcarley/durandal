@@ -1012,6 +1012,37 @@ The folder name comes from the *localised* bundle name
     figure's own card is skipped (`figure_patches.zw`, its position), and
     its walk starts from the polygon under its feet. `Uniforms::rampant`
     x on, y polygon count. Grates (transparent sides) not yet.
+  - R2 Reflecting Liquids (`reflections`, Rampant, in QA; needs Real
+    Liquids; `RenderMain/DurandalSurfaces.*`): `liquid_fragment` traces
+    the reflected ray (about the ripple normal) through the map
+    (`trace_surfaces`, the walk, so 5D-exact; 32 WU reach) and shades what
+    it hits from the surface table (fragment buffer 10: entry 0 the sky's
+    mapping, then 18 float4 per polygon: floor, ceiling, each edge's upper
+    and lower side part: slice, texture origin or x0 and hanging height,
+    light), rebuilt each frame. Wall art is a 128x128 RGBA colour array
+    (texture 7, 256 slices, mips) made from the 8-bit bitmaps through
+    their ramps at full brightness, laid out x across the wall / floor's y;
+    the landscape is a texture of its own (texture 8), sampled by
+    direction (2^HorizExp repeats, square angular pixels, horizon at the
+    middle). Hit light as classic_intensity with the headlight by the
+    hit's distance from the viewer; classic fog over the reflected path.
+    Mixed in by Fresnel in place of the surface's own colour; a ray that
+    meets nothing keeps the old sheen. Not lava; not from below. Not yet:
+    refraction (needs a copy of the frame), figures in reflections, HD art
+    in reflections (the 8-bit art is used). Floor and sky orientation in
+    reflections to be checked by eye.
+  - R3 Traced Ambient Shadows (`traced_ambient`, Rampant, in QA; needs
+    Ambient Shadows): `ao_fragment` keeps its half-resolution pass,
+    per-pixel rotation and the world blit's depth-aware blur, but with the
+    switch on each pixel finds its polygon from a 1 WU grid of the level
+    (`DurandalLights::BuildGrid`, rebuilt only on a level change; heights
+    pick between stacked rooms) and walks four short rays (the AO radius)
+    through the map (`trace_surfaces`) and the figure cards
+    (`figures_between`; the figures within 12 WU of the viewer are
+    gathered too), weighting hits by nearness. A sprite pixel skips its
+    own figure's card (`figure_under`). No pixel polygon found: the
+    screen-space estimate as before. AO pass bindings: buffer 1 map, 2-3
+    grid, 4-6 occluders, texture 1 masks.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

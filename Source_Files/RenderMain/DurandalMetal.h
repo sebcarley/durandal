@@ -95,7 +95,8 @@ struct Uniforms {
 	simd_float4 viewer_light;	// weapon lighting: the dynamic lights at the viewer, for the weapon in hand (rgb the tint, a the amount; 0 none)
 	simd_int4 figure_patches;	// Bounced Light (R4): a sprite's floor and ceiling patches (x, y), -1 none;
 								//   z, w: a figure's own position (its card casts no shadow on itself), 1e5 none
-	simd_int4 rampant;			// Rampant: x traced shadows (R1), y polygons in the occluder lists
+	simd_int4 rampant;			// Rampant: x traced shadows (R1), y polygons in the occluder lists,
+								//   z reflecting liquids (R2)
 };
 
 // Dynamic lights (E2), world units. Must match struct Light in the shaders.
@@ -125,6 +126,11 @@ struct Occluder {
 constexpr int kMaximumOccluders = 128;
 constexpr int kMaskSize = 256;		// a slice of the mask array, texels across
 constexpr int kMaskSlices = 512;
+
+// The level's surfaces for traced rays (DurandalSurfaces.h): wall art in a
+// colour array, kColourSize square
+constexpr int kColourSize = 128;
+constexpr int kColourSlices = 256;
 
 struct Vertex {
 	float x, y, z;
@@ -327,6 +333,24 @@ void SetOccluders(const Occluder* list, int count, const simd_int2* polygons, in
 // A silhouette into slice `slice` of the mask array: kMaskSize x kMaskSize
 // opacity (0 clear, 255 solid) at level 0, then each mip level down to 1x1.
 bool SetMask(int slice, const std::vector<std::vector<uint8_t>>& levels);
+
+// Traced ambient shadows (R3): the level's polygon grid
+// (DurandalLights::BuildGrid), kept until the next; and whether this
+// frame's ambient shadows are traced through the map (with the figures
+// given to SetOccluders) instead of read from the picture.
+void SetPolygonGrid(simd_float4 header, int columns, int rows, const std::vector<simd_int2>& cells,
+					const std::vector<int>& indices);
+void SetTracedAmbient(bool traced, int occluder_polygons);
+
+// The surface table (DurandalSurfaces.h: `count` float4), for this frame's
+// draws. Call before the first draw.
+void SetSurfaces(const simd_float4* table, int count);
+// Wall art into slice `slice` of the colour array: RGBA8, kColourSize
+// square at level 0, then each mip level down to 1x1.
+bool SetSurfaceColour(int slice, const std::vector<std::vector<uint8_t>>& levels);
+// The level's landscape as RGBA8, width x height at level 0, then each mip
+// level down to 1x1 (a new texture each time).
+bool SetSky(const std::vector<std::vector<uint8_t>>& levels, int width, int height);
 
 // Development (DURANDAL_GPU_TIMING): the display's own passes join a world
 // frame's stage timings. `pass` is an MTLRenderPassDescriptor, `command_buffer`

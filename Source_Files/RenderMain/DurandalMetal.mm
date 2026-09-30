@@ -360,6 +360,20 @@ id<MTLBuffer> bound_occluders, bound_occluder_polygons, bound_occluder_indices;
 id<MTLTexture> mask_array;			// kMaskSlices silhouettes, R8, mipmapped
 id<MTLTexture> no_masks;			// 1x1x1: none
 
+// Traced ambient shadows (R3)
+id<MTLBuffer> grid_cells, grid_indices;
+simd_float4 grid_header = { 0, 0, 1, 0 };
+int grid_columns = 0, grid_rows = 0;
+bool traced_ambient = false;
+int traced_ambient_polygons = 0;
+
+// The level's surfaces for traced rays (reflecting liquids, R2)
+id<MTLBuffer> bound_surfaces;
+id<MTLTexture> colour_array;		// kColourSlices wall textures, RGBA8, mipmapped
+id<MTLTexture> sky_texture;			// the landscape, RGBA8, mipmapped
+id<MTLTexture> no_colours;			// 1x1x1 array: none
+id<MTLTexture> no_sky;				// 1x1: none
+
 // Development capture (parity check)
 int force_mode = -1;
 bool capture_requested = false;
@@ -644,6 +658,17 @@ bool init()
 		const uint8_t clear_mask = 0;
 		[no_masks replaceRegion:MTLRegionMake2D(0, 0, 1, 1) mipmapLevel:0 slice:0 withBytes:&clear_mask
 					bytesPerRow:1 bytesPerImage:1];
+		MTLTextureDescriptor* cd = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+																					  width:1 height:1 mipmapped:NO];
+		cd.usage = MTLTextureUsageShaderRead;
+		no_sky = [device newTextureWithDescriptor:cd];
+		cd.textureType = MTLTextureType2DArray;
+		cd.arrayLength = 1;
+		no_colours = [device newTextureWithDescriptor:cd];
+		const uint8_t grey[4] = { 128, 128, 128, 255 };
+		[no_sky replaceRegion:MTLRegionMake2D(0, 0, 1, 1) mipmapLevel:0 withBytes:grey bytesPerRow:4];
+		[no_colours replaceRegion:MTLRegionMake2D(0, 0, 1, 1) mipmapLevel:0 slice:0 withBytes:grey
+					  bytesPerRow:4 bytesPerImage:4];
 
 		logNote("Durandal Metal: initialised on %s", device.name.UTF8String);
 		init_ok = true;
@@ -883,12 +908,15 @@ bool ensure_ao(int w, int h)
 // 24576), DURANDAL_AO_VIEW=1 shows the occlusion.
 void run_ao()
 {
+	// Must match struct AOParams in the shaders
 	struct AOParams {
 		simd_float4x4 view_projection;
 		simd_float4x4 inverse;
 		simd_float4 camera;
 		simd_float4 screen;
 		float radius, strength, far, view;
+		simd_float4 grid;		// traced (R3): the polygon grid's origin, cells per world unit
+		simd_int4 traced;		//   x on, y columns, z rows, w polygons in the occluder lists
 	} params;
 	static float radius = 512, strength = 1.2f, far = 24 * 1024;
 	static const bool ao_view = getenv("DURANDAL_AO_VIEW") != nullptr;
@@ -907,6 +935,9 @@ void run_ao()
 	params.strength = strength;
 	params.far = far;
 	params.view = ao_view ? 1 : 0;
+	const bool traced = traced_ambient && bound_map && grid_cells && grid_indices;
+	params.grid = grid_header;
+	params.traced = simd_make_int4(traced ? 1 : 0, grid_columns, grid_rows, traced ? traced_ambient_polygons : 0);
 	ao_far_reach = far;
 	ao_dev_view = ao_view;
 
@@ -919,6 +950,15 @@ void run_ao()
 	[e setRenderPipelineState:ao_pipeline];
 	[e setFragmentBytes:&params length:sizeof(params) atIndex:0];
 	[e setFragmentTexture:world_distance atIndex:0];
+	// Traced (R3): the map, the grid and the figures
+	const bool occluders = traced && traced_ambient_polygons > 0 && bound_occluders && bound_occluder_polygons && bound_occluder_indices;
+	[e setFragmentBuffer:(traced ? bound_map : no_map) offset:0 atIndex:1];
+	[e setFragmentBuffer:(traced ? grid_cells : no_patch) offset:0 atIndex:2];
+	[e setFragmentBuffer:(traced ? grid_indices : no_patch) offset:0 atIndex:3];
+	[e setFragmentBuffer:(occluders ? bound_occluders : no_patch) offset:0 atIndex:4];
+	[e setFragmentBuffer:(occluders ? bound_occluder_polygons : no_patch) offset:0 atIndex:5];
+	[e setFragmentBuffer:(occluders ? bound_occluder_indices : no_patch) offset:0 atIndex:6];
+	[e setFragmentTexture:(mask_array ? mask_array : no_masks) atIndex:1];
 	[e drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
 	[e endEncoding];
 
@@ -1160,6 +1200,10 @@ void bind_world_inputs()
 	[encoder setFragmentBuffer:(occluders ? bound_occluder_polygons : no_patch) offset:0 atIndex:8];
 	[encoder setFragmentBuffer:(occluders ? bound_occluder_indices : no_patch) offset:0 atIndex:9];
 	[encoder setFragmentTexture:(mask_array ? mask_array : no_masks) atIndex:6];
+	// Reflecting liquids (R2)
+	[encoder setFragmentBuffer:(bound_surfaces ? bound_surfaces : no_patch) offset:0 atIndex:10];
+	[encoder setFragmentTexture:(colour_array ? colour_array : no_colours) atIndex:7];
+	[encoder setFragmentTexture:(sky_texture ? sky_texture : no_sky) atIndex:8];
 }
 
 // Opens the world pass's render encoder if it is not open yet
@@ -1486,6 +1530,103 @@ bool SetMask(int slice, const std::vector<std::vector<uint8_t>>& levels)
 			[mask_array replaceRegion:MTLRegionMake2D(0, 0, size, size) mipmapLevel:level slice:slice
 							withBytes:levels[level].data() bytesPerRow:size bytesPerImage:size_t(size) * size];
 		}
+	}
+	return true;
+}
+
+void SetPolygonGrid(simd_float4 header, int columns, int rows, const std::vector<simd_int2>& cells,
+					const std::vector<int>& indices)
+{
+	if (!init() || cells.empty() || indices.empty() || columns <= 0 || rows <= 0)
+		return;
+	grid_cells = [device newBufferWithBytes:cells.data() length:sizeof(simd_int2) * cells.size()
+									options:MTLResourceStorageModeShared];
+	grid_indices = [device newBufferWithBytes:indices.data() length:sizeof(int) * indices.size()
+									  options:MTLResourceStorageModeShared];
+	grid_header = header;
+	grid_columns = columns;
+	grid_rows = rows;
+}
+
+void SetTracedAmbient(bool traced, int occluder_polygons)
+{
+	traced_ambient = traced;
+	traced_ambient_polygons = traced ? occluder_polygons : 0;
+}
+
+void SetSurfaces(const simd_float4* table, int count)
+{
+	if (!in_world_pass || !table || count <= 0)
+	{
+		bound_surfaces = nil;
+		if (encoder)
+			bind_world_inputs();
+		return;
+	}
+	static id<MTLBuffer> ring[3];
+	static int next = 0;
+	const size_t bytes = sizeof(simd_float4) * count;
+	__strong id<MTLBuffer>& b = ring[next];
+	next = (next + 1) % 3;	// at most two frames in flight
+	if (!b || b.length < bytes)
+		b = [device newBufferWithLength:bytes * 2 options:MTLResourceStorageModeShared];
+	std::memcpy(b.contents, table, bytes);
+	bound_surfaces = b;
+	if (encoder)
+		bind_world_inputs();
+}
+
+bool SetSurfaceColour(int slice, const std::vector<std::vector<uint8_t>>& levels)
+{
+	if (!init() || slice < 0 || slice >= kColourSlices || levels.empty())
+		return false;
+	@autoreleasepool {
+		if (!colour_array)
+		{
+			MTLTextureDescriptor* d = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+																						 width:kColourSize height:kColourSize mipmapped:YES];
+			d.textureType = MTLTextureType2DArray;
+			d.arrayLength = kColourSlices;
+			d.usage = MTLTextureUsageShaderRead;
+			d.storageMode = MTLStorageModeShared;
+			colour_array = [device newTextureWithDescriptor:d];
+			if (!colour_array)
+				return false;
+		}
+		int size = kColourSize;
+		for (size_t level = 0; level < levels.size() && level < colour_array.mipmapLevelCount && size >= 1; ++level, size /= 2)
+		{
+			if (levels[level].size() < size_t(size) * size * 4)
+				break;
+			[colour_array replaceRegion:MTLRegionMake2D(0, 0, size, size) mipmapLevel:level slice:slice
+							  withBytes:levels[level].data() bytesPerRow:size * 4 bytesPerImage:size_t(size) * size * 4];
+		}
+	}
+	return true;
+}
+
+bool SetSky(const std::vector<std::vector<uint8_t>>& levels, int width, int height)
+{
+	if (!init() || levels.empty() || width <= 0 || height <= 0)
+		return false;
+	@autoreleasepool {
+		MTLTextureDescriptor* d = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+																					 width:width height:height mipmapped:YES];
+		d.usage = MTLTextureUsageShaderRead;
+		d.storageMode = MTLStorageModeShared;
+		id<MTLTexture> t = [device newTextureWithDescriptor:d];
+		if (!t)
+			return false;
+		int w = width, h = height;
+		for (size_t level = 0; level < levels.size() && level < t.mipmapLevelCount; ++level)
+		{
+			if (levels[level].size() < size_t(w) * h * 4)
+				break;
+			[t replaceRegion:MTLRegionMake2D(0, 0, w, h) mipmapLevel:level withBytes:levels[level].data() bytesPerRow:w * 4];
+			w = std::max(1, w / 2);
+			h = std::max(1, h / 2);
+		}
+		sky_texture = t;
 	}
 	return true;
 }

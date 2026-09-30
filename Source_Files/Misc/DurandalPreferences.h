@@ -75,6 +75,8 @@ enum Feature {
 	kWeaponLighting,	// the weapon in hand takes the strength and colour of the dynamic lights around the viewer (Metal; Enhanced; in QA)
 	kLightBounce,		// R4: redistributed light bounces on, figures take it, the sky gives its own colour (with Light Redistribution; Rampant; in QA)
 	kTracedShadows,		// R1: figures cast soft shadows from dynamic lights, light no longer leaks between stacked rooms (with Light Shadows; Rampant; in QA)
+	kReflections,		// R2: water, sewage and goo reflect the room and the sky, traced through the map (with Real Liquids; Rampant; in QA)
+	kTracedAmbient,		// R3: ambient shadows traced through the map and the figures, not read from the picture (with Ambient Shadows; Rampant; in QA)
 	kNumberOfFeatures
 };
 

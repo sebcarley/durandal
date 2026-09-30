@@ -236,6 +236,73 @@ int GatherCasters(const view_data* view, const std::vector<sorted_node_data>& no
 	return count;
 }
 
+bool BuildGrid(simd_float4& header, int& columns, int& rows, std::vector<simd_int2>& cells, std::vector<int>& indices)
+{
+	// The level, by its outline
+	uint64_t key = 1469598103934665603ull;
+	auto mix = [&](uint64_t v) { key = (key ^ v) * 1099511628211ull; };
+	mix(dynamic_world->polygon_count);
+	mix(dynamic_world->endpoint_count);
+	for (int i = 0; i < dynamic_world->endpoint_count; ++i)
+	{
+		const endpoint_data* e = get_endpoint_data(i);
+		mix(uint16_t(e->vertex.x) | (uint32_t(uint16_t(e->vertex.y)) << 16));
+	}
+	static uint64_t built = 0;
+	if (key == built && !cells.empty())
+		return false;
+	built = key;
+
+	float min_x = 1e9f, min_y = 1e9f, max_x = -1e9f, max_y = -1e9f;
+	for (int i = 0; i < dynamic_world->endpoint_count; ++i)
+	{
+		const endpoint_data* e = get_endpoint_data(i);
+		min_x = std::min<float>(min_x, e->vertex.x);
+		min_y = std::min<float>(min_y, e->vertex.y);
+		max_x = std::max<float>(max_x, e->vertex.x);
+		max_y = std::max<float>(max_y, e->vertex.y);
+	}
+	if (min_x > max_x)
+		min_x = min_y = max_x = max_y = 0;
+	const float cell = WORLD_ONE;
+	columns = std::clamp(int((max_x - min_x) / cell) + 1, 1, 256);
+	rows = std::clamp(int((max_y - min_y) / cell) + 1, 1, 256);
+	header = simd_make_float4(min_x, min_y, 1.0f / cell, 0);
+
+	std::vector<std::vector<int>> lists(size_t(columns) * rows);
+	for (int p = 0; p < dynamic_world->polygon_count; ++p)
+	{
+		const polygon_data* polygon = get_polygon_data(p);
+		const int n = std::min<int>(polygon->vertex_count, MAXIMUM_VERTICES_PER_POLYGON);
+		if (n < 3)
+			continue;
+		float x0 = 1e9f, y0 = 1e9f, x1 = -1e9f, y1 = -1e9f;
+		for (int i = 0; i < n; ++i)
+		{
+			const endpoint_data* e = get_endpoint_data(polygon->endpoint_indexes[i]);
+			x0 = std::min<float>(x0, e->vertex.x);
+			y0 = std::min<float>(y0, e->vertex.y);
+			x1 = std::max<float>(x1, e->vertex.x);
+			y1 = std::max<float>(y1, e->vertex.y);
+		}
+		const int c0 = std::clamp(int((x0 - min_x) / cell), 0, columns - 1), c1 = std::clamp(int((x1 - min_x) / cell), 0, columns - 1);
+		const int r0 = std::clamp(int((y0 - min_y) / cell), 0, rows - 1), r1 = std::clamp(int((y1 - min_y) / cell), 0, rows - 1);
+		for (int r = r0; r <= r1; ++r)
+			for (int c = c0; c <= c1; ++c)
+				lists[size_t(r) * columns + c].push_back(p);
+	}
+	cells.assign(lists.size(), simd_make_int2(0, 0));
+	indices.clear();
+	for (size_t i = 0; i < lists.size(); ++i)
+	{
+		cells[i] = simd_make_int2(int(indices.size()), int(lists[i].size()));
+		indices.insert(indices.end(), lists[i].begin(), lists[i].end());
+	}
+	if (indices.empty())
+		indices.push_back(0);
+	return true;
+}
+
 int BuildMap(std::vector<simd_float4>& out)
 {
 	const int count = dynamic_world->polygon_count;
