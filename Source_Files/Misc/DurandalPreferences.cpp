@@ -398,6 +398,9 @@ void ApplyTier(int tier)
 				if (IsTierFeature(Feature(i)))
 					prefs.features[i] = TierIncludes(tier, Feature(i));
 			prefs.shading_style = kShadingSmooth;
+			// Redistribution Strength: Rampant lets light move furthest
+			// (Strong); the others keep the Round 8 look (Medium)
+			prefs.gi_strength = tier == kTierRampant ? 2 : 1;
 			graphics_preferences->fps_target = 0;	// uncapped, paced by vsync
 			break;
 		default:
@@ -717,6 +720,9 @@ void Dialog(void* parent_dialog)
 		for (int i = 0; i < kNumberOfFeatures; ++i)
 			if (feature_w[i] && IsTierFeature(Feature(i)))
 				feature_w[i]->set_selection(TierIncludes(tier, Feature(i)) ? 1 : 0);
+		// As ApplyTier: Rampant's light moves furthest
+		if (gi_w && tier != kTierStock)
+			gi_w->set_selection(tier == kTierRampant ? 2 : 1);
 	});
 	for (int i = 0; i < kNumberOfFeatures; ++i)
 		if (feature_w[i] && IsTierFeature(Feature(i)))

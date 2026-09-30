@@ -186,6 +186,33 @@ struct Occluders {
 	float2 self;					// the figure being shaded: its own card is not in its way
 };
 
+// How much of a ray passes one figure's card between t0 and t1 of the
+// segment from `from` along `d`, blurred by the light's size
+static float figure_through(thread const Occluders& occ, Occluder o, float3 from, float3 d, float t0, float t1,
+							float light_size)
+{
+	const float dd = dot(d.xy, d.xy);
+	if (dd < 1.0)
+		return 1.0;
+	const float t = dot(o.position.xy - from.xy, d.xy) / dd;
+	if (t <= t0 || t > t1 || t >= 0.999)
+		return 1.0;
+	const float2 across = float2(d.y, -d.x) * rsqrt(dd);
+	const float3 p = from + d * t;
+	const float blur = light_size * t;	// the light's disc on the card, world units
+	const float h = dot(p.xy - o.position.xy, across);
+	const float z = p.z - o.position.z;
+	if (h < o.extent.x - blur || h > o.extent.y + blur || z < o.extent.z - blur || z > o.extent.w + blur)
+		return 1.0;
+	float u = (h - o.extent.x) / (o.extent.y - o.extent.x);
+	if (o.info.y != 0)
+		u = 1.0 - u;
+	const float v = (o.extent.w - z) / (o.extent.w - o.extent.z);
+	const float lod = log2(max(2.0 * blur * o.mask.z, 1.0));
+	constexpr sampler s(filter::linear, mip_filter::linear, address::clamp_to_zero);
+	return 1.0 - occ.masks.sample(s, float2(u * o.mask.x, v * o.mask.y), uint(o.info.x), level(lod)).r;
+}
+
 // How much of a light passes the figures in polygon `poly`, for the part of
 // the segment from `from` along `d` between t0 and t1 (the part inside
 // that polygon, so a figure listed in two polygons is met once). The light
@@ -202,28 +229,12 @@ static float figures_between(thread const Occluders& occ, int poly, float3 from,
 	if (range.y == 0 || dd < 1.0)
 		return 1.0;
 	const float2 across = float2(d.y, -d.x) * rsqrt(dd);
-	constexpr sampler s(filter::linear, mip_filter::linear, address::clamp_to_zero);
 	float through = 1.0;
 	for (int k = 0; k < range.y; ++k) {
 		const Occluder o = occ.list[occ.indices[range.x + k]];
 		if (all(abs(o.position.xy - occ.self) < 0.5))
 			continue;
-		const float t = dot(o.position.xy - from.xy, d.xy) / dd;
-		if (t <= t0 || t > t1 || t >= 0.999)
-			continue;
-		const float3 p = from + d * t;
-		const float blur = light_size * t;	// the light's disc on the card, world units
-		const float h = dot(p.xy - o.position.xy, across);
-		const float z = p.z - o.position.z;
-		if (h < o.extent.x - blur || h > o.extent.y + blur || z < o.extent.z - blur || z > o.extent.w + blur)
-			continue;
-		float u = (h - o.extent.x) / (o.extent.y - o.extent.x);
-		if (o.info.y != 0)
-			u = 1.0 - u;
-		const float v = (o.extent.w - z) / (o.extent.w - o.extent.z);
-		const float lod = log2(max(2.0 * blur * o.mask.z, 1.0));
-		const float a = occ.masks.sample(s, float2(u * o.mask.x, v * o.mask.y), uint(o.info.x), level(lod)).r;
-		through *= 1.0 - a;
+		through *= figure_through(occ, o, from, d, t0, t1, light_size);
 		if (through < 0.01)
 			return 0.0;
 	}
@@ -2147,10 +2158,27 @@ fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffe
 		if (poly >= 0) {
 			Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, p.traced.w, float2(1e9) };
 			occ.self = figure_under(occ, poly, P, p.camera.xyz);
-			const float4 dirs[4] = { float4(0.50, 0.00, 0.866, 0.0), float4(0.0, 0.87, 0.50, 0.0),
-									 float4(-0.71, 0.0, 0.71, 0.0), float4(0.0, -0.94, 0.34, 0.0) };
+			// The few figures within reach, picked once for all eight rays
+			int near_figures[4];
+			int near_count = 0;
+			if (poly < occ.polygon_count) {
+				const int2 range = occ.polygons[poly];
+				for (int k = 0; k < range.y && near_count < 4; ++k) {
+					const int index = occ.indices[range.x + k];
+					const Occluder f = occ.list[index];
+					const float reach = p.radius + max(abs(f.extent.x), abs(f.extent.y));
+					if (length_squared(f.position.xy - o.xy) < reach * reach && any(abs(f.position.xy - occ.self) >= 0.5))
+						near_figures[near_count++] = index;
+				}
+			}
+			// Eight directions about the normal, cosine-weighted rings (Rampant
+			// spends its headroom on the smoother result)
+			const float4 dirs[8] = { float4(0.50, 0.00, 0.866, 0.0), float4(0.0, 0.87, 0.50, 0.0),
+									 float4(-0.71, 0.0, 0.71, 0.0), float4(0.0, -0.94, 0.34, 0.0),
+									 float4(0.61, 0.61, 0.50, 0.0), float4(-0.40, 0.40, 0.82, 0.0),
+									 float4(-0.66, -0.66, 0.36, 0.0), float4(0.30, -0.30, 0.90, 0.0) };
 			float traced = 0.0;
-			for (int i = 0; i < 4; ++i) {
+			for (int i = 0; i < 8; ++i) {
 				const float3 dir = normalize(T * dirs[i].x + B * dirs[i].y + N * dirs[i].z);
 				SurfaceHit hit;
 				float hit_weight = 0.0;
@@ -2158,11 +2186,13 @@ fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffe
 					const float f = 1.0 - saturate(hit.t / p.radius);
 					hit_weight = f * f;
 				}
-				const float through = figures_between(occ, poly, o, dir * p.radius, 0.0, 1.0, p.radius * 0.5);
+				float through = 1.0;
+				for (int k = 0; k < near_count; ++k)
+					through *= figure_through(occ, occ.list[near_figures[k]], o, dir * p.radius, 0.0, 1.0, p.radius * 0.5);
 				// Development: DURANDAL_AO_VIEW=2 the surfaces only, 3 the figures only
 				traced += p.view == 2.0 ? hit_weight : p.view == 3.0 ? 1.0 - through : max(hit_weight, 1.0 - through);
 			}
-			return saturate(1.0 - p.strength * traced / 4.0);
+			return saturate(1.0 - p.strength * traced / 8.0);
 		}
 	}
 	float occlusion = 0.0;

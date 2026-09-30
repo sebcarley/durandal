@@ -44,8 +44,11 @@ const float kRefreshBlend = 1.0f / 24;	// each blended in this gently (the sampl
 									// 64 before, an 11% blend of 8 noisy rays every frame a door
 									// moved: the ripple round door frames seen in QA)
 const int kTileBudget = 384;		// 8x8 tiles baked per frame
-const int kBounceTiles = 128;		// Bounced Light: of those, settled tiles refreshed per frame (round robin)
-const float kBounceBlend = 1.0f / 16;	// each refresh blended in this gently
+const int kBounceTiles = 256;		// Bounced Light: settled tiles refreshed per frame (round robin), on top
+const float kBounceBlend = 1.0f / 8;	// each refresh blended in this gently
+const int kBounceBudget = 512;		// Bounced Light: tiles baked per frame in all (Rampant spends some
+									// headroom settling light about twice as fast; 768 spiked the bake
+									// to 2.5 ms p99 entering new rooms)
 const float kLampBoost = 2.0f;		// reviewed wall lights give off this much more
 const float kSky = 0.9f;			// sky light through landscape surfaces
 
@@ -495,7 +498,7 @@ bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes, si
 		const DurandalMetal::Patch& pa = state.patches[patch];
 		const int across = (pa.rect.z + DurandalMetal::kBakeTile - 1) / DurandalMetal::kBakeTile;
 		const int up = (pa.rect.w + DurandalMetal::kBakeTile - 1) / DurandalMetal::kBakeTile;
-		if (!tiles.empty() && int(tiles.size()) + across * up > kTileBudget)
+		if (!tiles.empty() && int(tiles.size()) + across * up > (bounce ? kBounceBudget : kTileBudget))
 			return;
 		// Converging: the running average; refreshed (near a platform that
 		// moved): a gentle fixed blend, so the change comes in without noise
@@ -511,7 +514,8 @@ bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes, si
 		baked.push_back(patch);
 		baked_why.push_back(settled ? kPlatform : kConverging);
 	};
-	for (auto it = nodes.rbegin(); it != nodes.rend() && int(tiles.size()) < kTileBudget; ++it)
+	const int budget_all = bounce ? kBounceBudget : kTileBudget;
+	for (auto it = nodes.rbegin(); it != nodes.rend() && int(tiles.size()) < budget_all; ++it)
 	{
 		const short p = it->polygon_index;
 		if (p < 0 || p >= int(state.floor_patch.size()))
@@ -532,7 +536,7 @@ bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes, si
 		refreshed.assign(state.patches.size(), false);
 		for (int patch : baked)
 			refreshed[patch] = true;
-		const int budget = std::min(kTileBudget, int(tiles.size()) + kBounceTiles);
+		const int budget = std::min(kBounceBudget, int(tiles.size()) + kBounceTiles);
 		auto again = [&](int patch) {
 			if (patch < 0 || refreshed[patch] || state.samples[patch] < kTarget)
 				return;
