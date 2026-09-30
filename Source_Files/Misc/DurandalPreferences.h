@@ -30,7 +30,8 @@ enum QualityTier {
 	kTierClassic = 1,	// stock look, played modern
 	kTierEnhanced = 2,	// Classic plus glow and light (Round 4 on)
 	kTierFlagship = 3,	// Enhanced plus volumetrics (Round 7 on)
-	kTierCustom = 4
+	kTierCustom = 4,	// (stored as 4 in existing files, so the fifth tier comes after it)
+	kTierRampant = 5	// Flagship plus light that goes further (Round 13; docs/PLAN-fifth-tier.md)
 };
 
 enum Feature {
@@ -72,6 +73,7 @@ enum Feature {
 	kCharacterShadows,	// Round 12: sprites cast their silhouette on the floor (Metal; Flagship)
 	kTextureCache,		// HD art kept block-compressed in ~/Library/Caches, built at first load (DurandalTextureCache.h; Metal display; Flagship)
 	kWeaponLighting,	// the weapon in hand takes the strength and colour of the dynamic lights around the viewer (Metal; Enhanced; in QA)
+	kLightBounce,		// R4: redistributed light bounces on, figures take it, the sky gives its own colour (with Light Redistribution; Rampant; in QA)
 	kNumberOfFeatures
 };
 
@@ -126,8 +128,8 @@ bool Enabled(Feature feature);
 // switches.
 bool IsTierFeature(Feature feature);
 
-// The lowest tier that turns the feature on (Classic or Enhanced); 0 for
-// independent switches.
+// The lowest tier that turns the feature on (Classic, Enhanced, Flagship or
+// Rampant); 0 for independent switches.
 int FeatureTier(Feature feature);
 
 Preferences& Prefs();
@@ -140,7 +142,7 @@ InfoTree Tree();
 // a stock-mode launch never writes Durandal settings it didn't read.
 bool ShouldWrite();
 // Called after the file is read; on the first Durandal run (no <durandal>
-// element) with the gate open, applies the Classic tier.
+// element) with the gate open, applies the Flagship tier.
 void AfterRead();
 
 // Sets the tier's features and the upstream settings it owns (frame-rate

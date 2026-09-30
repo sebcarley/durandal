@@ -27,6 +27,7 @@
 */
 
 #include <vector>
+#include <simd/simd.h>
 
 struct view_data;
 struct sorted_node_data;
@@ -36,8 +37,14 @@ namespace DurandalRadiance {
 
 // Once per frame, after SetMap and before the first draw: lays the cache
 // out for a new level, notices moving platforms and bakes some of what is
-// in view. Returns whether the draws may use patches.
-bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes);
+// in view. Returns whether the draws may use patches. range: the draws'
+// clamp and colour bleed (Uniforms::gi_range).
+// bounce (Bounced Light, R4, Rampant): the rays see what they hit as it is
+// drawn, so light gathered by one surface passes on to the next (a lit
+// room brightens the corridor round the corner, a little); settled
+// patches in view keep being refreshed, slowly, for it to spread; and the
+// sky gives off the level's own sky colour instead of a fixed blue-grey.
+bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes, simd_float4 range, bool bounce);
 
 // The patch for a polygon's floor or ceiling, or for the wall drawn with
 // `texture` (a side's texture definition); -1 if none

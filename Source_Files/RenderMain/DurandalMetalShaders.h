@@ -86,6 +86,7 @@ struct Uniforms {
 	float glow_gain;			// HD art: glow boost on a replacement sprite's bright pixels (1: none)
 	float distance_mode;		// Round 12: the distance image: 1 the fragment's distance where its alpha is over a half, 0 never, -1 and 2 far as the sky (no ambient shadow or distance shade, occludes nothing): -1 the weapon in hand (also fogged as right at the face), 2 landscape surfaces
 	float4 viewer_light;		// weapon lighting: the dynamic lights at the viewer, for the weapon in hand (rgb the tint, a the amount; 0 none)
+	int4 figure_patches;		// Bounced Light (R4): a sprite's floor and ceiling patches (x, y), -1 none
 };
 
 // Light redistribution (E4): one surface's lumels in the surface cache
@@ -479,30 +480,54 @@ static float contact_shadow(constant Uniforms& u, constant Caster* casters, Ligh
 // Light redistribution (E4): for this surface point, the colour tint (rgb)
 // and the factor on its brightness (a), from the surface cache: the light
 // arriving at its lumel against its patch's average, clamped
-static float4 redistribution(constant Uniforms& u, device const Patch* patches, device const float4* averages,
-							 texture2d<float> radiance, float3 world)
+// Any patch at any point on it (the bake's bounce reads the surfaces it
+// hits this way, so light is passed on as it is drawn)
+static float4 patch_light(float4 range, device const Patch* patches, device const float4* averages,
+						  texture2d<float> radiance, int patch, float3 world)
 {
-	if (u.gi == 0 || u.patch < 0)
+	if (patch < 0)
 		return float4(1.0);
-	const float4 average = averages[u.patch];
+	const float4 average = averages[patch];
 	if (average.w < 1.0)
 		return float4(1.0);	// not baked yet
-	const Patch pa = patches[u.patch];
+	const Patch pa = patches[patch];
 	const float3 r = world - pa.origin.xyz;
 	const float2 l = clamp(float2(dot(r, pa.u.xyz), dot(r, pa.v.xyz)), float2(0.5), float2(pa.rect.zw) - 0.5);
 	constexpr sampler s(filter::linear, address::clamp_to_edge);
-	const float4 e = radiance.sample(s, (float2(pa.rect.xy) + l) / float2(radiance.get_width(), radiance.get_height()));
+	const float4 e = radiance.sample(s, (float2(pa.rect.xy) + l) / float2(radiance.get_width(), radiance.get_height()), level(0));
 	if (e.a < 0.05)
 		return float4(1.0);
 	const float3 here = e.rgb / e.a;
 	const float3 luma = float3(0.2126, 0.7152, 0.0722);
 	const float lh = dot(here, luma), la = dot(average.rgb, luma);
 	if (la < 1e-4 || lh < 1e-5)
-		return float4(1.0, 1.0, 1.0, la < 1e-4 ? 1.0 : 1.0 - u.gi_range.x);
-	const float ratio = clamp(lh / la, 1.0 - u.gi_range.x, 1.0 + u.gi_range.y);
-	const float3 tint = clamp(mix(float3(1.0), (here / lh) / (average.rgb / la), u.gi_range.z),
-							  float3(1.0 - u.gi_range.w), float3(1.0 + u.gi_range.w));
+		return float4(1.0, 1.0, 1.0, la < 1e-4 ? 1.0 : 1.0 - range.x);
+	const float ratio = clamp(lh / la, 1.0 - range.x, 1.0 + range.y);
+	const float3 tint = clamp(mix(float3(1.0), (here / lh) / (average.rgb / la), range.z),
+							  float3(1.0 - range.w), float3(1.0 + range.w));
 	return float4(tint, ratio);
+}
+
+static float4 redistribution(constant Uniforms& u, device const Patch* patches, device const float4* averages,
+							 texture2d<float> radiance, float3 world)
+{
+	if (u.gi == 0)
+		return float4(1.0);
+	return patch_light(u.gi_range, patches, averages, radiance, u.patch, world);
+}
+
+// Bounced Light (R4): a figure takes the redistributed light of the floor
+// under it and the ceiling over it, at its own position (a figure in the
+// bright pool by a lamp is brighter, one in a dark corner darker)
+static float4 figure_light(constant Uniforms& u, device const Patch* patches, device const float4* averages,
+						   texture2d<float> radiance, float3 world)
+{
+	if (u.gi == 0 || u.figure_patches.x < 0)
+		return float4(1.0);
+	const float4 floor_light = patch_light(u.gi_range, patches, averages, radiance, u.figure_patches.x, world);
+	const float4 ceiling_light = u.figure_patches.y >= 0
+		? patch_light(u.gi_range, patches, averages, radiance, u.figure_patches.y, world) : floor_light;
+	return mix(floor_light, ceiling_light, 0.35);
 }
 
 // Crisp filtering (roadmap L4) for true-colour textures: sharp bilinear.
@@ -676,6 +701,8 @@ fragment WorldFrag wall_infravision_fragment(WorldIn in [[stage_in]], constant U
 fragment WorldFrag sprite_fragment(WorldIn in [[stage_in]], constant Uniforms& u [[buffer(1)]],
 								constant Light* lights [[buffer(2)]], device const float4* map [[buffer(3)]],
 								texture3d<float> volume [[texture(3)]],
+								device const Patch* patches [[buffer(5)]], device const float4* averages [[buffer(6)]],
+								texture2d<float> radiance [[texture(4)]],
 								texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]])
 {
 	const Lighting l = texel_lighting(u, in, in.texcoord * float2(tex.get_width(), tex.get_height()));
@@ -686,7 +713,8 @@ fragment WorldFrag sprite_fragment(WorldIn in [[stage_in]], constant Uniforms& u
 		dl.tint = u.viewer_light.rgb;
 	}
 	const float4 color = crisp_sample(u, tex, smp, in.texcoord);
-	const float3 intensity = add_light(classic_intensity(u, l.depth), classic_intensity(u, l.depth, dl.amount), dl);
+	const float4 gi = figure_light(u, patches, averages, radiance, l.world);
+	const float3 intensity = add_light(classic_intensity(u, l.depth), classic_intensity(u, l.depth, dl.amount), dl) * gi.a * gi.rgb;
 	const float f = fog_factor(u, l.fog_distance);
 	const float4 out = float4(mix(u.fog_color.rgb, color.rgb * intensity, f), u.color.a * color.a);
 	alpha_test(u, out.a);
@@ -898,8 +926,9 @@ static WorldFrag ramp_shade(WorldIn in, constant Uniforms& u, constant Light* li
 	// passes through each band's centre. t0: the table without dynamic light
 	// Contact shadows (walls and floors only) walk down the ramps too
 	auto table = [&](float shade) { return banded ? min(floor(shade * 32.0), 31.0) : clamp(shade * 32.0 - 0.5, 0.0, 31.0); };
-	const float4 gi = repeat ? redistribution(u, patches, averages, radiance, l.world) : float4(1.0);
-	const float occlusion = repeat ? contact_shadow(u, casters, l) * gi.a : 1.0;
+	const float4 gi = repeat ? redistribution(u, patches, averages, radiance, l.world)
+		: figure_light(u, patches, averages, radiance, l.world);
+	const float occlusion = repeat ? contact_shadow(u, casters, l) * gi.a : gi.a;
 	const float t = table(classic_shade(u, l.depth, dl.amount, rf.head, rf.glint, rf.fill) * occlusion);
 	const float t0 = table(classic_shade(u, l.depth, 0.0, rf.head, rf.glint, rf.fill) * occlusion);
 	const float lod = log2(max(max(length(dtx), length(dty)), 1e-6));
@@ -1404,9 +1433,30 @@ static float bake_hash(uint3 v)
 	return float(v.x & 0xffffffu) / 16777216.0;
 }
 
+// Bounced Light (R4): what the bake's rays see of the surfaces they hit is
+// passed on as those surfaces are drawn (their own light x their lumel
+// against their average), from last frame's copy of the atlas
+struct Bounce {
+	device const int* surface_patch;	// polygon x 10 + (floor, ceiling, edges) -> patch
+	device const Patch* patches;
+	device const float4* averages;
+	texture2d<float> previous;
+	float4 range;						// the redistribution's clamp and colour bleed
+	int polygons;						// polygons in surface_patch
+	bool on;
+};
+
+static float3 bounced(thread const Bounce& b, float4 seen, int poly, int part, float3 at)
+{
+	if (!b.on || seen.w > 0.5 || poly >= b.polygons)
+		return seen.rgb;	// the sky is only the sky
+	const float4 g = patch_light(b.range, b.patches, b.averages, b.previous, b.surface_patch[poly * 10 + part], at);
+	return seen.rgb * g.rgb * g.a;
+}
+
 // Radiance seen along a ray from `o` in polygon `poly`; t: where it stops
 static float3 trace_radiance(device const float4* map, device const float4* surfaces, int poly, float3 o, float3 d,
-							 float far, thread float& t)
+							 float far, thread float& t, thread const Bounce& bounce)
 {
 	const int start = poly;
 	float t_prev = 0.0;
@@ -1421,7 +1471,7 @@ static float3 trace_radiance(device const float4* map, device const float4* surf
 		else if (d.z > 1e-5) { t_plane = (h.z - o.z) / d.z; plane = 1; }
 		if (plane >= 0 && t_plane <= leave) {
 			t = t_plane;
-			return t > far ? float3(-1.0) : surfaces[poly * 10 + plane].rgb;
+			return t > far ? float3(-1.0) : bounced(bounce, surfaces[poly * 10 + plane], poly, plane, o + d * t);
 		}
 		if (leave > far || edge < 0)
 			break;
@@ -1433,7 +1483,8 @@ static float3 trace_radiance(device const float4* map, device const float4* surf
 		}
 		if (wall) {
 			t = leave;
-			return surfaces[poly * 10 + 2 + edge].rgb;
+			// Just inside the wall's own polygon, where its patch is
+			return bounced(bounce, surfaces[poly * 10 + 2 + edge], poly, 2 + edge, o + d * (t - 2.0));
 		}
 		poly = next;
 		t_prev = leave;
@@ -1467,6 +1518,9 @@ struct BakeTile {
 struct BakeParams {
 	uint rays;
 	uint seed;
+	uint bounce;		// Bounced Light (R4)
+	uint polygons;		//   polygons in the surface -> patch lookup
+	float4 range;		// the redistribution's clamp and colour bleed (u.gi_range)
 };
 
 constant float kBakeReach = 12288.0;	// 12 world units
@@ -1476,8 +1530,11 @@ kernel void radiance_bake(uint2 tid [[thread_position_in_threadgroup]], uint2 gr
 						  constant BakeParams& bp [[buffer(0)]], device const BakeTile* tiles [[buffer(1)]],
 						  device const Patch* patches [[buffer(2)]], device const float4* map [[buffer(3)]],
 						  device const float4* surfaces [[buffer(4)]],
-						  texture2d<half, access::read_write> atlas [[texture(0)]])
+						  device const int* surface_patch [[buffer(5)]], device const float4* averages [[buffer(6)]],
+						  texture2d<half, access::read_write> atlas [[texture(0)]],
+						  texture2d<float> previous [[texture(1)]])
 {
+	const Bounce bounce = { surface_patch, patches, averages, previous, bp.range, int(bp.polygons), bp.bounce != 0u };
 	const BakeTile job = tiles[group2.x];
 	const Patch pa = patches[job.tile.x];
 	const int2 l = job.tile.yz + int2(tid);
@@ -1522,7 +1579,7 @@ kernel void radiance_bake(uint2 tid [[thread_position_in_threadgroup]], uint2 gr
 		const float r = sqrt(r1), phi = 6.2831853 * r2;
 		const float3 d = normalize(t1 * (r * cos(phi)) + t2 * (r * sin(phi)) + n * sqrt(max(1.0 - r1, 0.0)));
 		float t;
-		const float3 seen = trace_radiance(map, surfaces, poly, o, d, kBakeReach, t);
+		const float3 seen = trace_radiance(map, surfaces, poly, o, d, kBakeReach, t, bounce);
 		if (seen.x < 0.0)
 			continue;
 		sum += seen * smoothstep(0.0, kBakeNear, t);

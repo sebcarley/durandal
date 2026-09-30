@@ -44,6 +44,8 @@ const float kRefreshBlend = 1.0f / 24;	// each blended in this gently (the sampl
 									// 64 before, an 11% blend of 8 noisy rays every frame a door
 									// moved: the ripple round door frames seen in QA)
 const int kTileBudget = 384;		// 8x8 tiles baked per frame
+const int kBounceTiles = 128;		// Bounced Light: of those, settled tiles refreshed per frame (round robin)
+const float kBounceBlend = 1.0f / 16;	// each refresh blended in this gently
 const float kLampBoost = 2.0f;		// reviewed wall lights give off this much more
 const float kSky = 0.9f;			// sky light through landscape surfaces
 
@@ -57,6 +59,8 @@ struct State {
 	std::vector<int> side_patch;					// per side
 	std::vector<simd_float2> heights;				// per polygon, last frame
 	uint32_t frame = 0;
+	size_t bounce_cursor = 0;						// Bounced Light: where the refresh round got to
+	std::vector<int> bounce_tile;					// per patch: its next tile to refresh (large patches go a slice a frame)
 	bool ready = false;
 };
 State state;
@@ -305,6 +309,7 @@ void build_layout()
 
 	s.samples.assign(s.patches.size(), 0);
 	s.refresh.assign(s.patches.size(), 0);
+	s.bounce_tile.assign(s.patches.size(), 0);
 	s.ready = height <= 16384;
 	if (s.ready)
 		DurandalMetal::SetRadianceLayout(s.patches, kAtlasWidth, height, group_start, group_members);
@@ -316,6 +321,7 @@ void build_layout()
 struct Colour {
 	simd_float3 rgb;
 	bool lamp;
+	bool known;		// false: no bitmap or colour table to average (grey)
 };
 
 Colour texture_colour(shape_descriptor texture)
@@ -331,7 +337,7 @@ Colour texture_colour(shape_descriptor texture)
 	if (it != cache.end())
 		return it->second;
 
-	Colour colour = { simd_make_float3(0.5f, 0.5f, 0.5f), false };
+	Colour colour = { simd_make_float3(0.5f, 0.5f, 0.5f), false, false };
 	const short code = GET_DESCRIPTOR_COLLECTION(texture), shape = GET_DESCRIPTOR_SHAPE(texture);
 	bitmap_definition* bitmap = nullptr;
 	void* tables = nullptr;
@@ -355,7 +361,10 @@ Colour texture_colour(shape_descriptor texture)
 			}
 		}
 		if (count)
+		{
 			colour.rgb = simd_make_float3(sum[0] / count, sum[1] / count, sum[2] / count) / 255.0f;
+			colour.known = true;
+		}
 		const short bitmap_index = get_bitmap_index(GET_COLLECTION(code), shape);
 		colour.lamp = bitmap_index != NONE &&
 			DurandalGlow::ModeFor(GET_COLLECTION(code), bitmap_index, DurandalGlow::Fingerprint(bitmap)) != DurandalGlow::kNone;
@@ -371,12 +380,23 @@ float light(short index, int32 delta = 0)
 	return PIN(get_light_intensity(index) + delta, 0, FIXED_ONE) / float(FIXED_ONE);
 }
 
+// Bounced Light: the sky gives off the level's own sky colour
+bool sky_from_landscape = false;
+
 // What a surface gives off: its authored brightness x its colour
 simd_float4 surface(shape_descriptor texture, short transfer_mode, float brightness)
 {
 	static const simd_float3 sky = { 0.55f, 0.62f, 0.72f };
 	if (transfer_mode == _xfer_landscape)
+	{
+		if (sky_from_landscape && texture != UNONE)
+		{
+			const Colour c = texture_colour(texture);
+			if (c.known)
+				return simd_make_float4(c.rgb * kSky, 1);
+		}
 		return simd_make_float4(sky * kSky, 1);
+	}
 	if (texture == UNONE)
 		return simd_make_float4(0.25f * brightness, 0.25f * brightness, 0.25f * brightness, 0);
 	const Colour c = texture_colour(texture);
@@ -432,7 +452,7 @@ void refresh_around(int p)
 
 }
 
-bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes)
+bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes, simd_float4 range, bool bounce)
 {
 	if (!state.ready || state.key != level_key() ||
 		int(state.floor_patch.size()) != dynamic_world->polygon_count)
@@ -456,12 +476,16 @@ bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes)
 	}
 
 	// Bake what is in view and not settled yet, nearest first
+	// Why each patch is baked this frame, to undo its count if the bake
+	// cannot run: converging (samples), refreshed near a platform that
+	// moved (refresh owed), or refreshed for Bounced Light (nothing owed)
+	enum Why { kConverging, kPlatform, kBounce };
 	static std::vector<DurandalMetal::BakeTile> tiles;
 	static std::vector<int> baked;
-	static std::vector<bool> baked_refreshing;
+	static std::vector<Why> baked_why;
 	tiles.clear();
 	baked.clear();
-	baked_refreshing.clear();
+	baked_why.clear();
 	auto bake = [&](int patch) {
 		if (patch < 0)
 			return;
@@ -485,7 +509,7 @@ bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes)
 		else
 			state.samples[patch] += kRays;
 		baked.push_back(patch);
-		baked_refreshing.push_back(settled);
+		baked_why.push_back(settled ? kPlatform : kConverging);
 	};
 	for (auto it = nodes.rbegin(); it != nodes.rend() && int(tiles.size()) < kTileBudget; ++it)
 	{
@@ -497,17 +521,71 @@ bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes)
 		for (int i = 0; i < MAXIMUM_VERTICES_PER_POLYGON; ++i)
 			bake(state.wall_patch[size_t(p) * MAXIMUM_VERTICES_PER_POLYGON + i]);
 	}
+
+	// Bounced Light: settled patches in view are baked again, a few tiles a
+	// frame in turn, so what their neighbours gathered keeps flowing into
+	// them (and a room whose lights change catches up). Round robin over
+	// the nodes in view, so the far ones get their turn too.
+	static std::vector<bool> refreshed;	// baked already this frame
+	if (bounce && !nodes.empty())
+	{
+		refreshed.assign(state.patches.size(), false);
+		for (int patch : baked)
+			refreshed[patch] = true;
+		const int budget = std::min(kTileBudget, int(tiles.size()) + kBounceTiles);
+		auto again = [&](int patch) {
+			if (patch < 0 || refreshed[patch] || state.samples[patch] < kTarget)
+				return;
+			const DurandalMetal::Patch& pa = state.patches[patch];
+			const int across = (pa.rect.z + DurandalMetal::kBakeTile - 1) / DurandalMetal::kBakeTile;
+			const int up = (pa.rect.w + DurandalMetal::kBakeTile - 1) / DurandalMetal::kBakeTile;
+			const int total = across * up;
+			const int room = budget - int(tiles.size());
+			// A patch that fits waits for a frame with room for all of it; a
+			// larger one than the whole allowance takes what is left, a
+			// slice at a time
+			if (room <= 0 || (total <= kBounceTiles && total > room))
+				return;
+			const int n = std::min(total, room);
+			int& next = state.bounce_tile[patch];
+			for (int k = 0; k < n; ++k)
+			{
+				const int tile = (next + k) % total;
+				tiles.push_back({ simd_make_int4(patch, (tile % across) * DurandalMetal::kBakeTile,
+												 (tile / across) * DurandalMetal::kBakeTile, 0),
+								  simd_make_float4(kBounceBlend, 0, 0, 0) });
+			}
+			next = (next + n) % total;
+			refreshed[patch] = true;
+			baked.push_back(patch);
+			baked_why.push_back(kBounce);
+		};
+		const size_t count = nodes.size();
+		size_t visited = 0;
+		for (; visited < count && int(tiles.size()) < budget; ++visited)
+		{
+			const short p = nodes[(state.bounce_cursor + visited) % count].polygon_index;
+			if (p < 0 || p >= int(state.floor_patch.size()))
+				continue;
+			again(state.floor_patch[p]);
+			again(state.ceiling_patch[p]);
+			for (int i = 0; i < MAXIMUM_VERTICES_PER_POLYGON; ++i)
+				again(state.wall_patch[size_t(p) * MAXIMUM_VERTICES_PER_POLYGON + i]);
+		}
+		state.bounce_cursor = (state.bounce_cursor + std::max<size_t>(visited, 1)) % count;
+	}
 	if (tiles.empty())
 		return true;
 
+	sky_from_landscape = bounce;
 	static std::vector<simd_float4> surfaces;
 	build_surfaces(surfaces);
-	if (!DurandalMetal::RunRadiance(tiles, baked, surfaces, kRays, ++state.frame))
+	if (!DurandalMetal::RunRadiance(tiles, baked, surfaces, kRays, ++state.frame, bounce, range))
 		for (size_t i = 0; i < baked.size(); ++i)
 		{
-			if (baked_refreshing[i])
+			if (baked_why[i] == kPlatform)
 				state.refresh[baked[i]]++;
-			else
+			else if (baked_why[i] == kConverging)
 				state.samples[baked[i]] -= kRays;
 		}
 	return true;

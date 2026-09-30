@@ -57,8 +57,12 @@ namespace {
 // and to stderr.
 namespace timing {
 
-enum Stage { kVolume, kBake, kAverage, kWorld, kStages };
-const char* const kStageNames[kStages] = { "fog volume", "light bake", "light averages", "world pass" };
+enum Stage { kVolume, kBake, kAverage, kWorld, kAO, kBloom, kCanvas, kOutput, kStages };
+const char* const kStageNames[kStages] = { "fog volume", "light bake", "light averages", "world pass",
+	"ambient shadows", "bloom", "blit and 2D", "output" };
+const char* const kStageColumns[kStages] = { "volume_ms", "bake_ms", "average_ms", "world_ms",
+	"ao_ms", "bloom_ms", "canvas_ms", "output_ms" };
+const bool kRenderStage[kStages] = { false, false, false, true, true, true, true, true };
 constexpr int kSlots = 4;			// frames in flight, with room to spare
 constexpr int kPerStage = 4;		// world: vertex start/end, fragment start/end
 constexpr int kPerSlot = kStages * kPerStage;
@@ -72,6 +76,7 @@ struct Row {
 id<MTLCounterSampleBuffer> samples;
 int slot = 0;
 bool used[kStages];
+bool frame_open = false;	// between begin_frame and end_frame: a frame with a world
 std::mutex mutex;
 std::vector<Row> rows;
 MTLTimestamp cpu0 = 0, gpu0 = 0;
@@ -124,6 +129,7 @@ void begin_frame(id<MTLDevice> device)
 		return;
 	slot = (slot + 1) % kSlots;
 	std::fill(std::begin(used), std::end(used), false);
+	frame_open = true;
 }
 
 // A compute encoder, timestamped when timing
@@ -139,22 +145,25 @@ id<MTLComputeCommandEncoder> compute(id<MTLCommandBuffer> cb, Stage stage)
 	return [cb computeCommandEncoderWithDescriptor:d];
 }
 
-void attach(MTLRenderPassDescriptor* pass, Stage stage)
+// A stage of several passes (bloom) takes its start from the first and its
+// end from the last
+void attach(MTLRenderPassDescriptor* pass, Stage stage, bool first = true, bool last = true)
 {
-	if (!samples)
+	if (!samples || !frame_open)
 		return;
 	pass.sampleBufferAttachments[0].sampleBuffer = samples;
-	pass.sampleBufferAttachments[0].startOfVertexSampleIndex = index(stage, 0);
-	pass.sampleBufferAttachments[0].endOfVertexSampleIndex = index(stage, 1);
-	pass.sampleBufferAttachments[0].startOfFragmentSampleIndex = index(stage, 2);
-	pass.sampleBufferAttachments[0].endOfFragmentSampleIndex = index(stage, 3);
+	pass.sampleBufferAttachments[0].startOfVertexSampleIndex = first ? index(stage, 0) : MTLCounterDontSample;
+	pass.sampleBufferAttachments[0].endOfVertexSampleIndex = MTLCounterDontSample;
+	pass.sampleBufferAttachments[0].startOfFragmentSampleIndex = MTLCounterDontSample;
+	pass.sampleBufferAttachments[0].endOfFragmentSampleIndex = last ? index(stage, 3) : MTLCounterDontSample;
 	used[stage] = true;
 }
 
 void end_frame(id<MTLCommandBuffer> cb)
 {
-	if (!samples)
+	if (!samples || !frame_open)
 		return;
+	frame_open = false;
 	const int this_slot = slot;
 	const size_t bench_frame = DurandalBenchmark::NextFrameIndex();
 	uint32_t this_used = 0;	// a bit per stage (blocks cannot capture arrays)
@@ -173,7 +182,7 @@ void end_frame(id<MTLCommandBuffer> cb)
 			if (!(this_used & (1u << st)))
 				continue;
 			const uint64_t a = t[st * kPerStage].timestamp;
-			const uint64_t b = t[st * kPerStage + (st == kWorld ? 3 : 1)].timestamp;
+			const uint64_t b = t[st * kPerStage + (kRenderStage[st] ? 3 : 1)].timestamp;
 			if (a == MTLCounterErrorValue || b == MTLCounterErrorValue || b <= a)
 				continue;
 			row.ticks[st] = b - a;
@@ -196,8 +205,12 @@ void report()
 
 	const char* csv = getenv("DURANDAL_BENCHMARK");
 	FILE* f = csv ? fopen((std::string(csv) + ".gpu.csv").c_str(), "w") : nullptr;
-	if (f)
-		fprintf(f, "frame,bench_frame,total_ms,volume_ms,bake_ms,average_ms,world_ms\n");
+	if (f) {
+		fprintf(f, "frame,bench_frame,total_ms");
+		for (int st = 0; st < kStages; ++st)
+			fprintf(f, ",%s", kStageColumns[st]);
+		fprintf(f, "\n");
+	}
 	std::vector<double> series[kStages + 1];
 	for (size_t i = 0; i < rows.size(); ++i) {
 		const Row& r = rows[i];
@@ -331,6 +344,9 @@ id<MTLTexture> current_volume;
 id<MTLComputePipelineState> bake_pipeline, average_pipeline;
 bool radiance_attempted = false, radiance_ok = false;
 id<MTLTexture> radiance_atlas;		// lumels: radiance seen, alpha 1 where the surface is
+id<MTLTexture> radiance_previous;	// Bounced Light (R4): the atlas as it was before this frame's bake
+id<MTLBuffer> surface_patch_buffer;	// Bounced Light: int per polygon x 10 (floor, ceiling, edges): its patch, -1 none
+int surface_patch_polygons = 0;		//   polygons it covers
 id<MTLBuffer> patch_buffer;			// Patch per patch
 id<MTLBuffer> average_buffer;		// float4 per patch: average radiance, lumel count (of its group)
 id<MTLBuffer> group_start_buffer;	// per group: first index into group_member_buffer (plus one at the end)
@@ -884,6 +900,7 @@ void run_ao()
 	p.colorAttachments[0].texture = ao_texture;
 	p.colorAttachments[0].loadAction = MTLLoadActionDontCare;
 	p.colorAttachments[0].storeAction = MTLStoreActionStore;
+	timing::attach(p, timing::kAO);
 	id<MTLRenderCommandEncoder> e = [command_buffer renderCommandEncoderWithDescriptor:p];
 	[e setRenderPipelineState:ao_pipeline];
 	[e setFragmentBytes:&params length:sizeof(params) atIndex:0];
@@ -898,15 +915,20 @@ void run_ao()
 void run_bloom()
 {
 	struct { simd_float2 texel; int first; float radius; } params;
+	const NSUInteger levels = bloom.mipmapLevelCount;
+	int passes_left = int(levels) * 2 - 1;
 	auto pass_into = [&](NSUInteger level, bool load) {
 		MTLRenderPassDescriptor* p = [MTLRenderPassDescriptor renderPassDescriptor];
 		p.colorAttachments[0].texture = bloom;
 		p.colorAttachments[0].level = level;
 		p.colorAttachments[0].loadAction = load ? MTLLoadActionLoad : MTLLoadActionDontCare;
 		p.colorAttachments[0].storeAction = MTLStoreActionStore;
+		const bool first = passes_left == int(levels) * 2 - 1;
+		if (first || passes_left == 1)
+			timing::attach(p, timing::kBloom, first, passes_left == 1);
+		--passes_left;
 		return [command_buffer renderCommandEncoderWithDescriptor:p];
 	};
-	const NSUInteger levels = bloom.mipmapLevelCount;
 	for (NSUInteger level = 0; level < levels; ++level)
 	{
 		id<MTLTexture> src = level == 0 ? world_glow : [bloom newTextureViewWithPixelFormat:kGlowFormat textureType:MTLTextureType2D
@@ -1227,8 +1249,26 @@ void SetRadianceLayout(const std::vector<Patch>& patches, int atlas_width, int a
 	@autoreleasepool {
 		patch_count = int(patches.size());
 		radiance_atlas = nil;
+		radiance_previous = nil;
+		surface_patch_buffer = nil;
 		if (!patch_count || atlas_width <= 0 || atlas_height <= 0 || group_start.size() < 2 || group_members.empty())
 			return;
+		// Bounced Light: where a ray's hit finds its patch (kind 0 floor, 1
+		// ceiling, 2 wall along edge info.z of polygon info.y)
+		int polygons = 0;
+		for (const Patch& pa : patches)
+			polygons = std::max(polygons, int(pa.info.y) + 1);
+		std::vector<int32_t> lookup(size_t(std::max(polygons, 1)) * 10, -1);
+		for (size_t i = 0; i < patches.size(); ++i)
+		{
+			const simd_int4 info = patches[i].info;
+			const int part = info.x == 2 ? 2 + info.z : info.x;
+			if (info.y >= 0 && part >= 0 && part < 10)
+				lookup[size_t(info.y) * 10 + part] = int32_t(i);
+		}
+		surface_patch_buffer = [device newBufferWithBytes:lookup.data() length:sizeof(int32_t) * lookup.size()
+												  options:MTLResourceStorageModeShared];
+		surface_patch_polygons = polygons;
 		patch_buffer = [device newBufferWithBytes:patches.data() length:sizeof(Patch) * patches.size()
 										  options:MTLResourceStorageModeShared];
 		group_start_buffer = [device newBufferWithBytes:group_start.data() length:sizeof(int) * group_start.size()
@@ -1242,6 +1282,8 @@ void SetRadianceLayout(const std::vector<Patch>& patches, int atlas_width, int a
 		d.usage = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
 		d.storageMode = MTLStorageModePrivate;
 		radiance_atlas = [device newTextureWithDescriptor:d];
+		d.usage = MTLTextureUsageShaderRead;
+		radiance_previous = [device newTextureWithDescriptor:d];
 		id<MTLCommandBuffer> cb = [queue commandBuffer];
 		id<MTLBlitCommandEncoder> blit = [cb blitCommandEncoder];
 		[blit fillBuffer:average_buffer range:NSMakeRange(0, average_buffer.length) value:0];
@@ -1257,7 +1299,8 @@ bool RadianceReady()
 }
 
 bool RunRadiance(const std::vector<BakeTile>& tiles, const std::vector<int>& baked,
-				 const std::vector<simd_float4>& surfaces, int rays, uint32_t seed)
+				 const std::vector<simd_float4>& surfaces, int rays, uint32_t seed,
+				 bool bounce, simd_float4 range)
 {
 	if (!in_world_pass || encoder || !RadianceReady() || !bound_map || tiles.empty() || surfaces.empty())
 		return false;
@@ -1276,7 +1319,18 @@ bool RunRadiance(const std::vector<BakeTile>& tiles, const std::vector<int>& bak
 		id<MTLBuffer> surface_buffer = upload(2, surfaces.data(), sizeof(simd_float4) * surfaces.size());
 		next = (next + 1) % 3;
 
-		struct { uint32_t rays; uint32_t seed; } params = { uint32_t(rays), seed };
+		// Must match struct BakeParams in the shaders
+		struct { uint32_t rays; uint32_t seed; uint32_t bounce; uint32_t polygons; simd_float4 range; } params =
+			{ uint32_t(rays), seed, bounce && radiance_previous && surface_patch_buffer ? 1u : 0u,
+			  uint32_t(surface_patch_polygons), range };
+		if (params.bounce)
+		{
+			// The bounce reads the lumels as they were: the bake writes the
+			// atlas while other lumels read it
+			id<MTLBlitCommandEncoder> copy = [command_buffer blitCommandEncoder];
+			[copy copyFromTexture:radiance_atlas toTexture:radiance_previous];
+			[copy endEncoding];
+		}
 		id<MTLComputeCommandEncoder> c = timing::compute(command_buffer, timing::kBake);
 		[c setComputePipelineState:bake_pipeline];
 		[c setBytes:&params length:sizeof(params) atIndex:0];
@@ -1284,7 +1338,10 @@ bool RunRadiance(const std::vector<BakeTile>& tiles, const std::vector<int>& bak
 		[c setBuffer:patch_buffer offset:0 atIndex:2];
 		[c setBuffer:bound_map offset:0 atIndex:3];
 		[c setBuffer:surface_buffer offset:0 atIndex:4];
+		[c setBuffer:surface_patch_buffer offset:0 atIndex:5];
+		[c setBuffer:average_buffer offset:0 atIndex:6];
 		[c setTexture:radiance_atlas atIndex:0];
+		[c setTexture:radiance_previous atIndex:1];
 		[c dispatchThreadgroups:MTLSizeMake(tiles.size(), 1, 1) threadsPerThreadgroup:MTLSizeMake(kBakeTile, kBakeTile, 1)];
 		[c endEncoding];
 
@@ -1355,6 +1412,16 @@ void SetView(simd_float4x4 view_projection, simd_float4x4 inverse, simd_float4 c
 	view_projection_matrix = view_projection;
 	view_inverse_matrix = inverse;
 	view_camera = camera;
+}
+
+void TimeDisplayPass(void* pass, TimedDisplayPass which)
+{
+	timing::attach((__bridge MTLRenderPassDescriptor*)pass, which == kTimedCanvas ? timing::kCanvas : timing::kOutput);
+}
+
+void EndFrameTiming(void* command_buffer)
+{
+	timing::end_frame((__bridge id<MTLCommandBuffer>)command_buffer);
 }
 
 void SetViewerUnderLiquid(bool under)
@@ -1586,7 +1653,8 @@ void EndWorld(float gamma)
 		in_world_pass = false;
 		[encoder endEncoding];
 		encoder = nil;
-		timing::end_frame(command_buffer);
+		if (!DurandalGL::Active())
+			timing::end_frame(command_buffer);	// the display ends it after its output pass (EndFrameTiming)
 
 		if (DurandalGL::Active())
 		{

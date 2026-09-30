@@ -649,7 +649,7 @@ The folder name comes from the *localised* bundle name
   - Dialog shots: `DURANDAL_METAL_DISPLAY=1` with the menu-shot
     variables, under `perl -e 'alarm 40; exec @ARGV'`;
     `DURANDAL_MENU_SHOT_TAB=<n>` picks the tab (0 Feel, 1 Look, 2 Art,
-    3 Light, 4 Cheats).
+    3 Light, 4 Rampant, 5 Cheats).
 - Testing cheats (`Misc/DurandalCheats.*`, Preferences > DURANDAL >
   Cheats tab, stored as `cheat_*`, off in Stock): Level Select on New
   Game (upstream's Shift+Ctrl / Option+Cmd click also works), God Mode
@@ -967,6 +967,33 @@ The folder name comes from the *localised* bundle name
   calendar (the Marathon arrived in 2773, the Pfhor came in 2794), and
   "a thousand years" of S'pht slavery, as the game's first terminal says.
   Keep the two editions' facts in step when a feature changes.
+- Round 13 (Rampant, the fifth tier) on `durandal/round-13-rampant`,
+  in progress; plan and decisions in `docs/PLAN-fifth-tier.md` (60 fps at
+  the 1% low reaching for 120, no memory cap, lifelike; film export last).
+  Stored as `quality_tier` 5 (Custom stays 4 for existing files); the menu
+  offers it after Flagship while QA is open or once one of its features
+  has passed; RAMPANT tab in the dialog. The M5 has hardware ray tracing
+  (the Round 5 "no ray tracing hardware" meant none used). 14 of the 28
+  solo levels use 5D space (counted from Map.sceA), so rays check against
+  the polygon walk; M2 has no Jjaro walls (collections 20, 25 empty).
+  - Step 0: `DURANDAL_GPU_TIMING` now also times ambient shadows, bloom,
+    the world blit with the 2D ("blit and 2D") and the output pass; a
+    world frame's timing ends after the display's output pass
+    (`DurandalMetal::TimeDisplayPass`, `EndFrameTiming`).
+    `scripts/trace-spike.swift`: the polygon walk against the hardware on
+    the same rays, from Map.sceA, no window.
+  - R4 Bounced Light (`light_bounce`, Rampant, in QA; needs Light
+    Redistribution): a bake ray that hits a surface sees it as it is drawn
+    (`bounced`: its light x its lumel against its group's average, the
+    draws' clamp) from a copy of the atlas taken before each bake
+    (`radiance_previous`; lookup `surface_patch_buffer`, polygon x 10 +
+    part -> patch), so gathered light passes on over the frames. Settled
+    patches in view are re-baked in turn (`kBounceTiles` 128 tiles a frame
+    at 1/16; big patches a slice at a time), so it keeps flowing and a
+    room whose lights change catches up. The sky gives off the landscape's
+    own average colour. Figures (sprites, HD sprites) take the floor and
+    ceiling lumels at their position (`figure_light`, 35% ceiling;
+    `Uniforms::figure_patches` from the polygon under the feet).
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

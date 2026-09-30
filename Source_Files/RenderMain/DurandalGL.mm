@@ -803,6 +803,10 @@ void end_encoder()
 	}
 }
 
+// Development (DURANDAL_GPU_TIMING): the canvas pass the world image opens
+// is timed as the world's "blit and 2D" stage
+bool time_next_canvas = false;
+
 bool ensure_encoder()
 {
 	begin_frame();
@@ -817,6 +821,10 @@ bool ensure_encoder()
 	pass.stencilAttachment.loadAction = target_cleared ? MTLLoadActionLoad : MTLLoadActionClear;
 	pass.stencilAttachment.clearStencil = 0;
 	pass.stencilAttachment.storeAction = MTLStoreActionStore;
+	if (time_next_canvas) {
+		time_next_canvas = false;
+		DurandalMetal::TimeDisplayPass((__bridge void*)pass, DurandalMetal::kTimedCanvas);
+	}
 	encoder = [command_buffer renderCommandEncoderWithDescriptor:pass];
 	target_cleared = true;
 	return encoder != nil;
@@ -1280,6 +1288,7 @@ void Present()
 				pass.colorAttachments[0].texture = drawable.texture;
 				pass.colorAttachments[0].loadAction = MTLLoadActionDontCare;
 				pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+				DurandalMetal::TimeDisplayPass((__bridge void*)pass, DurandalMetal::kTimedOutput);
 				id<MTLRenderCommandEncoder> out = [command_buffer renderCommandEncoderWithDescriptor:pass];
 				const bool edr_target = drawable.texture.pixelFormat == MTLPixelFormatRGBA16Float;
 				[out setRenderPipelineState:edr_target ? output_pipeline_edr : output_pipeline_sdr];
@@ -1326,6 +1335,7 @@ void Present()
 				}
 				[command_buffer presentDrawable:drawable];
 			}
+			DurandalMetal::EndFrameTiming((__bridge void*)command_buffer);
 			std::vector<id<MTLBuffer>> used;
 			used.swap(frame_buffers);
 			dispatch_semaphore_t in_flight = frames_in_flight;
@@ -1397,7 +1407,9 @@ void EndScreenPass()
 void DrawWorldImage(void* texture, float gamma, void* glow, void* bloom, void* ao, void* distance, float ao_far, bool ao_view,
 					float distance_shade)
 {
+	time_next_canvas = true;
 	if (!active || !ensure_encoder()) return;
+	time_next_canvas = false;
 	// Development: DURANDAL_GLOW_VIEW=1 shows the glow image as the world
 	static const bool glow_view = getenv("DURANDAL_GLOW_VIEW") != nullptr;
 	[encoder setRenderPipelineState:world_blit_pipeline];

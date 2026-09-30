@@ -93,6 +93,7 @@ struct Uniforms {
 	float glow_gain;			// HD art: glow boost on a replacement sprite's bright pixels (1: none)
 	float distance_mode;		// Round 12: the distance image: 1 the fragment's distance where its alpha is over a half, 0 never, -1 and 2 far as the sky (no ambient shadow or distance shade, occludes nothing): -1 the weapon in hand (also fogged as right at the face), 2 landscape surfaces
 	simd_float4 viewer_light;	// weapon lighting: the dynamic lights at the viewer, for the weapon in hand (rgb the tint, a the amount; 0 none)
+	simd_int4 figure_patches;	// Bounced Light (R4): a sprite's floor and ceiling patches (x, y), -1 none
 };
 
 // Dynamic lights (E2), world units. Must match struct Light in the shaders.
@@ -193,8 +194,12 @@ void SetRadianceLayout(const std::vector<Patch>& patches, int atlas_width, int a
 // what each surface gives off, 10 float4 per polygon: floor, ceiling, then
 // each edge's wall; w 1 = sky), then updates the averages of the patches
 // in `baked`. Call before the first draw. seed: changes every frame.
+// bounce (Bounced Light, R4): a ray sees the surface it hits as it is
+// drawn, redistributed within `range` (the uniforms' gi_range), read from
+// a copy of the atlas taken first.
 bool RunRadiance(const std::vector<BakeTile>& tiles, const std::vector<int>& baked,
-				 const std::vector<simd_float4>& surfaces, int rays, uint32_t seed);
+				 const std::vector<simd_float4>& surfaces, int rays, uint32_t seed,
+				 bool bounce, simd_float4 range);
 // Whether the surface cache exists (the draws may use patches)
 bool RadianceReady();
 
@@ -298,6 +303,14 @@ bool TakeCapture(std::vector<uint8_t>& rgba, int& width, int& height);
 
 // True when the whole frame is presented through Metal (DurandalGL display).
 bool DisplayActive();
+
+// Development (DURANDAL_GPU_TIMING): the display's own passes join a world
+// frame's stage timings. `pass` is an MTLRenderPassDescriptor, `command_buffer`
+// the frame's; the display ends the frame's timing after its output pass.
+// No effect without timing or outside a frame with a world.
+enum TimedDisplayPass { kTimedCanvas, kTimedOutput };
+void TimeDisplayPass(void* pass, TimedDisplayPass which);
+void EndFrameTiming(void* command_buffer);
 
 }
 

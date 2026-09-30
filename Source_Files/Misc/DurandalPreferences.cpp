@@ -82,6 +82,7 @@ const char* const kFeatureAttr[kNumberOfFeatures] = {
 	"character_shadows",
 	"texture_cache",
 	"weapon_lighting",
+	"light_bounce",
 };
 
 }
@@ -116,6 +117,7 @@ bool Released(Feature feature)
 	switch (feature)
 	{
 		case kWeaponLighting:
+		case kLightBounce:
 			return false;
 		default:
 			return true;
@@ -161,6 +163,8 @@ int FeatureTier(Feature feature)
 		case kCharacterShadows:
 		case kTextureCache:
 			return kTierFlagship;
+		case kLightBounce:
+			return kTierRampant;
 		default:
 			// Including the Metal renderer since Round 3: every Classic look
 			// feature needs it, and Stock (OpenGL) is upstream exactly
@@ -173,9 +177,23 @@ bool IsTierFeature(Feature feature)
 	return FeatureTier(feature) != 0;
 }
 
+// The named tiers in order, Custom apart; Rampant is stored as 5 and
+// ranks above Flagship
 static bool TierIncludes(int tier, Feature feature)
 {
 	return tier != kTierStock && tier != kTierCustom && FeatureTier(feature) != 0 && FeatureTier(feature) <= tier;
+}
+
+// Whether the Quality menu offers Rampant: once any of its features has
+// passed QA, or while QA is open
+static bool RampantOffered()
+{
+	if (QA())
+		return true;
+	for (int i = 0; i < kNumberOfFeatures; ++i)
+		if (FeatureTier(Feature(i)) == kTierRampant && Released(Feature(i)))
+			return true;
+	return false;
 }
 
 Preferences& Prefs()
@@ -211,7 +229,7 @@ void Parse(const InfoTree& root)
 	int tier = prefs.quality_tier;
 	if (root.read_attr("quality_tier", tier) &&
 		(tier == kTierStock || tier == kTierClassic || tier == kTierEnhanced || tier == kTierFlagship ||
-		 tier == kTierCustom))
+		 tier == kTierCustom || tier == kTierRampant))
 		prefs.quality_tier = tier;
 	for (int i = 0; i < kNumberOfFeatures; ++i)
 	{
@@ -311,7 +329,7 @@ void AfterRead()
 			{
 				const std::string name = item.substr(0, eq);
 				const int value = std::atoi(item.c_str() + eq + 1);
-				if (name == "quality_tier" && value >= kTierStock && value <= kTierCustom)
+				if (name == "quality_tier" && value >= kTierStock && value <= kTierRampant)
 					ApplyTier(value);	// put first: later items override
 				if (name == "shading_style")
 					prefs.shading_style = value;
@@ -366,6 +384,7 @@ void ApplyTier(int tier)
 		case kTierClassic:
 		case kTierEnhanced:
 		case kTierFlagship:
+		case kTierRampant:
 			for (int i = 0; i < kNumberOfFeatures; ++i)
 				if (IsTierFeature(Feature(i)))
 					prefs.features[i] = TierIncludes(tier, Feature(i));
@@ -378,7 +397,7 @@ void ApplyTier(int tier)
 }
 
 // Which tab of the dialog each feature sits on
-enum Tab { kTabFeel, kTabLook, kTabArt, kTabLight, kNumberOfTabs };
+enum Tab { kTabFeel, kTabLook, kTabArt, kTabLight, kTabRampant, kNumberOfTabs };
 
 static Tab FeatureTab(Feature feature)
 {
@@ -417,6 +436,8 @@ static Tab FeatureTab(Feature feature)
 		case kSpinPickups:
 		case kTextureCache:
 			return kTabArt;
+		case kLightBounce:
+			return kTabRampant;
 		default:
 			return kTabLook;
 	}
@@ -429,11 +450,21 @@ void Dialog(void* parent_dialog)
 	placer->dual_add(new w_title("DURANDAL"), d);
 	placer->add(new w_spacer(), true);
 
-	static const char* tier_labels[] = { "Stock", "Classic", "Enhanced", "Flagship", "Custom", nullptr };
-	auto tier_to_index = [](int tier) {
-		return tier == kTierStock ? 0 : tier == kTierClassic ? 1 : tier == kTierEnhanced ? 2 : tier == kTierFlagship ? 3 : 4;
+	// Rampant sits between Flagship and Custom when it is offered
+	const bool rampant = RampantOffered();
+	static const char* tier_labels_all[] = { "Stock", "Classic", "Enhanced", "Flagship", "Rampant", "Custom", nullptr };
+	static const char* tier_labels_four[] = { "Stock", "Classic", "Enhanced", "Flagship", "Custom", nullptr };
+	const char** tier_labels = rampant ? tier_labels_all : tier_labels_four;
+	std::vector<int> index_to_tier = { kTierStock, kTierClassic, kTierEnhanced, kTierFlagship };
+	if (rampant)
+		index_to_tier.push_back(kTierRampant);
+	index_to_tier.push_back(kTierCustom);
+	auto tier_to_index = [&](int tier) {
+		for (size_t i = 0; i < index_to_tier.size(); ++i)
+			if (index_to_tier[i] == tier)
+				return int(i);
+		return int(index_to_tier.size()) - 1;	// Custom (and Rampant when it is not offered)
 	};
-	const int index_to_tier[] = { kTierStock, kTierClassic, kTierEnhanced, kTierFlagship, kTierCustom };
 
 	table_placer* top = new table_placer(2, get_theme_space(ITEM_WIDGET), true);
 	top->col_flags(0, placeable::kAlignRight);
@@ -444,7 +475,7 @@ void Dialog(void* parent_dialog)
 	placer->add(new w_spacer(), true);
 
 	tab_placer* tabs = new tab_placer();
-	std::vector<std::string> tab_labels = { "FEEL", "LOOK", "ART", "LIGHT", "CHEATS" };
+	std::vector<std::string> tab_labels = { "FEEL", "LOOK", "ART", "LIGHT", "RAMPANT", "CHEATS" };
 	w_tab* tab_w = new w_tab(tab_labels, tabs);
 	placer->dual_add(tab_w, d);
 	placer->add(new w_spacer(), true);
@@ -495,6 +526,7 @@ void Dialog(void* parent_dialog)
 		"Character Shadows",
 		"Texture Cache (compressed HD art)",
 		"Weapon Takes the Light",
+		"Bounced Light",
 	};
 	w_toggle* feature_w[kNumberOfFeatures];
 	w_select* style_w = nullptr;
@@ -568,6 +600,10 @@ void Dialog(void* parent_dialog)
 	tables[kTabLook]->dual_add_row(new w_static_text("the Metal renderer; relaunch after switching it."), d);
 	tables[kTabLight]->add_row(new w_spacer(), true);
 	tables[kTabLight]->dual_add_row(new w_static_text("Metal renderer only. Glow shows on an HDR display."), d);
+	// RAMPANT: the fifth tier's own switches (docs/PLAN-fifth-tier.md)
+	tables[kTabRampant]->add_row(new w_spacer(), true);
+	tables[kTabRampant]->dual_add_row(new w_static_text("More than this machine was built for. Metal renderer only."), d);
+	tables[kTabRampant]->dual_add_row(new w_static_text("Bounced Light needs Light Redistribution."), d);
 	// ART: the packs installed for each category (DurandalArt.h). The art
 	// is not shipped; the packs go in the user's Plugins folder
 	tables[kTabArt]->add_row(new w_spacer(), true);

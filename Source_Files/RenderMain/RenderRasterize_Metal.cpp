@@ -161,6 +161,7 @@ void RenderRasterize_Metal::render_tree()
 	u.alpha_threshold = -1;
 	u.distance_mode = 1;
 	u.viewer_light = simd_make_float4(0, 0, 0, 0);
+	u.figure_patches = simd_make_int4(-1, -1, 0, 0);
 	u.visibility = 1;
 	u.time = view->tick_count;
 	const float pixel_height = view->screen_height * MainScreenPixelScale();
@@ -236,7 +237,6 @@ void RenderRasterize_Metal::render_tree()
 	// any draw. Each surface's light may drop to 60% or rise to 135% of
 	// its own brightness, with a little colour bleed
 	u.patch = -1;
-	u.gi = redistribution && DurandalRadiance::Frame(view, RSPtr->SortedNodes) ? 1 : 0;
 	// Redistribution Strength (Round 12): how far a surface's light may
 	// fall below or rise above its authored level, and the colour bleed
 	switch (std::clamp(Durandal::Prefs().gi_strength, 0, 2)) {
@@ -244,6 +244,10 @@ void RenderRasterize_Metal::render_tree()
 		case 2: u.gi_range = simd_make_float4(0.55f, 0.8f, 0.6f, 0.18f); break;
 		default: u.gi_range = simd_make_float4(0.4f, 0.35f, 0.5f, 0.12f); break;
 	}
+	// Bounced Light (R4, Rampant): the bake passes light on as it is drawn,
+	// and figures take the light of the floor and ceiling around them
+	light_bounce = redistribution && Durandal::Enabled(Durandal::kLightBounce);
+	u.gi = redistribution && DurandalRadiance::Frame(view, RSPtr->SortedNodes, u.gi_range, light_bounce) ? 1 : 0;
 	// Surface relief (M1): on the 8-bit shading path
 	u.relief = Durandal::Enabled(Durandal::kSurfaceRelief) ? 1.0f : 0.0f;
 
@@ -892,6 +896,17 @@ void RenderRasterize_Metal::_render_node_object_helper(render_object_data *objec
 	if (!m.ok || m.TMgr->ShapeDesc == UNONE)
 		return;
 	auto& TMgr = m.TMgr;
+
+	// Bounced Light (R4): the floor under the figure's feet and the ceiling
+	// over it (the render node's polygon can be another one entirely)
+	if (light_bounce && frame_uniforms.gi) {
+		world_point2d where = { world_distance(pos.x), world_distance(pos.y) };
+		short polygon_index = world_point_to_polygon_index(&where);
+		if (polygon_index == NONE)
+			polygon_index = object->node->polygon_index;
+		m.uniforms.figure_patches = simd_make_int4(DurandalRadiance::FloorPatch(polygon_index),
+												   DurandalRadiance::CeilingPatch(polygon_index), 0, 0);
+	}
 
 	// GL: glTranslated(pos); glRotated(yaw, z); optionally glRotated(pitch, -y)
 	simd_float4x4 transform = translate(identity(), pos.x, pos.y, pos.z);
