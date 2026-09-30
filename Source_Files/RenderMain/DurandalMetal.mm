@@ -63,6 +63,11 @@ const char* const kStageNames[kStages] = { "fog volume", "light bake", "light av
 const char* const kStageColumns[kStages] = { "volume_ms", "bake_ms", "average_ms", "world_ms",
 	"ao_ms", "bloom_ms", "canvas_ms", "output_ms" };
 const bool kRenderStage[kStages] = { false, false, false, true, true, true, true, true };
+// Small passes after the world are timed from their fragment work's start:
+// on a tile GPU their vertex stage starts early and waits behind the world
+// pass, which counted that wait (4-7 ms each). The world pass keeps vertex
+// start, as it always has, so its numbers compare with earlier rounds.
+const bool kFromFragment[kStages] = { false, false, false, false, true, true, true, true };
 constexpr int kSlots = 4;			// frames in flight, with room to spare
 constexpr int kPerStage = 4;		// world: vertex start/end, fragment start/end
 constexpr int kPerSlot = kStages * kPerStage;
@@ -152,9 +157,9 @@ void attach(MTLRenderPassDescriptor* pass, Stage stage, bool first = true, bool 
 	if (!samples || !frame_open)
 		return;
 	pass.sampleBufferAttachments[0].sampleBuffer = samples;
-	pass.sampleBufferAttachments[0].startOfVertexSampleIndex = first ? index(stage, 0) : MTLCounterDontSample;
+	pass.sampleBufferAttachments[0].startOfVertexSampleIndex = first && !kFromFragment[stage] ? index(stage, 0) : MTLCounterDontSample;
 	pass.sampleBufferAttachments[0].endOfVertexSampleIndex = MTLCounterDontSample;
-	pass.sampleBufferAttachments[0].startOfFragmentSampleIndex = MTLCounterDontSample;
+	pass.sampleBufferAttachments[0].startOfFragmentSampleIndex = first && kFromFragment[stage] ? index(stage, 2) : MTLCounterDontSample;
 	pass.sampleBufferAttachments[0].endOfFragmentSampleIndex = last ? index(stage, 3) : MTLCounterDontSample;
 	used[stage] = true;
 }
@@ -181,7 +186,7 @@ void end_frame(id<MTLCommandBuffer> cb)
 		for (int st = 0; st < kStages; ++st) {
 			if (!(this_used & (1u << st)))
 				continue;
-			const uint64_t a = t[st * kPerStage].timestamp;
+			const uint64_t a = t[st * kPerStage + (kFromFragment[st] ? 2 : 0)].timestamp;
 			const uint64_t b = t[st * kPerStage + (kRenderStage[st] ? 3 : 1)].timestamp;
 			if (a == MTLCounterErrorValue || b == MTLCounterErrorValue || b <= a)
 				continue;
