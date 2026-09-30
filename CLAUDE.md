@@ -1061,6 +1061,47 @@ The folder name comes from the *localised* bundle name
     the water film's pool reflects its dark ribbed wall, darker than the
     old sheen: to be judged on the display. `ON_SCREEN=1` and `END_TICK=n`
     for `scripts/looks.sh`.
+  - The headroom spent (30 Sep 2026, evening; the owner chose all four):
+    - Spikes: traced shadows walked every figure for every light at every
+      lit pixel (a firing line of sixteen flashes: world p99 17 ms, worst
+      30). Light under 0.03 of a level is not walked; figures' shadows come
+      from the four lights nearest the viewer (`Light::info.z`,
+      `DURANDAL_FIGURE_LIGHTS`) where over 0.15; the walk stops at the
+      light's own polygon first. Stage timing of the passes after the world
+      is from their fragment start (vertex start counted their wait).
+    - Quality: traced AO 8 rays (nearby figures picked once per pixel);
+      Bounced Light bakes up to 512 tiles a frame, refresh 1/8; choosing
+      Rampant sets Redistribution Strength Strong, the other named tiers
+      Medium (`ApplyTier`, and the dialog's selector follows the tier).
+    - Shadows: soft edges from structure with no extra rays
+      (`light_transmittance`: at an opening, the margin to its floor or
+      lintel and, beside a solid edge, to the jamb, against the light's
+      disc radius there, smoothstep; a solid wall near an end where an
+      opening begins lets part through); grates (surface table now 26
+      float4 per polygon, 18 + e the see-through part; the colour array's
+      alpha is the art's opacity); figures shade the fog's light
+      (`VolumeParams::figures`, figure-casting lights over 0.1).
+    - Water: HD walls in reflections (`decode_hd`: the pack's image, right
+      side up, BC7 decoded; colour array 256 px); figure silhouettes are
+      RGBA (colour at full brightness, alpha opacity; `Occluder::info.z`
+      the figure's light) and reflected rays meet figures about the liquid
+      polygon (`reflected_figure`); ripples round waders and splashes
+      (`DurandalLights::GatherRipples`, fragment buffer 11, `ripple_slope`);
+      refraction as a ratio of the art where the refracted and straight
+      rays land, applied to what is drawn below.
+    - Air (`RenderMain/DurandalAir.*`): Dust and Embers (`dust_embers`)
+      motes made per polygon in view from hashes and world time, lit on
+      the CPU (room light x0.3, dynamic lights x1.5), embers rising off
+      real lava (media), glowing; `DurandalMetal::DrawMotes` (own
+      pipelines, reads the attachments, hidden where the distance is
+      nearer; vertex depth remapped as world_vertex, without which none
+      showed). Heat Shimmer (`heat_shimmer`): the output pass wavers world
+      pixels where the bloom is warm (`OutputParams::heat`). Frame shots
+      are taken before the output pass: use
+      `DURANDAL_BENCHMARK_OUTPUT_SHOTS=1` to see the shimmer.
+      `DURANDAL_AIR_LOG=1|2`.
+    - On screen, L06 to tick 1200, everything on: Rampant 177 fps average,
+      92.6 at the 1% low; Flagship 226 / 125.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
