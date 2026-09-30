@@ -220,8 +220,12 @@ void RenderRasterize_Metal::render_tree()
 		occluder_count = DurandalOccluders::Gather(view, dynamic_lights, traced_shadows ? light_count : 0, traced_ambient);
 	else
 		DurandalOccluders::Gather(view, dynamic_lights, 0);
+	// y: the figure lists' polygon count whenever there are figures (traced
+	// shadows, and figures in reflections); x bit 0: traced shadows
+	if (occluder_count > 0)
+		u.rampant.y = dynamic_world->polygon_count;
 	if (traced_shadows && occluder_count > 0)
-		u.rampant = simd_make_int4(1, dynamic_world->polygon_count, 0, 0);
+		u.rampant.x = 1;
 	if (traced_ambient) {
 		static std::vector<simd_int2> cells;
 		static std::vector<int> indices;
@@ -247,6 +251,11 @@ void RenderRasterize_Metal::render_tree()
 	// grates the shadow walk crosses (rampant.x bit 1)
 	const bool surfaces = (reflections || (u.rampant.x & 1)) && DurandalSurfaces::Frame();
 	u.rampant.z = reflections && surfaces ? 1 : 0;
+	// Living water (R2): ripples round anything wading, and splashes
+	{
+		simd_float4 ripples[DurandalMetal::kMaximumRipples];
+		DurandalMetal::SetRipples(ripples, u.rampant.z ? DurandalLights::GatherRipples(view, ripples) : 0);
+	}
 	if (surfaces && (u.rampant.x & 1))
 		u.rampant.x |= 2;
 	if (!surfaces)

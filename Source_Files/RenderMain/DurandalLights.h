@@ -40,6 +40,13 @@ int Gather(const view_data* view, const std::vector<sorted_node_data>& nodes, fl
 int GatherCasters(const view_data* view, const std::vector<sorted_node_data>& nodes,
 				  DurandalMetal::Caster* out);
 
+// Living water (R2): where the liquids ripple this frame: anything standing
+// in a liquid up to its middle or so (monsters, players, the viewer), a
+// little always and more as it moves, and splashes at the surface. Fills
+// `out` (x, y, strength, 0; up to DurandalMetal::kMaximumRipples, nearest
+// the viewer first) and returns the count. Read-only on the world.
+int GatherRipples(const view_data* view, simd_float4* out);
+
 // Light shadows (E3): the map as the shaders walk it (9 float4 per polygon,
 // current floor and ceiling heights); returns the polygon count.
 int BuildMap(std::vector<simd_float4>& out);

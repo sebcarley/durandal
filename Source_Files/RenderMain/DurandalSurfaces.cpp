@@ -23,6 +23,9 @@
 #include "lightsource.h"
 #include "AnimatedTextures.h"
 #include "ViewControl.h"
+#include "OGL_Subst_Texture_Def.h"
+#include "DurandalBC7.h"
+#include "DurandalPreferences.h"
 
 #include <algorithm>
 #include <cmath>
@@ -126,6 +129,41 @@ std::vector<std::vector<uint8_t>> levels_of(const std::vector<uint8_t>& rgba, in
 	return levels;
 }
 
+// With HD Walls on, the pack's replacement for a wall texture, as RGBA
+// at a mip level near the colour array's size; false if there is none (or
+// it is in a form not decoded here). Replacements come in right side up
+// (x across, y down: OGL_Textures' texture matrix turns them), as the array
+// lays the 8-bit art out.
+bool decode_hd(shape_descriptor texture, std::vector<uint8_t>& rgba, int& w, int& h)
+{
+	if (!Durandal::Enabled(Durandal::kHDWalls))
+		return false;
+	const short code = GET_DESCRIPTOR_COLLECTION(texture), shape = GET_DESCRIPTOR_SHAPE(texture);
+	const short bitmap = get_bitmap_index(GET_COLLECTION(code), shape);
+	if (bitmap == NONE)
+		return false;
+	OGL_TextureOptions* options = OGL_GetTextureOptions(GET_COLLECTION(code), GET_COLLECTION_CLUT(code), bitmap);
+	if (!options || !options->NormalImg.IsPresent())
+		return false;
+	ImageDescriptor& image = options->NormalImg;
+	const int format = image.GetFormat();
+	if (format != ImageDescriptor::RGBA8 && format != ImageDescriptor::BC7)
+		return false;
+	int level = 0;
+	while (level + 1 < std::max(image.GetMipMapCount(), 1) && (image.GetWidth() >> level) > 2 * kColourSize)
+		++level;
+	w = std::max(1, image.GetWidth() >> level);
+	h = std::max(1, image.GetHeight() >> level);
+	const uint32* pixels = image.GetMipMapPtr(level);
+	if (!pixels)
+		return false;
+	rgba.resize(size_t(w) * h * 4);
+	if (format == ImageDescriptor::BC7)
+		return DurandalBC7::Decode(reinterpret_cast<const uint8_t*>(pixels), w, h, rgba.data());
+	std::memcpy(rgba.data(), pixels, rgba.size());
+	return true;
+}
+
 // The colour array slice for a wall texture (-1 if none can be made)
 int slice_for(shape_descriptor texture)
 {
@@ -135,7 +173,7 @@ int slice_for(shape_descriptor texture)
 	int slice = -1;
 	std::vector<uint8_t> rgba;
 	int w = 0, h = 0;
-	if (cache.next_slice < kColourSlices && decode(texture, rgba, w, h) &&
+	if (cache.next_slice < kColourSlices && (decode_hd(texture, rgba, w, h) || decode(texture, rgba, w, h)) &&
 		DurandalMetal::SetSurfaceColour(cache.next_slice, levels_of(rgba, w, h, kColourSize, kColourSize)))
 		slice = cache.next_slice++;
 	cache.slices[texture] = slice;

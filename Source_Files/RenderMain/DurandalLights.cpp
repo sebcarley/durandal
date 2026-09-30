@@ -250,6 +250,65 @@ int GatherCasters(const view_data* view, const std::vector<sorted_node_data>& no
 	return count;
 }
 
+int GatherRipples(const view_data* view, simd_float4* out)
+{
+	struct Candidate {
+		simd_float4 source;
+		float distance2;
+	};
+	static std::vector<Candidate> found;
+	static std::unordered_map<short, simd_float3> last;	// where each object was last frame
+	static std::unordered_map<short, simd_float3> now;
+	found.clear();
+	now.clear();
+	const world_point3d& camera = view->origin;
+	for (size_t slot = 0; slot < ObjectList.size(); ++slot)
+	{
+		object_data* object = &ObjectList[slot];
+		if (!SLOT_IS_USED(object) || object->polygon < 0 || object->polygon >= dynamic_world->polygon_count)
+			continue;
+		const polygon_data* polygon = get_polygon_data(object->polygon);
+		if (polygon->media_index == NONE)
+			continue;
+		const media_data* media = get_media_data(polygon->media_index);
+		if (!media || media->height <= polygon->floor_height)
+			continue;
+		const float surface = media->height;
+		const float z = object->location.z;
+		const int owner = GET_OBJECT_OWNER(object);
+		float strength = 0;
+		if (owner == _object_is_monster || owner == _object_is_item)
+		{
+			// Standing in it: feet below the surface, the middle above it
+			if (z < surface && z > surface - 0.6f * WORLD_ONE)
+			{
+				const short index = short(slot);
+				const simd_float3 at = simd_make_float3(object->location.x, object->location.y, z);
+				now[index] = at;
+				auto it = last.find(index);
+				const float moved = it == last.end() ? 0.0f : simd_length(at.xy - it->second.xy);
+				strength = (owner == _object_is_item ? 0.0f : 0.25f) + std::min(moved / 12.0f, 1.0f);
+			}
+		}
+		else if (owner == _object_is_effect)
+		{
+			// Splashes and anything else at the surface
+			if (std::abs(z - surface) < 0.25f * WORLD_ONE)
+				strength = 1.5f;
+		}
+		if (strength <= 0)
+			continue;
+		const float dx = object->location.x - camera.x, dy = object->location.y - camera.y;
+		found.push_back({ simd_make_float4(object->location.x, object->location.y, strength, 0), dx * dx + dy * dy });
+	}
+	last.swap(now);
+	std::sort(found.begin(), found.end(), [](const Candidate& a, const Candidate& b) { return a.distance2 < b.distance2; });
+	const int count = std::min<int>(int(found.size()), DurandalMetal::kMaximumRipples);
+	for (int i = 0; i < count; ++i)
+		out[i] = found[i].source;
+	return count;
+}
+
 bool BuildGrid(simd_float4& header, int& columns, int& rows, std::vector<simd_int2>& cells, std::vector<int>& indices)
 {
 	// The level, by its outline

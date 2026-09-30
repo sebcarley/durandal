@@ -22,8 +22,11 @@
 #include "player.h"
 #include "ChaseCam.h"
 
+#include "lightsource.h"
+
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <unordered_map>
 
 namespace DurandalOccluders {
@@ -86,10 +89,13 @@ const Mask* mask_for(short collection_code, short low_level_shape)
 		cache.masks.erase(cache.slice_key[slice]);
 	}
 
-	// The bitmap's opacity: colour 0 is clear in a transparent bitmap
+	// The bitmap's colour at full brightness and its opacity (colour 0 is
+	// clear in a transparent bitmap): reflections draw the figure, shadows
+	// use its opacity
 	const int w = bitmap->width, h = bitmap->height;
-	std::vector<uint8_t> grid(size_t(w) * h, 0);
+	std::vector<uint8_t> grid(size_t(w) * h * 4, 0);
 	const bool transparent = (bitmap->flags & _TRANSPARENT_BIT) != 0;
+	const DurandalShading::Ramps* ramps = DurandalShading::Get(GET_COLLECTION(collection_code), GET_COLLECTION_CLUT(collection_code));
 	const bool columns = (bitmap->flags & _COLUMN_ORDER_BIT) != 0;
 	const int lines = columns ? w : h;
 	const int length = columns ? h : w;
@@ -97,7 +103,15 @@ const Mask* mask_for(short collection_code, short low_level_shape)
 		if (i < 0 || i >= length)
 			return;
 		const int x = columns ? line : i, y = columns ? i : line;
-		grid[size_t(y) * w + x] = (!transparent || v) ? 255 : 0;
+		uint8_t* out = &grid[(size_t(y) * w + x) * 4];
+		if (ramps)
+		{
+			const uint8_t* c = ramps->data[1][v];
+			out[0] = c[0]; out[1] = c[1]; out[2] = c[2];
+		}
+		else
+			out[0] = out[1] = out[2] = 128;
+		out[3] = (!transparent || v) ? 255 : 0;
 	};
 	for (int l = 0; l < lines; ++l)
 	{
@@ -123,24 +137,35 @@ const Mask* mask_for(short collection_code, short low_level_shape)
 	const float scale = std::min(1.0f, float(kMaskSize) / float(std::max(w, h)));
 	const int mw = std::max(1, int(std::ceil(w * scale))), mh = std::max(1, int(std::ceil(h * scale)));
 	std::vector<std::vector<uint8_t>> levels;
-	levels.emplace_back(size_t(kMaskSize) * kMaskSize, 0);
+	levels.emplace_back(size_t(kMaskSize) * kMaskSize * 4, 0);
 	for (int y = 0; y < mh; ++y)
 		for (int x = 0; x < mw; ++x)
 		{
 			const int sx = std::min(w - 1, int((x + 0.5f) / scale)), sy = std::min(h - 1, int((y + 0.5f) / scale));
-			levels[0][size_t(y) * kMaskSize + x] = grid[size_t(sy) * w + sx];
+			std::memcpy(&levels[0][(size_t(y) * kMaskSize + x) * 4], &grid[(size_t(sy) * w + sx) * 4], 4);
 		}
+	// Mips: colour weighted by opacity (clear texels add no colour), then
+	// opacity averaged
 	for (int size = kMaskSize / 2; size >= 1; size /= 2)
 	{
 		const std::vector<uint8_t>& above = levels.back();
-		std::vector<uint8_t> level(size_t(size) * size);
+		std::vector<uint8_t> level(size_t(size) * size * 4);
+		const int a = size * 2;
 		for (int y = 0; y < size; ++y)
 			for (int x = 0; x < size; ++x)
 			{
-				const int a = size * 2;
-				const int sum = above[size_t(y * 2) * a + x * 2] + above[size_t(y * 2) * a + x * 2 + 1] +
-					above[size_t(y * 2 + 1) * a + x * 2] + above[size_t(y * 2 + 1) * a + x * 2 + 1];
-				level[size_t(y) * size + x] = uint8_t((sum + 2) / 4);
+				int rgb[3] = { 0, 0, 0 }, alpha = 0;
+				for (int k = 0; k < 4; ++k)
+				{
+					const uint8_t* t = &above[(size_t(y * 2 + k / 2) * a + x * 2 + k % 2) * 4];
+					for (int c = 0; c < 3; ++c)
+						rgb[c] += t[c] * t[3];
+					alpha += t[3];
+				}
+				uint8_t* out = &level[(size_t(y) * size + x) * 4];
+				for (int c = 0; c < 3; ++c)
+					out[c] = alpha ? uint8_t(rgb[c] / alpha) : 0;
+				out[3] = uint8_t((alpha + 2) / 4);
 			}
 		levels.push_back(std::move(level));
 	}
@@ -263,7 +288,11 @@ int Gather(const view_data* view, const DurandalMetal::Light* light_list, int li
 		o.extent = simd_make_float4(left, right, bottom, top);
 		o.mask = simd_make_float4(float(mask->width) / kMaskSize, float(mask->height) / kMaskSize,
 								  float(mask->width) / (right - left), 0);
-		o.info = simd_make_int4(mask->slice, (info->flags & _X_MIRRORED_BIT) ? 1 : 0, 0, 0);
+		// z: its light (the floor's, or its own minimum), thousandths, for reflections
+		const polygon_data* under = get_polygon_data(object->polygon);
+		const int32 own = std::max<int32>(get_light_intensity(under->floor_lightsource_index), info->minimum_light_intensity);
+		o.info = simd_make_int4(mask->slice, (info->flags & _X_MIRRORED_BIT) ? 1 : 0,
+								int(1000.0f * PIN(own, 0, FIXED_ONE) / float(FIXED_ONE)), 0);
 		const int n = int(found.size());
 		found.push_back(o);
 

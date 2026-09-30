@@ -121,7 +121,7 @@ struct Occluder {
 	simd_float4 position;		// the object's origin
 	simd_float4 extent;			// left, right, bottom, top from the origin, along the card
 	simd_float4 mask;			// the bitmap's share of its slice across and down, mask texels per world unit, 0
-	simd_int4 info;				// x: mask slice, y: mirrored, z, w: 0
+	simd_int4 info;				// x: mask slice, y: mirrored, z: its light (thousandths; reflections), w: 0
 };
 constexpr int kMaximumOccluders = 128;
 constexpr int kMaskSize = 256;		// a slice of the mask array, texels across
@@ -129,7 +129,7 @@ constexpr int kMaskSlices = 512;
 
 // The level's surfaces for traced rays (DurandalSurfaces.h): wall art in a
 // colour array, kColourSize square
-constexpr int kColourSize = 128;
+constexpr int kColourSize = 256;
 constexpr int kColourSlices = 256;
 
 struct Vertex {
@@ -332,7 +332,8 @@ bool DisplayActive();
 void SetOccluders(const Occluder* list, int count, const simd_int2* polygons, int polygon_count,
 				  const int* indices, int index_count);
 // A silhouette into slice `slice` of the mask array: kMaskSize x kMaskSize
-// opacity (0 clear, 255 solid) at level 0, then each mip level down to 1x1.
+// RGBA8 (the figure's colour at full brightness; alpha its opacity) at
+// level 0, then each mip level down to 1x1.
 bool SetMask(int slice, const std::vector<std::vector<uint8_t>>& levels);
 
 // Traced ambient shadows (R3): the level's polygon grid
@@ -352,6 +353,11 @@ bool SetSurfaceColour(int slice, const std::vector<std::vector<uint8_t>>& levels
 // The level's landscape as RGBA8, width x height at level 0, then each mip
 // level down to 1x1 (a new texture each time).
 bool SetSky(const std::vector<std::vector<uint8_t>>& levels, int width, int height);
+
+// Living water (R2): up to kMaximumRipples ripple sources for the liquid
+// surfaces this frame (x, y, strength, 0), world units
+constexpr int kMaximumRipples = 16;
+void SetRipples(const simd_float4* sources, int count);
 
 // Development (DURANDAL_GPU_TIMING): the display's own passes join a world
 // frame's stage timings. `pass` is an MTLRenderPassDescriptor, `command_buffer`

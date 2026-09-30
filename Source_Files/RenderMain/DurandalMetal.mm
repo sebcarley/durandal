@@ -365,6 +365,9 @@ id<MTLBuffer> bound_occluders, bound_occluder_polygons, bound_occluder_indices;
 id<MTLTexture> mask_array;			// kMaskSlices silhouettes, R8, mipmapped
 id<MTLTexture> no_masks;			// 1x1x1: none
 
+// Living water (R2): ripple sources, entry 0 the count
+simd_float4 bound_ripples[kMaximumRipples + 1];
+
 // Traced ambient shadows (R3)
 id<MTLBuffer> grid_cells, grid_indices;
 simd_float4 grid_header = { 0, 0, 1, 0 };
@@ -655,15 +658,15 @@ bool init()
 		[no_radiance replaceRegion:MTLRegionMake2D(0, 0, 1, 1) mipmapLevel:0 withBytes:nothing bytesPerRow:sizeof(nothing)];
 		no_patch = [device newBufferWithLength:sizeof(Patch) options:MTLResourceStorageModeShared];
 		std::memset(no_patch.contents, 0, no_patch.length);
-		MTLTextureDescriptor* md = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
+		MTLTextureDescriptor* md = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
 																					  width:1 height:1 mipmapped:NO];
 		md.textureType = MTLTextureType2DArray;
 		md.arrayLength = 1;
 		md.usage = MTLTextureUsageShaderRead;
 		no_masks = [device newTextureWithDescriptor:md];
-		const uint8_t clear_mask = 0;
-		[no_masks replaceRegion:MTLRegionMake2D(0, 0, 1, 1) mipmapLevel:0 slice:0 withBytes:&clear_mask
-					bytesPerRow:1 bytesPerImage:1];
+		const uint8_t clear_mask[4] = { 0, 0, 0, 0 };
+		[no_masks replaceRegion:MTLRegionMake2D(0, 0, 1, 1) mipmapLevel:0 slice:0 withBytes:clear_mask
+					bytesPerRow:4 bytesPerImage:4];
 		MTLTextureDescriptor* cd = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
 																					  width:1 height:1 mipmapped:NO];
 		cd.usage = MTLTextureUsageShaderRead;
@@ -1213,6 +1216,7 @@ void bind_world_inputs()
 	[encoder setFragmentBuffer:(bound_surfaces ? bound_surfaces : no_patch) offset:0 atIndex:10];
 	[encoder setFragmentTexture:(colour_array ? colour_array : no_colours) atIndex:7];
 	[encoder setFragmentTexture:(sky_texture ? sky_texture : no_sky) atIndex:8];
+	[encoder setFragmentBytes:bound_ripples length:sizeof(simd_float4) * (int(bound_ripples[0].x) + 1) atIndex:11];
 }
 
 // Opens the world pass's render encoder if it is not open yet
@@ -1529,7 +1533,7 @@ bool SetMask(int slice, const std::vector<std::vector<uint8_t>>& levels)
 	@autoreleasepool {
 		if (!mask_array)
 		{
-			MTLTextureDescriptor* d = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
+			MTLTextureDescriptor* d = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
 																						 width:kMaskSize height:kMaskSize mipmapped:YES];
 			d.textureType = MTLTextureType2DArray;
 			d.arrayLength = kMaskSlices;
@@ -1542,13 +1546,23 @@ bool SetMask(int slice, const std::vector<std::vector<uint8_t>>& levels)
 		int size = kMaskSize;
 		for (size_t level = 0; level < levels.size() && level < mask_array.mipmapLevelCount && size >= 1; ++level, size /= 2)
 		{
-			if (levels[level].size() < size_t(size) * size)
+			if (levels[level].size() < size_t(size) * size * 4)
 				break;
 			[mask_array replaceRegion:MTLRegionMake2D(0, 0, size, size) mipmapLevel:level slice:slice
-							withBytes:levels[level].data() bytesPerRow:size bytesPerImage:size_t(size) * size];
+							withBytes:levels[level].data() bytesPerRow:size * 4 bytesPerImage:size_t(size) * size * 4];
 		}
 	}
 	return true;
+}
+
+void SetRipples(const simd_float4* sources, int count)
+{
+	count = std::clamp(count, 0, kMaximumRipples);
+	bound_ripples[0] = simd_make_float4(count, 0, 0, 0);
+	if (count)
+		std::memcpy(&bound_ripples[1], sources, sizeof(simd_float4) * count);
+	if (in_world_pass && encoder)
+		bind_world_inputs();
 }
 
 void SetPolygonGrid(simd_float4 header, int columns, int rows, const std::vector<simd_int2>& cells,

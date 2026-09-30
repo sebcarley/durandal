@@ -217,7 +217,7 @@ static float figure_through(thread const Occluders& occ, Occluder o, float3 from
 	const float v = (o.extent.w - z) / (o.extent.w - o.extent.z);
 	const float lod = log2(max(2.0 * blur * o.mask.z, 1.0));
 	constexpr sampler s(filter::linear, mip_filter::linear, address::clamp_to_zero);
-	return 1.0 - occ.masks.sample(s, float2(u * o.mask.x, v * o.mask.y), uint(o.info.x), level(lod)).r;
+	return 1.0 - occ.masks.sample(s, float2(u * o.mask.x, v * o.mask.y), uint(o.info.x), level(lod)).a;
 }
 
 // How much of a light passes the figures in polygon `poly`, for the part of
@@ -1393,6 +1393,62 @@ static float2 wave_slope(float2 p, float t, float strength)
 	return g * 0.08 * strength;
 }
 
+// Living water (R2): rings spreading from anything wading and from
+// splashes (DurandalLights::GatherRipples; sources[0].x is the count)
+static float2 ripple_slope(constant float4* sources, float2 p, float t)
+{
+	float2 g = float2(0.0);
+	const int count = int(sources[0].x);
+	for (int i = 1; i <= count; ++i) {
+		const float2 d = p - sources[i].xy;
+		const float r = length(d) / 1024.0;
+		if (r > 2.5 || r < 1e-3)
+			continue;
+		const float ring = cos(r * 21.0 - t * 7.0) * exp(-r / 0.7) * smoothstep(0.0, 0.08, r);
+		g += (d / (r * 1024.0)) * ring * sources[i].z * 0.12;
+	}
+	return g;
+}
+
+// A figure in a reflection (R2): the nearest figure card about polygon
+// `poly` the reflected ray from `from` along `d` meets before t = 1,
+// as its colour (rgb) and whether one was met (a)
+static float4 reflected_figure(device const Occluder* occluders, device const int2* lists, device const int* indices,
+							   texture2d_array<float> masks, int polygon_count, int poly, float3 from, float3 d)
+{
+	if (poly < 0 || poly >= polygon_count)
+		return float4(0.0);
+	const int2 range = lists[poly];
+	const float dd = dot(d.xy, d.xy);
+	if (range.y == 0 || dd < 1.0)
+		return float4(0.0);
+	const float2 across = float2(d.y, -d.x) * rsqrt(dd);
+	constexpr sampler s(filter::linear, mip_filter::linear, address::clamp_to_zero);
+	float best = 1.0;
+	float4 found = float4(0.0);
+	for (int k = 0; k < range.y; ++k) {
+		const Occluder o = occluders[indices[range.x + k]];
+		const float t = dot(o.position.xy - from.xy, d.xy) / dd;
+		if (t <= 0.0 || t >= best)
+			continue;
+		const float3 p = from + d * t;
+		const float h = dot(p.xy - o.position.xy, across);
+		const float z = p.z - o.position.z;
+		if (h < o.extent.x || h > o.extent.y || z < o.extent.z || z > o.extent.w)
+			continue;
+		float u = (h - o.extent.x) / (o.extent.y - o.extent.x);
+		if (o.info.y != 0)
+			u = 1.0 - u;
+		const float v = (o.extent.w - z) / (o.extent.w - o.extent.z);
+		const float4 c = masks.sample(s, float2(u * o.mask.x, v * o.mask.y), uint(o.info.x), level(1.0));
+		if (c.a < 0.5)
+			continue;
+		best = t;
+		found = float4(c.rgb * (float(o.info.z) / 1000.0), 1.0);
+	}
+	return found;
+}
+
 fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& u [[buffer(1)]],
 									constant Light* lights [[buffer(2)]], device const float4* map [[buffer(3)]],
 									texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]],
@@ -1400,7 +1456,10 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 									float4 below [[color(0)]], float4 below_glow [[color(1)]],
 									float4 below_dist [[color(2)]],
 									device const float4* surfaces [[buffer(10)]],
-									texture2d_array<float> walls [[texture(7)]], texture2d<float> sky [[texture(8)]])
+									texture2d_array<float> walls [[texture(7)]], texture2d<float> sky [[texture(8)]],
+									constant float4* ripples [[buffer(11)]],
+									device const Occluder* occluders [[buffer(7)]], device const int2* occluder_polygons [[buffer(8)]],
+									device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]])
 {
 	const float below_distance = below_dist.r;	// the same type as WorldFrag writes
 	const float t = u.time / 30.0;
@@ -1408,8 +1467,11 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 	const float3 camera = u.camera.xyz;
 	const float3 v = normalize(in.world - camera);
 
-	// Rippling normal (seen from below, the surface faces down)
-	const float2 slope = wave_slope(in.world.xy / 1024.0, t, waves);
+	// Rippling normal (seen from below, the surface faces down); with living
+	// water (R2) rings spread from anything wading and from splashes
+	float2 slope = wave_slope(in.world.xy / 1024.0, t, waves);
+	if (u.rampant.z != 0)
+		slope += ripple_slope(ripples, in.world.xy, t) * max(waves, 0.3);
 	float3 n = normalize(float3(-slope, 1.0));
 	if (camera.z < in.world.z)
 		n = float3(n.xy, -n.z);
@@ -1439,7 +1501,32 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 		depth = max(in.world.z - (camera.z + v.z * below_distance), 0.0);
 	const float3 reach = exp(-depth * absorb * 1.5);
 	const float3 transmit = exp(-path * absorb);
-	const float3 seen = below.rgb * reach * transmit + surface * (1.0 - transmit);
+	// Refraction (R2): the floor beneath is bent by the ripples. What is
+	// below is already drawn exactly; the texture where the bent ray lands
+	// against where the straight one does is carried onto it as a ratio,
+	// so the floor's pattern wavers while its light stays as drawn
+	float3 below_rgb = below.rgb;
+	if (u.rampant.z != 0 && camera.z > in.world.z && opacity < 0.99 && u.polygon >= 0) {
+		const float3 straight = camera + v * below_distance;
+		const float4 floor_here = surfaces[1 + u.polygon * kSurfacesPerPolygon];
+		if (floor_here.x > -0.5 && abs(straight.z - map[u.polygon * 9].y) < 24.0) {
+			const float3 bent = refract(v, n, 1.0 / 1.33);
+			SurfaceHit hit;
+			if (length_squared(bent) > 0.0 && trace_surfaces(map, u.polygon, in.world - float3(0.0, 0.0, 2.0), bent, 16384.0, hit) &&
+				hit.part == 0) {
+				const float4 floor_there = surfaces[1 + hit.poly * kSurfacesPerPolygon];
+				if (floor_there.x > -0.5) {
+					constexpr sampler fs(filter::linear, mip_filter::linear, address::repeat);
+					const float3 was = walls.sample(fs, float2(straight.y + floor_here.z, straight.x + floor_here.y) / 1024.0,
+													uint(floor_here.x), level(1.0)).rgb;
+					const float3 now = walls.sample(fs, float2(hit.at.y + floor_there.z, hit.at.x + floor_there.y) / 1024.0,
+													uint(floor_there.x), level(1.0)).rgb;
+					below_rgb *= clamp((now + 0.03) / (was + 0.03), float3(0.5), float3(2.0));
+				}
+			}
+		}
+	}
+	const float3 seen = below_rgb * reach * transmit + surface * (1.0 - transmit);
 
 	// Reflection: stronger at grazing angles (Fresnel), plus glints from
 	// the dynamic lights and the headlight
@@ -1468,9 +1555,19 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 		r = normalize(float3(r.xy, max(r.z, 0.02)));
 		SurfaceHit hit;
 		float3 mirror = surface;	// nothing within reach: the surface's own colour, as before
-		if (trace_surfaces(map, u.polygon, in.world + float3(0.0, 0.0, 2.0), r, 32768.0, hit)) {
+		const bool met = trace_surfaces(map, u.polygon, in.world + float3(0.0, 0.0, 2.0), r, 32768.0, hit);
+		if (met) {
 			mirror = shade_hit(u, surfaces, map, walls, sky, hit, r, in.fog_distance + hit.t);
 			mirror = mix(u.fog_color.rgb, mirror, fog_factor(u, hit.t)) * haze.a + haze.rgb;
+		}
+		// Figures standing by the water, in front of what the ray met
+		const float reach = met ? hit.t : 8192.0;
+		const float4 figure = reflected_figure(occluders, occluder_polygons, occluder_indices, masks, u.rampant.y,
+											   u.polygon, in.world + float3(0.0, 0.0, 2.0), r * reach);
+		if (figure.a > 0.5) {
+			const float depth_h = length(in.world - camera) / 8192.0;
+			const float ml = clamp(u.self_luminosity + u.flare - depth_h, 0.0, 1.0);
+			mirror = figure.rgb * clamp(1.0 + ml * 0.5, 0.0, 1.5) * haze.a + haze.rgb;
 		}
 		const float weight = fresnel * (1.0 - opacity * 0.5);
 		colour = mix(mix(seen, surface, opacity), mirror, weight) + (glint + head * 0.25) * haze.a * (1.0 - opacity * 0.5);
