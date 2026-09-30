@@ -18,8 +18,11 @@
 	1 when there is a sky texture); then kPerPolygon float4 per polygon:
 	  0 floor, 1 ceiling: (slice, texture origin x, y, light);
 	  2 + 2e, 3 + 2e: edge e's upper and lower side parts: (slice, x0,
-	  the height the texture hangs from (the part's top + y0), light).
-	Slice -1: no texture (grey), -2: the sky.
+	  the height the texture hangs from (the part's top + y0), light);
+	  18 + e: edge e's see-through part (grates; traced shadows sample its
+	  opacity where the shadow walk crosses it), the same, slice -1 none.
+	Slice -1: no texture (grey), -2: the sky. The colour array's alpha is
+	the art's opacity (colour 0 of a see-through bitmap is clear).
 
 	Read-only on the world: films and saves are unaffected.
 
@@ -31,7 +34,7 @@
 
 namespace DurandalSurfaces {
 
-constexpr int kPerPolygon = 18;
+constexpr int kPerPolygon = 26;
 
 // Once per frame, before the first draw: the table for the map as it is
 // now (lights, animated textures), and any wall art or sky not yet in the

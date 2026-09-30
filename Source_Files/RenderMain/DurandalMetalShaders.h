@@ -184,7 +184,14 @@ struct Occluders {
 	texture2d_array<float> masks;
 	int polygon_count;
 	float2 self;					// the figure being shaded: its own card is not in its way
+	// Grates (R1): the surface table and wall art (DurandalSurfaces.h), for
+	// the see-through sides the walk crosses; null when not built
+	device const float4* surfaces;
+	texture2d_array<float> walls;
 };
+
+// The surface table's float4 per polygon (DurandalSurfaces.h, kPerPolygon)
+constant int kSurfacesPerPolygon = 26;
 
 // How much of a ray passes one figure's card between t0 and t1 of the
 // segment from `from` along `d`, blurred by the light's size
@@ -261,7 +268,8 @@ static float light_transmittance(device const float4* map, int poly, float3 from
 		const float4 h = map[poly * 9];
 		const int n = int(h.x);
 		float best = 2.0;
-		int next = -1;
+		int next = -1, edge = -1;
+		float along = 0.0;
 		for (int i = 0; i < n; ++i) {
 			const float4 e0 = map[poly * 9 + 1 + i];
 			const float4 e1 = map[poly * 9 + 1 + (i + 1 == n ? 0 : i + 1)];
@@ -275,6 +283,8 @@ static float light_transmittance(device const float4* map, int poly, float3 from
 			if (t > t_prev + 1e-4 && t < best && s >= -1e-3 && s <= 1.0 + 1e-3) {
 				best = t;
 				next = int(e0.z);
+				edge = i;
+				along = s;
 			}
 		}
 		if (figures) {
@@ -284,12 +294,50 @@ static float light_transmittance(device const float4* map, int poly, float3 from
 		}
 		if (best > 1.0)
 			return (to.z >= h.y - 1.0 && to.z <= h.z + 1.0) ? through : 0.0;
-		if (next < 0)
-			return 0.0;	// a solid wall
+		// Soft edges (Rampant): the light has a size, so near an edge that
+		// cuts it off part of its disc is still seen. r: the disc's radius
+		// where the segment crosses the edge, as the lit point sees it
+		const float r = max(light_size * best, 1.0);
+		const float4 e0 = map[poly * 9 + 1 + edge];
+		const float4 e1 = map[poly * 9 + 1 + (edge + 1 == n ? 0 : edge + 1)];
+		const float len = length(e1.xy - e0.xy);
+		const float to_start = along * len, to_end = (1.0 - along) * len;
+		const bool open_before = map[poly * 9 + 1 + (edge == 0 ? n - 1 : edge - 1)].z >= 0.0;	// the edge meeting this one at its start
+		const bool open_after = e1.z >= 0.0;													// and at its end
+		if (next < 0) {
+			// A solid wall: near an end where an opening begins (a door
+			// jamb), the light passes round it in part
+			float round_corner = 0.0;
+			if (open_before)
+				round_corner = max(round_corner, smoothstep(-r, r, -to_start));
+			if (open_after)
+				round_corner = max(round_corner, smoothstep(-r, r, -to_end));
+			return through * round_corner;
+		}
 		const float z = mix(from.z, to.z, best);
 		const float4 hn = map[next * 9];
-		if (z < max(h.y, hn.y) - 1.0 || z > min(h.z, hn.z) + 1.0)
+		const float lo = max(h.y, hn.y), hi = min(h.z, hn.z);
+		const float margin = min(z - lo, hi - z);	// inside the opening's height, > 0
+		if (margin < -r)
 			return 0.0;	// a step, ledge or lower ceiling in the way
+		through *= smoothstep(-r, r, margin);
+		// An opening's side beside a solid wall (the jamb) shades it too
+		if (!open_before)
+			through *= smoothstep(-r, r, to_start);
+		if (!open_after)
+			through *= smoothstep(-r, r, to_end);
+		// Grates: a see-through side here lets light through its gaps only
+		if (occ.surfaces) {
+			const float4 g = occ.surfaces[1 + poly * kSurfacesPerPolygon + 18 + edge];
+			if (g.x > -0.5) {
+				constexpr sampler gs(filter::linear, mip_filter::linear, address::repeat);
+				const float2 uv = float2(g.y + to_start, g.z - z) / 1024.0;
+				const float lod = log2(max(2.0 * r * (128.0 / 1024.0), 1.0));
+				through *= 1.0 - occ.walls.sample(gs, uv, uint(g.x), level(lod)).a;
+			}
+		}
+		if (through <= 0.001)
+			return 0.0;
 		poly = next;
 		t_prev = best;
 	}
@@ -842,9 +890,11 @@ fragment WorldFrag wall_fragment(WorldIn in [[stage_in]], constant Uniforms& u [
 							  texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]],
 							  texture2d<float> bump [[texture(5)]],
 							  device const Occluder* occluders [[buffer(7)]], device const int2* occluder_polygons [[buffer(8)]],
-							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]])
+							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]],
+							  device const float4* surfaces [[buffer(10)]], texture2d_array<float> walls [[texture(7)]])
 {
-	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw) };
+	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw),
+							u.rampant.z != 0 || (u.rampant.x & 2) != 0 ? surfaces : nullptr, walls };
 	const float2 tc = wobbled(u, in);
 	const Lighting l = texel_lighting(u, in, tc * float2(tex.get_width(), tex.get_height()));
 	// HD art: the pack's normal map shapes the light; dynamic lights see it
@@ -883,9 +933,11 @@ fragment WorldFrag sprite_fragment(WorldIn in [[stage_in]], constant Uniforms& u
 								texture2d<float> radiance [[texture(4)]],
 								texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]],
 								device const Occluder* occluders [[buffer(7)]], device const int2* occluder_polygons [[buffer(8)]],
-							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]])
+							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]],
+							  device const float4* surfaces [[buffer(10)]], texture2d_array<float> walls [[texture(7)]])
 {
-	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw) };
+	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw),
+							u.rampant.z != 0 || (u.rampant.x & 2) != 0 ? surfaces : nullptr, walls };
 	const Lighting l = texel_lighting(u, in, in.texcoord * float2(tex.get_width(), tex.get_height()));
 	DynamicLight dl = dynamic_light(u, lights, map, occ, l, false);
 	if (u.viewer_light.a > 0.0) {
@@ -1165,9 +1217,11 @@ fragment WorldFrag wall_ramp_fragment(WorldIn in [[stage_in]], constant Uniforms
 									  device const Patch* patches [[buffer(5)]], device const float4* averages [[buffer(6)]],
 										  texture2d<float> radiance [[texture(4)]], texture2d<uint> indices [[texture(1)]], texture2d<float> ramps [[texture(2)]],
 										  device const Occluder* occluders [[buffer(7)]], device const int2* occluder_polygons [[buffer(8)]],
-							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]])
+							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]],
+							  device const float4* surfaces [[buffer(10)]], texture2d_array<float> walls [[texture(7)]])
 {
-	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw) };
+	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw),
+							u.rampant.z != 0 || (u.rampant.x & 2) != 0 ? surfaces : nullptr, walls };
 	return ramp_shade(in, u, lights, map, casters, volume, patches, averages, radiance, indices, ramps, wobbled(u, in), true, occ);
 }
 
@@ -1177,9 +1231,11 @@ fragment WorldFrag sprite_ramp_fragment(WorldIn in [[stage_in]], constant Unifor
 										device const Patch* patches [[buffer(5)]], device const float4* averages [[buffer(6)]],
 										  texture2d<float> radiance [[texture(4)]], texture2d<uint> indices [[texture(1)]], texture2d<float> ramps [[texture(2)]],
 										  device const Occluder* occluders [[buffer(7)]], device const int2* occluder_polygons [[buffer(8)]],
-							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]])
+							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]],
+							  device const float4* surfaces [[buffer(10)]], texture2d_array<float> walls [[texture(7)]])
 {
-	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw) };
+	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw),
+							u.rampant.z != 0 || (u.rampant.x & 2) != 0 ? surfaces : nullptr, walls };
 	return ramp_shade(in, u, lights, map, casters, volume, patches, averages, radiance, indices, ramps, in.texcoord, false, occ);
 }
 
@@ -1293,7 +1349,7 @@ static float3 shade_hit(constant Uniforms& u, device const float4* surfaces, dev
 						texture2d_array<float> walls, texture2d<float> sky, thread const SurfaceHit& hit, float3 d,
 						float travelled)
 {
-	const float4 e = surfaces[1 + hit.poly * 18 + hit.part];
+	const float4 e = surfaces[1 + hit.poly * kSurfacesPerPolygon + hit.part];
 	if (e.x < -1.5)
 		return sky_colour(surfaces[0], sky, d);
 	float3 colour = float3(0.5);
@@ -1574,7 +1630,8 @@ struct VolumeParams {
 	float dust;
 	float light_scale;
 	float mist;
-	float pad[3];
+	int figures;		// shafts (R1): polygons in the occluder lists, 0 none
+	float pad[2];
 };
 
 static float fog_hash(float3 p)
@@ -1625,8 +1682,12 @@ static float polygon_exit(device const float4* map, int poly, float2 a, float2 d
 
 kernel void volume_kernel(uint2 gid [[thread_position_in_grid]], constant VolumeParams& p [[buffer(0)]],
 						  constant Light* lights [[buffer(1)]], device const float4* map [[buffer(2)]],
-						  texture3d<half, access::write> out [[texture(0)]])
+						  texture3d<half, access::write> out [[texture(0)]],
+						  device const Occluder* occluders [[buffer(3)]], device const int2* occluder_polygons [[buffer(4)]],
+						  device const int* occluder_indices [[buffer(5)]], texture2d_array<float> masks [[texture(1)]])
 {
+	// Shafts (R1, Rampant): figures near a light shade the haze behind them
+	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, p.figures, float2(1e9), nullptr, masks };
 	if (gid.x >= p.grid.x || gid.y >= p.grid.y)
 		return;
 	const float2 uv = (float2(gid) + 0.5) / float2(p.grid.xy);
@@ -1716,7 +1777,14 @@ kernel void volume_kernel(uint2 gid [[thread_position_in_grid]], constant Volume
 						if (!(reaches & bit))
 							continue;
 					}
-					lamp += lights[i].colour_strength.rgb * lights[i].colour_strength.w * f;
+					// The figures standing about this polygon, for the lights that
+					// throw their shadows (the nearest few, where strong)
+					float seen = 1.0;
+					if (p.figures > 0 && lights[i].info.z != 0 && lights[i].colour_strength.w * f >= 0.1) {
+						const float size = lights[i].info.y > 0 ? float(lights[i].info.y) : 150.0;
+						seen = figures_between(occ, poly, x, lights[i].position_radius.xyz - x, 0.0, 1.0, size);
+					}
+					lamp += lights[i].colour_strength.rgb * lights[i].colour_strength.w * f * seen;
 				}
 				const float e = exp(-sigma * (d - previous));
 				scatter += trans * (colour + lamp * p.light_scale) * (1.0 - e);
@@ -2156,7 +2224,7 @@ fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffe
 		if (p.view == 4.0)
 			return poly < 0 ? 1.0 : 0.1 + 0.8 * fract(float(poly) * 0.618034);
 		if (poly >= 0) {
-			Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, p.traced.w, float2(1e9) };
+			Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, p.traced.w, float2(1e9), nullptr, masks };
 			occ.self = figure_under(occ, poly, P, p.camera.xyz);
 			// The few figures within reach, picked once for all eight rays
 			int near_figures[4];

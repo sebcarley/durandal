@@ -1439,6 +1439,8 @@ bool RunVolume(VolumeParams params, simd_float4& screen)
 {
 	if (!in_world_pass || encoder || !ensure_volume() || target_width <= 0 || target_height <= 0)
 		return false;
+	if (!(bound_occluders && bound_occluder_polygons && bound_occluder_indices))
+		params.figures = 0;	// no figures this frame: the kernel must not read the lists
 	// Slices from a quarter of a world unit to 64 world units, spaced
 	// evenly in log distance (each about a tenth deeper than the last)
 	const float nearest = 256.0f, farthest = 65536.0f;
@@ -1473,6 +1475,12 @@ bool RunVolume(VolumeParams params, simd_float4& screen)
 			[c setBytes:no_light length:sizeof(no_light) atIndex:1];
 		[c setBuffer:(bound_map ? bound_map : no_map) offset:0 atIndex:2];
 		[c setTexture:volume_texture atIndex:0];
+		// Shafts (R1): the figures near the lights
+		const bool occluders = params.figures > 0 && bound_occluders && bound_occluder_polygons && bound_occluder_indices;
+		[c setBuffer:(occluders ? bound_occluders : no_patch) offset:0 atIndex:3];
+		[c setBuffer:(occluders ? bound_occluder_polygons : no_patch) offset:0 atIndex:4];
+		[c setBuffer:(occluders ? bound_occluder_indices : no_patch) offset:0 atIndex:5];
+		[c setTexture:(mask_array ? mask_array : no_masks) atIndex:1];
 		[c dispatchThreads:MTLSizeMake(columns, rows, 1) threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
 		[c endEncoding];
 		current_volume = volume_texture;

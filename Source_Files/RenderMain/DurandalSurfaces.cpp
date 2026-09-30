@@ -60,6 +60,7 @@ bool decode(shape_descriptor texture, std::vector<uint8_t>& rgba, int& w, int& h
 	h = bitmap->height;
 	rgba.assign(size_t(w) * h * 4, 0);
 	const bool columns = (bitmap->flags & _COLUMN_ORDER_BIT) != 0;
+	const bool transparent = (bitmap->flags & _TRANSPARENT_BIT) != 0;
 	const int lines = columns ? w : h;
 	const int length = columns ? h : w;
 	auto set = [&](int line, int i, uint8 v) {
@@ -68,7 +69,7 @@ bool decode(shape_descriptor texture, std::vector<uint8_t>& rgba, int& w, int& h
 		const int x = columns ? line : i, y = columns ? i : line;
 		const uint8_t* c = ramps->data[1][v];
 		uint8_t* out = &rgba[(size_t(y) * w + x) * 4];
-		out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; out[3] = 255;
+		out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; out[3] = (transparent && v == 0) ? 0 : 255;
 	};
 	for (int l = 0; l < lines; ++l)
 	{
@@ -225,6 +226,8 @@ bool Frame()
 		{
 			simd_float4& upper = o[2 + 2 * e];
 			simd_float4& lower = o[3 + 2 * e];
+			simd_float4& clear = o[18 + e];
+			clear = simd_make_float4(-1, 0, 0, 0);
 			const short index = polygon->side_indexes[e];
 			if (index == NONE || index >= dynamic_world->side_count)
 			{
@@ -259,6 +262,15 @@ bool Frame()
 					break;
 				default:
 					break;
+			}
+			// A see-through part (a grate) hangs from the opening's top, as
+			// RenderRasterize draws it (lowest_adjacent_ceiling)
+			if (side->transparent_texture.texture != UNONE)
+			{
+				clear = side_part(side->transparent_texture, side->transparent_transfer_mode,
+								  side->transparent_lightsource_index, side->ambient_delta, line->lowest_adjacent_ceiling);
+				if (clear.x < -1.5)
+					clear = simd_make_float4(-1, 0, 0, 0);	// a see-through sky is not a grate
 			}
 		}
 	}

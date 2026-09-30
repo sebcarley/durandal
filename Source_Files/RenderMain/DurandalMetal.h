@@ -241,7 +241,8 @@ struct VolumeParams {
 	float dust;					// density variation, 0-1
 	float light_scale;			// how brightly dynamic lights show in the haze
 	float mist;					// extra density near the floor, x the base
-	float pad[3];
+	int32_t figures;			// shafts (R1): polygons in the occluder lists (SetOccluders), 0 none
+	float pad[2];
 };
 constexpr int kVolumeSlices = 64;
 constexpr int kVolumeCell = 8;	// pixels per column, each way

@@ -239,12 +239,17 @@ void RenderRasterize_Metal::render_tree()
 	// Reflecting liquids (R2, Rampant): the surfaces as a reflected ray sees
 	// them; the rays walk the map, so it is built for them too
 	const bool reflections = Durandal::Enabled(Durandal::kLiquids) && Durandal::Enabled(Durandal::kReflections);
-	if ((reflections || traced_ambient) && !(shadows || volumetric || redistribution)) {
+	if ((reflections || traced_ambient) && !(shadows || volumetric || redistribution)) {	// (traced shadows need shadows, so the map)
 		static std::vector<simd_float4> map;
 		SetMap(map.data(), DurandalLights::BuildMap(map));
 	}
-	u.rampant.z = reflections && DurandalSurfaces::Frame() ? 1 : 0;
-	if (!u.rampant.z)
+	// The surface table serves reflections and, with traced shadows, the
+	// grates the shadow walk crosses (rampant.x bit 1)
+	const bool surfaces = (reflections || (u.rampant.x & 1)) && DurandalSurfaces::Frame();
+	u.rampant.z = reflections && surfaces ? 1 : 0;
+	if (surfaces && (u.rampant.x & 1))
+		u.rampant.x |= 2;
+	if (!surfaces)
 		DurandalMetal::SetSurfaces(nullptr, 0);
 
 	// Contact shadows under items, monsters and scenery
@@ -296,6 +301,8 @@ void RenderRasterize_Metal::render_tree()
 	u.volume = 0;
 	if (volumetric) {
 		VolumeParams p = volume_params(shadows);
+		// Shafts (R1, Rampant): with traced shadows the figures shade the haze
+		p.figures = (u.rampant.x & 1) ? dynamic_world->polygon_count : 0;
 		// MML fog above liquids, when a scenario has it, becomes the haze
 		OGL_FogData* fog = OGL_GetCurrFogData();
 		if (fog && fog->IsPresent && !view->under_media_boundary) {
