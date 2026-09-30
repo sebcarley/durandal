@@ -83,6 +83,7 @@ const char* const kFeatureAttr[kNumberOfFeatures] = {
 	"texture_cache",
 	"weapon_lighting",
 	"light_bounce",
+	"traced_shadows",
 };
 
 }
@@ -118,6 +119,7 @@ bool Released(Feature feature)
 	{
 		case kWeaponLighting:
 		case kLightBounce:
+		case kTracedShadows:
 			return false;
 		default:
 			return true;
@@ -164,6 +166,7 @@ int FeatureTier(Feature feature)
 		case kTextureCache:
 			return kTierFlagship;
 		case kLightBounce:
+		case kTracedShadows:
 			return kTierRampant;
 		default:
 			// Including the Metal renderer since Round 3: every Classic look
@@ -437,6 +440,7 @@ static Tab FeatureTab(Feature feature)
 		case kTextureCache:
 			return kTabArt;
 		case kLightBounce:
+		case kTracedShadows:
 			return kTabRampant;
 		default:
 			return kTabLook;
@@ -527,6 +531,7 @@ void Dialog(void* parent_dialog)
 		"Texture Cache (compressed HD art)",
 		"Weapon Takes the Light",
 		"Bounced Light",
+		"Traced Shadows",
 	};
 	w_toggle* feature_w[kNumberOfFeatures];
 	w_select* style_w = nullptr;
@@ -603,7 +608,8 @@ void Dialog(void* parent_dialog)
 	// RAMPANT: the fifth tier's own switches (docs/PLAN-fifth-tier.md)
 	tables[kTabRampant]->add_row(new w_spacer(), true);
 	tables[kTabRampant]->dual_add_row(new w_static_text("More than this machine was built for. Metal renderer only."), d);
-	tables[kTabRampant]->dual_add_row(new w_static_text("Bounced Light needs Light Redistribution."), d);
+	tables[kTabRampant]->dual_add_row(new w_static_text("Bounced Light needs Light Redistribution;"), d);
+	tables[kTabRampant]->dual_add_row(new w_static_text("Traced Shadows need Dynamic Lights and Light Shadows."), d);
 	// ART: the packs installed for each category (DurandalArt.h). The art
 	// is not shipped; the packs go in the user's Plugins folder
 	tables[kTabArt]->add_row(new w_spacer(), true);

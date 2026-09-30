@@ -240,6 +240,12 @@ objects, polygons, lights and liquids are read, never written.
 
 ### R1 Shadows that see everything
 
+**Built (30 Sep 2026), awaiting a look:** figures as cards with their
+8-bit frame's silhouette from a mask array with mips (no bindless
+textures, so figures out of view need nothing loaded); soft edges from
+the mip level set by the light's disc; the end-height fix. Grates wait for
+the surface table (R2). See CLAUDE.md, Round 13.
+
 **What.** Dynamic lights (bolts, explosions, flashes) cast shadows of:
 - monsters, BoBs, items and scenery;
 - 3D pickups;

@@ -31,6 +31,7 @@
 #include "DurandalPreferences.h"
 #include "DurandalLights.h"
 #include "DurandalRadiance.h"
+#include "DurandalOccluders.h"
 #include "DurandalGL.h"
 #include "DurandalBenchmark.h"
 
@@ -161,7 +162,7 @@ void RenderRasterize_Metal::render_tree()
 	u.alpha_threshold = -1;
 	u.distance_mode = 1;
 	u.viewer_light = simd_make_float4(0, 0, 0, 0);
-	u.figure_patches = simd_make_int4(-1, -1, 0, 0);
+	u.figure_patches = simd_make_int4(-1, -1, 100000, 100000);	// z, w: no figure (positions are 16-bit)
 	u.visibility = 1;
 	u.time = view->tick_count;
 	const float pixel_height = view->screen_height * MainScreenPixelScale();
@@ -205,6 +206,15 @@ void RenderRasterize_Metal::render_tree()
 		SetMap(map.data(), DurandalLights::BuildMap(map));
 		u.shadows = shadows ? 1 : 0;
 	}
+
+	// Traced shadows (R1, Rampant): the figures near the lights, as cards
+	// the shadow walk meets
+	u.rampant = simd_make_int4(0, 0, 0, 0);
+	if (shadows && Durandal::Enabled(Durandal::kTracedShadows) &&
+		DurandalOccluders::Gather(view, dynamic_lights, light_count) > 0)
+		u.rampant = simd_make_int4(1, dynamic_world->polygon_count, 0, 0);
+	else
+		DurandalOccluders::Gather(view, dynamic_lights, 0);
 
 	// Contact shadows under items, monsters and scenery
 	DurandalMetal::Caster casters[kMaximumCasters];
@@ -897,16 +907,27 @@ void RenderRasterize_Metal::_render_node_object_helper(render_object_data *objec
 		return;
 	auto& TMgr = m.TMgr;
 
-	// Bounced Light (R4): the floor under the figure's feet and the ceiling
-	// over it (the render node's polygon can be another one entirely)
-	if (light_bounce && frame_uniforms.gi) {
+	// The polygon under the figure's feet (the render node's polygon is
+	// where it is sorted, which can be another one entirely)
+	const bool bounce_here = light_bounce && frame_uniforms.gi;
+	const bool traced_here = frame_uniforms.rampant.x != 0;
+	if (bounce_here || traced_here) {
 		world_point2d where = { world_distance(pos.x), world_distance(pos.y) };
 		short polygon_index = world_point_to_polygon_index(&where);
 		if (polygon_index == NONE)
 			polygon_index = object->node->polygon_index;
-		m.uniforms.figure_patches = simd_make_int4(DurandalRadiance::FloorPatch(polygon_index),
-												   DurandalRadiance::CeilingPatch(polygon_index), 0, 0);
+		// Bounced Light (R4): the floor under it and the ceiling over it
+		if (bounce_here) {
+			m.uniforms.figure_patches.x = DurandalRadiance::FloorPatch(polygon_index);
+			m.uniforms.figure_patches.y = DurandalRadiance::CeilingPatch(polygon_index);
+		}
+		// Traced shadows (R1): its shadow walk starts where it stands
+		if (traced_here)
+			m.uniforms.polygon = polygon_index;
 	}
+	// Traced shadows (R1): the figure's own card is not in its own way
+	m.uniforms.figure_patches.z = pos.x;
+	m.uniforms.figure_patches.w = pos.y;
 
 	// GL: glTranslated(pos); glRotated(yaw, z); optionally glRotated(pitch, -y)
 	simd_float4x4 transform = translate(identity(), pos.x, pos.y, pos.z);

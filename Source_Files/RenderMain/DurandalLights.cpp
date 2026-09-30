@@ -121,7 +121,9 @@ int Gather(const view_data* view, const std::vector<sorted_node_data>& nodes, fl
 		DurandalMetal::Light l;
 		l.position_radius = simd_make_float4(at.x, at.y, at.z, kRadius * (0.5f + 0.5f * strength));
 		l.colour_strength = simd_make_float4(colour.x, colour.y, colour.z, kStrength * strength);
-		l.info = simd_make_int4(polygon, 0, 0, 0);
+		// y: its size, for soft shadows (traced shadows, R1): an explosion is
+		// larger than a bolt
+		l.info = simd_make_int4(polygon, int(WORLD_ONE * (0.08f + 0.32f * std::min(strength, 1.0f))), 0, 0);
 		const simd_float3 d = at - eye;
 		found.push_back({ l, simd_dot(d, d) });
 	};

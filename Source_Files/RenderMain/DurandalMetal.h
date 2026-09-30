@@ -93,7 +93,9 @@ struct Uniforms {
 	float glow_gain;			// HD art: glow boost on a replacement sprite's bright pixels (1: none)
 	float distance_mode;		// Round 12: the distance image: 1 the fragment's distance where its alpha is over a half, 0 never, -1 and 2 far as the sky (no ambient shadow or distance shade, occludes nothing): -1 the weapon in hand (also fogged as right at the face), 2 landscape surfaces
 	simd_float4 viewer_light;	// weapon lighting: the dynamic lights at the viewer, for the weapon in hand (rgb the tint, a the amount; 0 none)
-	simd_int4 figure_patches;	// Bounced Light (R4): a sprite's floor and ceiling patches (x, y), -1 none
+	simd_int4 figure_patches;	// Bounced Light (R4): a sprite's floor and ceiling patches (x, y), -1 none;
+								//   z, w: a figure's own position (its card casts no shadow on itself), 1e5 none
+	simd_int4 rampant;			// Rampant: x traced shadows (R1), y polygons in the occluder lists
 };
 
 // Dynamic lights (E2), world units. Must match struct Light in the shaders.
@@ -110,6 +112,19 @@ struct Caster {
 	simd_float4 info;				// x: strength, 0-1
 };
 constexpr int kMaximumCasters = 32;
+
+// Traced shadows (R1, Rampant), world units. Must match struct Occluder in
+// the shaders. A figure's card, turned to face each ray that meets it,
+// with its frame's silhouette (a slice of the mask array, SetMask).
+struct Occluder {
+	simd_float4 position;		// the object's origin
+	simd_float4 extent;			// left, right, bottom, top from the origin, along the card
+	simd_float4 mask;			// the bitmap's share of its slice across and down, mask texels per world unit, 0
+	simd_int4 info;				// x: mask slice, y: mirrored, z, w: 0
+};
+constexpr int kMaximumOccluders = 128;
+constexpr int kMaskSize = 256;		// a slice of the mask array, texels across
+constexpr int kMaskSlices = 512;
 
 struct Vertex {
 	float x, y, z;
@@ -303,6 +318,15 @@ bool TakeCapture(std::vector<uint8_t>& rgba, int& width, int& height);
 
 // True when the whole frame is presented through Metal (DurandalGL display).
 bool DisplayActive();
+
+// Traced shadows (R1): this frame's figures, and per polygon the ones a ray
+// crossing it may meet (polygons: first index into `indices`, count). Call
+// before the first draw; count 0 clears them.
+void SetOccluders(const Occluder* list, int count, const simd_int2* polygons, int polygon_count,
+				  const int* indices, int index_count);
+// A silhouette into slice `slice` of the mask array: kMaskSize x kMaskSize
+// opacity (0 clear, 255 solid) at level 0, then each mip level down to 1x1.
+bool SetMask(int slice, const std::vector<std::vector<uint8_t>>& levels);
 
 // Development (DURANDAL_GPU_TIMING): the display's own passes join a world
 // frame's stage timings. `pass` is an MTLRenderPassDescriptor, `command_buffer`

@@ -994,6 +994,24 @@ The folder name comes from the *localised* bundle name
     own average colour. Figures (sprites, HD sprites) take the floor and
     ceiling lumels at their position (`figure_light`, 35% ceiling;
     `Uniforms::figure_patches` from the polygon under the feet).
+  - R1 Traced Shadows (`traced_shadows`, Rampant, in QA; needs Dynamic
+    Lights and Light Shadows; `RenderMain/DurandalOccluders.*`): each frame
+    the monsters, items, scenery and corpses within reach of a light (in
+    view or not, up to 128, nearest the viewer; not cloaked, teleporting or
+    self-lit) become cards listed in their polygon and its neighbours
+    (fragment buffers 7-9). Their frame's opacity, from the 8-bit bitmap, is
+    rasterised once into a slice of a 256x256 R8 mask array (512 slices,
+    mips built on the CPU, least recently used slice reused; texture 6).
+    `light_transmittance` walks as `light_reaches` and in each polygon
+    tests its figures between where the segment enters and leaves it: the
+    card faces the ray (the viewer's frame, axis (d.y, -d.x), so a light at
+    the eye throws the silhouette the viewer sees), sampled at the mip
+    that blurs it by the light's disc there (`Light::info.y`, 0.08-0.4 WU
+    by strength): sharp at the feet, soft further off. It also checks the
+    end height (stacked rooms leaked light; the trace spike found it). A
+    figure's own card is skipped (`figure_patches.zw`, its position), and
+    its walk starts from the polygon under its feet. `Uniforms::rampant`
+    x on, y polygon count. Grates (transparent sides) not yet.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

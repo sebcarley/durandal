@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		39BEB50BD0FDFAD8752D7985 /* DurandalOccluders.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B7E228915E3203600E1CDC7A /* DurandalOccluders.cpp */; };
+		18E561267B12900F6D3CAB1E /* DurandalOccluders.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B7E228915E3203600E1CDC7A /* DurandalOccluders.cpp */; };
 		D9FE47F36EAF7165E10482D6 /* DurandalTextureCache.mm in Sources */ = {isa = PBXBuildFile; fileRef = 024D69AE648F28BFA5CC9F3D /* DurandalTextureCache.mm */; };
 		60B12AA66ADE5B23563C6B41 /* DurandalTextureCache.mm in Sources */ = {isa = PBXBuildFile; fileRef = 024D69AE648F28BFA5CC9F3D /* DurandalTextureCache.mm */; };
 		1A6D3EDCBD737601AD88237E /* DurandalBC7.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E5D9AB1540F38EBD954D52CB /* DurandalBC7.cpp */; };
@@ -1291,6 +1293,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		B7E228915E3203600E1CDC7A /* DurandalOccluders.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalOccluders.cpp; sourceTree = "<group>"; };
+		06DD469FEE42B7F46C2204C5 /* DurandalOccluders.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalOccluders.h; sourceTree = "<group>"; };
 		024D69AE648F28BFA5CC9F3D /* DurandalTextureCache.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = DurandalTextureCache.mm; sourceTree = "<group>"; };
 		3533B4D9BDD4AFAA16D4A05F /* DurandalTextureCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalTextureCache.h; sourceTree = "<group>"; };
 		E5D9AB1540F38EBD954D52CB /* DurandalBC7.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalBC7.cpp; sourceTree = "<group>"; };
@@ -2808,6 +2812,8 @@
 		4F5568822F3940D400C9207C /* RenderMain */ = {
 			isa = PBXGroup;
 			children = (
+				B7E228915E3203600E1CDC7A /* DurandalOccluders.cpp */,
+				06DD469FEE42B7F46C2204C5 /* DurandalOccluders.h */,
 				024D69AE648F28BFA5CC9F3D /* DurandalTextureCache.mm */,
 				3533B4D9BDD4AFAA16D4A05F /* DurandalTextureCache.h */,
 				E5D9AB1540F38EBD954D52CB /* DurandalBC7.cpp */,
@@ -4597,6 +4603,7 @@
 				4F556B702F3940D400C9207C /* crc.cpp in Sources */,
 				4F556B712F3940D400C9207C /* lua_objects.cpp in Sources */,
 				4F556B722F3940D400C9207C /* shell_options.cpp in Sources */,
+				18E561267B12900F6D3CAB1E /* DurandalOccluders.cpp in Sources */,
 				60B12AA66ADE5B23563C6B41 /* DurandalTextureCache.mm in Sources */,
 				BECD5475875A6974C8AF5BC7 /* DurandalBC7.cpp in Sources */,
 				4540D07DE2EFC538D3D0895F /* DurandalArt.cpp in Sources */,
@@ -4858,6 +4865,7 @@
 				4F9CB0F82F39442500F91C02 /* crc.cpp in Sources */,
 				4F9CB0F92F39442500F91C02 /* lua_objects.cpp in Sources */,
 				4F9CB0FA2F39442500F91C02 /* shell_options.cpp in Sources */,
+				39BEB50BD0FDFAD8752D7985 /* DurandalOccluders.cpp in Sources */,
 				D9FE47F36EAF7165E10482D6 /* DurandalTextureCache.mm in Sources */,
 				1A6D3EDCBD737601AD88237E /* DurandalBC7.cpp in Sources */,
 				1057E3803BCF597F1DEA4E87 /* DurandalArt.cpp in Sources */,

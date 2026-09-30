@@ -355,6 +355,11 @@ int patch_count = 0;
 id<MTLTexture> no_radiance;			// 1x1: nothing baked
 id<MTLBuffer> no_patch;
 
+// Traced shadows (R1)
+id<MTLBuffer> bound_occluders, bound_occluder_polygons, bound_occluder_indices;
+id<MTLTexture> mask_array;			// kMaskSlices silhouettes, R8, mipmapped
+id<MTLTexture> no_masks;			// 1x1x1: none
+
 // Development capture (parity check)
 int force_mode = -1;
 bool capture_requested = false;
@@ -630,6 +635,15 @@ bool init()
 		[no_radiance replaceRegion:MTLRegionMake2D(0, 0, 1, 1) mipmapLevel:0 withBytes:nothing bytesPerRow:sizeof(nothing)];
 		no_patch = [device newBufferWithLength:sizeof(Patch) options:MTLResourceStorageModeShared];
 		std::memset(no_patch.contents, 0, no_patch.length);
+		MTLTextureDescriptor* md = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
+																					  width:1 height:1 mipmapped:NO];
+		md.textureType = MTLTextureType2DArray;
+		md.arrayLength = 1;
+		md.usage = MTLTextureUsageShaderRead;
+		no_masks = [device newTextureWithDescriptor:md];
+		const uint8_t clear_mask = 0;
+		[no_masks replaceRegion:MTLRegionMake2D(0, 0, 1, 1) mipmapLevel:0 slice:0 withBytes:&clear_mask
+					bytesPerRow:1 bytesPerImage:1];
 
 		logNote("Durandal Metal: initialised on %s", device.name.UTF8String);
 		init_ok = true;
@@ -1140,6 +1154,12 @@ void bind_world_inputs()
 	[encoder setFragmentBuffer:(radiance ? patch_buffer : no_patch) offset:0 atIndex:5];
 	[encoder setFragmentBuffer:(radiance ? average_buffer : no_patch) offset:0 atIndex:6];
 	[encoder setFragmentTexture:(radiance ? radiance_atlas : no_radiance) atIndex:4];
+	// Traced shadows (R1)
+	const bool occluders = bound_occluders && bound_occluder_polygons && bound_occluder_indices;
+	[encoder setFragmentBuffer:(occluders ? bound_occluders : no_patch) offset:0 atIndex:7];
+	[encoder setFragmentBuffer:(occluders ? bound_occluder_polygons : no_patch) offset:0 atIndex:8];
+	[encoder setFragmentBuffer:(occluders ? bound_occluder_indices : no_patch) offset:0 atIndex:9];
+	[encoder setFragmentTexture:(mask_array ? mask_array : no_masks) atIndex:6];
 }
 
 // Opens the world pass's render encoder if it is not open yet
@@ -1412,6 +1432,62 @@ void SetView(simd_float4x4 view_projection, simd_float4x4 inverse, simd_float4 c
 	view_projection_matrix = view_projection;
 	view_inverse_matrix = inverse;
 	view_camera = camera;
+}
+
+void SetOccluders(const Occluder* list, int count, const simd_int2* polygons, int polygon_count,
+				  const int* indices, int index_count)
+{
+	if (!in_world_pass || count <= 0 || polygon_count <= 0 || index_count <= 0)
+	{
+		bound_occluders = bound_occluder_polygons = bound_occluder_indices = nil;
+		if (encoder)
+			bind_world_inputs();
+		return;
+	}
+	static id<MTLBuffer> ring[3][3];	// occluders, polygon lists, indices; two frames in flight
+	static int next = 0;
+	auto upload = [&](int which, const void* data, size_t bytes) {
+		__strong id<MTLBuffer>& b = ring[next][which];
+		if (!b || b.length < bytes)
+			b = [device newBufferWithLength:std::max<size_t>(bytes * 2, 256) options:MTLResourceStorageModeShared];
+		std::memcpy(b.contents, data, bytes);
+		return b;
+	};
+	bound_occluders = upload(0, list, sizeof(Occluder) * std::min(count, kMaximumOccluders));
+	bound_occluder_polygons = upload(1, polygons, sizeof(simd_int2) * polygon_count);
+	bound_occluder_indices = upload(2, indices, sizeof(int) * index_count);
+	next = (next + 1) % 3;
+	if (encoder)
+		bind_world_inputs();
+}
+
+bool SetMask(int slice, const std::vector<std::vector<uint8_t>>& levels)
+{
+	if (!init() || slice < 0 || slice >= kMaskSlices || levels.empty())
+		return false;
+	@autoreleasepool {
+		if (!mask_array)
+		{
+			MTLTextureDescriptor* d = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
+																						 width:kMaskSize height:kMaskSize mipmapped:YES];
+			d.textureType = MTLTextureType2DArray;
+			d.arrayLength = kMaskSlices;
+			d.usage = MTLTextureUsageShaderRead;
+			d.storageMode = MTLStorageModeShared;
+			mask_array = [device newTextureWithDescriptor:d];
+			if (!mask_array)
+				return false;
+		}
+		int size = kMaskSize;
+		for (size_t level = 0; level < levels.size() && level < mask_array.mipmapLevelCount && size >= 1; ++level, size /= 2)
+		{
+			if (levels[level].size() < size_t(size) * size)
+				break;
+			[mask_array replaceRegion:MTLRegionMake2D(0, 0, size, size) mipmapLevel:level slice:slice
+							withBytes:levels[level].data() bytesPerRow:size bytesPerImage:size_t(size) * size];
+		}
+	}
+	return true;
 }
 
 void TimeDisplayPass(void* pass, TimedDisplayPass which)

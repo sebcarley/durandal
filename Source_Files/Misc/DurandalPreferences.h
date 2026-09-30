@@ -74,6 +74,7 @@ enum Feature {
 	kTextureCache,		// HD art kept block-compressed in ~/Library/Caches, built at first load (DurandalTextureCache.h; Metal display; Flagship)
 	kWeaponLighting,	// the weapon in hand takes the strength and colour of the dynamic lights around the viewer (Metal; Enhanced; in QA)
 	kLightBounce,		// R4: redistributed light bounces on, figures take it, the sky gives its own colour (with Light Redistribution; Rampant; in QA)
+	kTracedShadows,		// R1: figures cast soft shadows from dynamic lights, light no longer leaks between stacked rooms (with Light Shadows; Rampant; in QA)
 	kNumberOfFeatures
 };
 

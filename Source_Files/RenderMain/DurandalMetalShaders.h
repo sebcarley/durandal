@@ -86,7 +86,9 @@ struct Uniforms {
 	float glow_gain;			// HD art: glow boost on a replacement sprite's bright pixels (1: none)
 	float distance_mode;		// Round 12: the distance image: 1 the fragment's distance where its alpha is over a half, 0 never, -1 and 2 far as the sky (no ambient shadow or distance shade, occludes nothing): -1 the weapon in hand (also fogged as right at the face), 2 landscape surfaces
 	float4 viewer_light;		// weapon lighting: the dynamic lights at the viewer, for the weapon in hand (rgb the tint, a the amount; 0 none)
-	int4 figure_patches;		// Bounced Light (R4): a sprite's floor and ceiling patches (x, y), -1 none
+	int4 figure_patches;		// Bounced Light (R4): a sprite's floor and ceiling patches (x, y), -1 none;
+								//   z, w: a figure's own position (its card casts no shadow on itself)
+	int4 rampant;				// Rampant: x traced shadows (R1), y polygons in the occluder lists
 };
 
 // Light redistribution (E4): one surface's lumels in the surface cache
@@ -102,7 +104,7 @@ struct Patch {
 };
 
 // Dynamic lights (E2), world units: position and radius; colour and
-// strength; x: the map polygon the light is in
+// strength; x: the map polygon the light is in, y: its size (traced shadows)
 struct Light {
 	float4 position_radius;
 	float4 colour_strength;
@@ -161,6 +163,120 @@ static bool light_reaches(device const float4* map, int poly, float3 from, float
 		t_prev = best;
 	}
 	return true;
+}
+
+// Traced shadows (R1, Rampant): the figures standing in the rooms, as
+// cards that turn to face each ray, with their frame's silhouette (a slice
+// of the mask array, mip levels for soft edges). See DurandalOccluders.h.
+struct Occluder {
+	float4 position;	// the object's origin
+	float4 extent;		// left, right, bottom, top from the origin, along the card
+	float4 mask;		// the bitmap's share of its slice across and down, mask texels per world unit
+	int4 info;			// x: slice, y: mirrored
+};
+
+struct Occluders {
+	device const Occluder* list;
+	device const int2* polygons;	// per polygon: first index, count
+	device const int* indices;
+	texture2d_array<float> masks;
+	int polygon_count;
+	float2 self;					// the figure being shaded: its own card is not in its way
+};
+
+// How much of a light passes the figures in polygon `poly`, for the part of
+// the segment from `from` along `d` between t0 and t1 (the part inside
+// that polygon, so a figure listed in two polygons is met once). The light
+// has a size: the silhouette is sampled blurred by the light's disc as
+// seen from the lit point, so a shadow is sharp where the figure stands
+// close and soft further off.
+static float figures_between(thread const Occluders& occ, int poly, float3 from, float3 d, float t0, float t1,
+							 float light_size)
+{
+	if (poly < 0 || poly >= occ.polygon_count)
+		return 1.0;
+	const int2 range = occ.polygons[poly];
+	const float dd = dot(d.xy, d.xy);
+	if (range.y == 0 || dd < 1.0)
+		return 1.0;
+	const float2 across = float2(d.y, -d.x) * rsqrt(dd);
+	constexpr sampler s(filter::linear, mip_filter::linear, address::clamp_to_zero);
+	float through = 1.0;
+	for (int k = 0; k < range.y; ++k) {
+		const Occluder o = occ.list[occ.indices[range.x + k]];
+		if (all(abs(o.position.xy - occ.self) < 0.5))
+			continue;
+		const float t = dot(o.position.xy - from.xy, d.xy) / dd;
+		if (t <= t0 || t > t1 || t >= 0.999)
+			continue;
+		const float3 p = from + d * t;
+		const float blur = light_size * t;	// the light's disc on the card, world units
+		const float h = dot(p.xy - o.position.xy, across);
+		const float z = p.z - o.position.z;
+		if (h < o.extent.x - blur || h > o.extent.y + blur || z < o.extent.z - blur || z > o.extent.w + blur)
+			continue;
+		float u = (h - o.extent.x) / (o.extent.y - o.extent.x);
+		if (o.info.y != 0)
+			u = 1.0 - u;
+		const float v = (o.extent.w - z) / (o.extent.w - o.extent.z);
+		const float lod = log2(max(2.0 * blur * o.mask.z, 1.0));
+		const float a = occ.masks.sample(s, float2(u * o.mask.x, v * o.mask.y), uint(o.info.x), level(lod)).r;
+		through *= 1.0 - a;
+		if (through < 0.01)
+			return 0.0;
+	}
+	return through;
+}
+
+// light_reaches with the figures in the way, and the end checked: a
+// segment that ends inside a polygon's outline but above its ceiling or
+// below its floor ends in a room over or under it (stacked rooms leaked
+// light through each other: found by scripts/trace-spike.swift)
+static float light_transmittance(device const float4* map, int poly, float3 from, float3 to, int light_poly,
+								 float light_size, thread const Occluders& occ)
+{
+	const float3 d = to - from;
+	float t_prev = 0.0;
+	float through = 1.0;
+	for (int step = 0; step < 24; ++step) {
+		if (poly < 0)
+			return 0.0;
+		const float4 h = map[poly * 9];
+		const int n = int(h.x);
+		float best = 2.0;
+		int next = -1;
+		for (int i = 0; i < n; ++i) {
+			const float4 e0 = map[poly * 9 + 1 + i];
+			const float4 e1 = map[poly * 9 + 1 + (i + 1 == n ? 0 : i + 1)];
+			const float2 e = e1.xy - e0.xy;
+			const float den = d.x * e.y - d.y * e.x;
+			if (abs(den) < 1e-6)
+				continue;
+			const float2 w = e0.xy - from.xy;
+			const float t = (w.x * e.y - w.y * e.x) / den;
+			const float s = (w.x * d.y - w.y * d.x) / den;
+			if (t > t_prev + 1e-4 && t < best && s >= -1e-3 && s <= 1.0 + 1e-3) {
+				best = t;
+				next = int(e0.z);
+			}
+		}
+		through *= figures_between(occ, poly, from, d, t_prev, min(best, 1.0), light_size);
+		if (through <= 0.0)
+			return 0.0;
+		if (poly == light_poly)
+			return through;
+		if (best > 1.0)
+			return (to.z >= h.y - 1.0 && to.z <= h.z + 1.0) ? through : 0.0;
+		if (next < 0)
+			return 0.0;	// a solid wall
+		const float z = mix(from.z, to.z, best);
+		const float4 hn = map[next * 9];
+		if (z < max(h.y, hn.y) - 1.0 || z > min(h.z, hn.z) + 1.0)
+			return 0.0;	// a step, ledge or lower ceiling in the way
+		poly = next;
+		t_prev = best;
+	}
+	return through;
 }
 
 // Every world fragment writes its colour and its glow (E1): the emissive
@@ -386,8 +502,10 @@ struct DynamicLight {
 	float3 tint;
 };
 
-static DynamicLight dynamic_light(constant Uniforms& u, constant Light* lights, device const float4* map,
-								  Lighting l, bool facing, bool shadows = true)
+// `visible(i)`: how much of light i reaches the point, 0 to 1
+template <typename Visible>
+static DynamicLight dynamic_light_with(constant Uniforms& u, constant Light* lights, Lighting l, bool facing,
+									   Visible visible)
 {
 	DynamicLight d = { 0.0, float3(1.0) };
 	float3 colour = float3(0.0);
@@ -405,9 +523,10 @@ static DynamicLight dynamic_light(constant Uniforms& u, constant Light* lights, 
 				continue;
 			f *= 0.35 + 0.65 * nl;
 		}
-		if (shadows && u.shadows && !light_reaches(map, u.polygon, l.world, lights[i].position_radius.xyz, lights[i].info.x))
+		const float seen = visible(i);
+		if (seen <= 0.0)
 			continue;
-		const float a = lights[i].colour_strength.w * f;
+		const float a = lights[i].colour_strength.w * f * seen;
 		d.amount += a;
 		colour += lights[i].colour_strength.rgb * a;
 	}
@@ -416,6 +535,31 @@ static DynamicLight dynamic_light(constant Uniforms& u, constant Light* lights, 
 		d.tint = c / max(max(c.r, max(c.g, c.b)), 1e-3);
 	}
 	return d;
+}
+
+static DynamicLight dynamic_light(constant Uniforms& u, constant Light* lights, device const float4* map,
+								  Lighting l, bool facing, bool shadows = true)
+{
+	return dynamic_light_with(u, lights, l, facing, [&](uint i) {
+		return (shadows && u.shadows && !light_reaches(map, u.polygon, l.world, lights[i].position_radius.xyz, lights[i].info.x))
+			? 0.0 : 1.0;
+	});
+}
+
+// With traced shadows (R1) the figures in the way count, softly
+static DynamicLight dynamic_light(constant Uniforms& u, constant Light* lights, device const float4* map,
+								  thread const Occluders& occ, Lighting l, bool facing)
+{
+	return dynamic_light_with(u, lights, l, facing, [&](uint i) {
+		if (!u.shadows)
+			return 1.0;
+		const float3 to = lights[i].position_radius.xyz;
+		if (u.rampant.x != 0) {
+			const float size = lights[i].info.y > 0 ? float(lights[i].info.y) : 150.0;
+			return light_transmittance(map, u.polygon, l.world, to, lights[i].info.x, size, occ);
+		}
+		return light_reaches(map, u.polygon, l.world, to, lights[i].info.x) ? 1.0 : 0.0;
+	});
 }
 
 // Liquids (W1): the moving web of light a rippling surface throws on what
@@ -665,15 +809,18 @@ fragment WorldFrag wall_fragment(WorldIn in [[stage_in]], constant Uniforms& u [
 							  device const Patch* patches [[buffer(5)]], device const float4* averages [[buffer(6)]],
 							  texture2d<float> radiance [[texture(4)]],
 							  texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]],
-							  texture2d<float> bump [[texture(5)]])
+							  texture2d<float> bump [[texture(5)]],
+							  device const Occluder* occluders [[buffer(7)]], device const int2* occluder_polygons [[buffer(8)]],
+							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]])
 {
+	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw) };
 	const float2 tc = wobbled(u, in);
 	const Lighting l = texel_lighting(u, in, tc * float2(tex.get_width(), tex.get_height()));
 	// HD art: the pack's normal map shapes the light; dynamic lights see it
 	const Relief rf = normal_map_relief(u, in, bump, smp, tc, l);
 	Lighting lr = l;
 	lr.normal = rf.normal;
-	DynamicLight dl = dynamic_light(u, lights, map, lr, true);
+	DynamicLight dl = dynamic_light(u, lights, map, occ, lr, true);
 	dl = add_caustics(u, dl, l);
 	const float4 color = crisp_sample(u, tex, smp, tc);
 	const float4 gi = redistribution(u, patches, averages, radiance, l.world);
@@ -703,10 +850,13 @@ fragment WorldFrag sprite_fragment(WorldIn in [[stage_in]], constant Uniforms& u
 								texture3d<float> volume [[texture(3)]],
 								device const Patch* patches [[buffer(5)]], device const float4* averages [[buffer(6)]],
 								texture2d<float> radiance [[texture(4)]],
-								texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]])
+								texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]],
+								device const Occluder* occluders [[buffer(7)]], device const int2* occluder_polygons [[buffer(8)]],
+							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]])
 {
+	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw) };
 	const Lighting l = texel_lighting(u, in, in.texcoord * float2(tex.get_width(), tex.get_height()));
-	DynamicLight dl = dynamic_light(u, lights, map, l, false);
+	DynamicLight dl = dynamic_light(u, lights, map, occ, l, false);
 	if (u.viewer_light.a > 0.0) {
 		// The weapon in hand: lit by the lights around the viewer
 		dl.amount = u.viewer_light.a;
@@ -891,7 +1041,7 @@ static Relief surface_relief(constant Uniforms& u, WorldIn in, texture2d<uint> i
 static WorldFrag ramp_shade(WorldIn in, constant Uniforms& u, constant Light* lights, device const float4* map,
 							constant Caster* casters, texture3d<float> volume, device const Patch* patches,
 							device const float4* averages, texture2d<float> radiance, texture2d<uint> indices,
-							texture2d<float> ramps, float2 tc, bool repeat)
+							texture2d<float> ramps, float2 tc, bool repeat, thread const Occluders& occ)
 {
 	const int2 size = int2(indices.get_width(), indices.get_height());
 	Relief rf = { float2(0.0), float3(0.0), float3(0.0), 1.0, 0.0, 1.0 };
@@ -912,7 +1062,7 @@ static WorldFrag ramp_shade(WorldIn in, constant Uniforms& u, constant Light* li
 		relief_light(u, rf, l.normal, l.world);
 		lr.normal = rf.normal;
 	}
-	DynamicLight dl = dynamic_light(u, lights, map, lr, repeat);
+	DynamicLight dl = dynamic_light(u, lights, map, occ, lr, repeat);
 	if (u.viewer_light.a > 0.0) {
 		// The weapon in hand: lit by the lights around the viewer
 		dl.amount = u.viewer_light.a;
@@ -982,18 +1132,24 @@ fragment WorldFrag wall_ramp_fragment(WorldIn in [[stage_in]], constant Uniforms
 									  constant Light* lights [[buffer(2)]], device const float4* map [[buffer(3)]],
 									  constant Caster* casters [[buffer(4)]], texture3d<float> volume [[texture(3)]],
 									  device const Patch* patches [[buffer(5)]], device const float4* averages [[buffer(6)]],
-										  texture2d<float> radiance [[texture(4)]], texture2d<uint> indices [[texture(1)]], texture2d<float> ramps [[texture(2)]])
+										  texture2d<float> radiance [[texture(4)]], texture2d<uint> indices [[texture(1)]], texture2d<float> ramps [[texture(2)]],
+										  device const Occluder* occluders [[buffer(7)]], device const int2* occluder_polygons [[buffer(8)]],
+							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]])
 {
-	return ramp_shade(in, u, lights, map, casters, volume, patches, averages, radiance, indices, ramps, wobbled(u, in), true);
+	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw) };
+	return ramp_shade(in, u, lights, map, casters, volume, patches, averages, radiance, indices, ramps, wobbled(u, in), true, occ);
 }
 
 fragment WorldFrag sprite_ramp_fragment(WorldIn in [[stage_in]], constant Uniforms& u [[buffer(1)]],
 										constant Light* lights [[buffer(2)]], device const float4* map [[buffer(3)]],
 										constant Caster* casters [[buffer(4)]], texture3d<float> volume [[texture(3)]],
 										device const Patch* patches [[buffer(5)]], device const float4* averages [[buffer(6)]],
-										  texture2d<float> radiance [[texture(4)]], texture2d<uint> indices [[texture(1)]], texture2d<float> ramps [[texture(2)]])
+										  texture2d<float> radiance [[texture(4)]], texture2d<uint> indices [[texture(1)]], texture2d<float> ramps [[texture(2)]],
+										  device const Occluder* occluders [[buffer(7)]], device const int2* occluder_polygons [[buffer(8)]],
+							  device const int* occluder_indices [[buffer(9)]], texture2d_array<float> masks [[texture(6)]])
 {
-	return ramp_shade(in, u, lights, map, casters, volume, patches, averages, radiance, indices, ramps, in.texcoord, false);
+	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw) };
+	return ramp_shade(in, u, lights, map, casters, volume, patches, averages, radiance, indices, ramps, in.texcoord, false, occ);
 }
 
 // Character shadows (Round 12): the sprite's quad projected onto its
