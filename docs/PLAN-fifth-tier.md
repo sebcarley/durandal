@@ -57,6 +57,56 @@ a fifth tier that works through those limits. Branch:
   (below). Whether each new kind of ray runs on the hardware or on the walk
   is the first measurement (step 0).
 
+## Step 0 results (30 Sep 2026)
+
+`scripts/trace-spike.swift` traced 1M rays per set on eight levels with the
+engine's own walk (`light_reaches`, `trace_radiance`, ported unchanged)
+and with a hardware acceleration structure of the same geometry.
+
+Rays per millisecond of GPU time (median of 10, whole-set means):
+
+| Rays | Walk | Hardware | Hardware wrong on 5D levels |
+|---|---|---|---|
+| Shadow segments, 1–2 WU | 0.82 M | 1.96 M | 2.7% (13% on 5-D Space) |
+| Short occlusion, 0.5 WU | 1.10 M | 1.90 M | 1.2% |
+| Long, 16 WU, scattered | 0.53 M | 1.18 M | 3.5% |
+| Long, 16 WU, coherent (blocks of 64, as neighbouring pixels) | 1.73 M | 1.35 M | 3.5% |
+
+- **Correctness.** On levels without 5D space the hardware never disagrees
+  with a strict walk, so the port and the triangle build are right.
+- **Build cost.** A level's acceleration structure builds in 0.3–0.7 ms and
+  refits in 0.1–0.2 ms.
+- **The walk visits 1.5–1.9 polygons per ray.** Marathon's rooms are small;
+  divergence, not distance, is what costs.
+
+**Consequence.**
+- **The walk is the tracer** for everything that casts coherent rays:
+  - shadows toward a light (R1);
+  - reflections and refraction off a liquid (R2);
+  - the bake (R4).
+
+  It is exact in 5D space and needs no acceleration structure or 5D masks.
+- **The hardware stays in reserve** for scattered short rays (R3), if the
+  walk is too slow there and a 1% error on 5D levels is acceptable.
+- **Step 2 therefore loses its acceleration structure.** Its tables (the
+  objects, the textures and the surfaces) arrive with the step that first
+  needs them:
+  - R1 brings the objects and the sprite textures;
+  - R2 brings the surfaces and wall textures, with the trace view.
+
+**Faults found in the engine's own walk** (the spike counted them as the
+walk's error):
+1. `light_reaches` never checks the height where a segment ends. A segment
+   ending over another polygon's floor or under its ceiling counts as lit,
+   so light leaks between stacked rooms: 1.6% of segments on level 4, 9.9%
+   on level 10.
+2. `polygon_exit`'s 1e-3 tolerance is in raw world units, below float error
+   thousands of units out: about 0.01% of long rays step back across the
+   edge just crossed.
+
+Rampant's traced shadows fix (1). Flagship's light shadows are the
+owner's call, since they have passed QA.
+
 ## What we know (from the code, 30 Sep 2026)
 
 **Machine.** Apple M5, 16 GB, macOS 27, Xcode 27. Metal ray tracing from
