@@ -89,7 +89,7 @@ struct Uniforms {
 	int4 figure_patches;		// Bounced Light (R4): a sprite's floor and ceiling patches (x, y), -1 none;
 								//   z, w: a figure's own position (its card casts no shadow on itself)
 	int4 rampant;				// Rampant: x traced shadows (R1), y polygons in the occluder lists,
-								//   z reflecting liquids (R2)
+								//   z reflecting liquids (R2), w exact distances (R3, below)
 };
 
 // Light redistribution (E4): one surface's lumels in the surface cache
@@ -341,12 +341,17 @@ static float3 world_dither(float2 pixel)
 	return float3(n - 0.5) / 255.0;
 }
 
-static WorldFrag world_frag(WorldIn in, float4 color, float3 glow = float3(0.0), float distance_mode = 1.0)
+// `exact` (>= 0): the fragment's own distance from the viewer, in place of
+// the vertices' distances blended across the triangle, which run long on
+// big surfaces close to the viewer (traced ambient shadows place points in
+// the map by it, and a wall a few units off put them behind it)
+static WorldFrag world_frag(WorldIn in, float4 color, float3 glow = float3(0.0), float distance_mode = 1.0,
+							float exact = -1.0)
 {
 	WorldFrag o;
 	o.color = float4(color.rgb + world_dither(floor(in.position.xy)), color.a);
 	o.glow = float4(glow, color.a);
-	o.distance = float4((distance_mode < 0.0 || distance_mode > 1.5) ? 1.0e9 : in.fog_distance, 0.0, 0.0,
+	o.distance = float4((distance_mode < 0.0 || distance_mode > 1.5) ? 1.0e9 : (exact >= 0.0 ? exact : in.fog_distance), 0.0, 0.0,
 						(distance_mode != 0.0 && color.a > 0.5) ? 1.0 : 0.0);
 	return o;
 }
@@ -367,7 +372,8 @@ static WorldFrag fogged_frag(constant Uniforms& u, texture3d<float> volume, Worl
 							 float3 glow = float3(0.0))
 {
 	const float4 v = fog_at(u, volume, in.position.xy, in.fog_distance);
-	return world_frag(in, float4(color.rgb * v.a + v.rgb, color.a), glow * v.a, u.distance_mode);
+	return world_frag(in, float4(color.rgb * v.a + v.rgb, color.a), glow * v.a, u.distance_mode,
+					  u.rampant.w != 0 ? length(in.world - u.camera.xyz) : -1.0);
 }
 
 vertex WorldOut world_vertex(const device PackedVertex* vertices [[buffer(0)]],
@@ -1345,7 +1351,9 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 	// view's path through the liquid dims and tints it; murk takes on the
 	// surface's own lit colour
 	const float3 absorb = u.liquid_colour.rgb / max(u.liquid.y, 1.0);
-	const float path = max(below_distance - in.fog_distance, 0.0);
+	// With exact distances below (R3) the surface's own is exact too
+	const float surface_distance = u.rampant.w != 0 ? length(in.world - camera) : in.fog_distance;
+	const float path = max(below_distance - surface_distance, 0.0);
 	float depth = 0.0;
 	if (camera.z > in.world.z)
 		depth = max(in.world.z - (camera.z + v.z * below_distance), 0.0);
@@ -1948,6 +1956,7 @@ struct AOParams {
 	float view;					// 1: show the occlusion instead of the world (development)
 	float4 grid;				// traced (R3): the polygon grid's origin x, y, cells per world unit
 	int4 traced;				//   x on, y columns, z rows, w polygons in the occluder lists
+	int4 viewer;				//   x the viewer's polygon
 };
 
 // Traced ambient shadows (R3, Rampant): the polygon a point is in, from the
@@ -2002,15 +2011,37 @@ static int grid_polygon(constant AOParams& p, device const int2* cells, device c
 	if (any(c < 0) || c.x >= p.traced.y || c.y >= p.traced.z)
 		return -1;
 	const int2 range = cells[c.y * p.traced.y + c.x];
+	int found = -1;
+	bool ambiguous = false;
 	for (int k = 0; k < range.y; ++k) {
 		const int poly = indices[range.x + k];
 		const float4 h = map[poly * 9];
 		if (at.z < h.y - 16.0 || at.z > h.z + 16.0)
 			continue;
-		if (inside_polygon(map, poly, at.xy))
-			return poly;
+		if (inside_polygon(map, poly, at.xy)) {
+			if (found >= 0) {
+				ambiguous = true;
+				break;
+			}
+			found = poly;
+		}
 	}
-	return -1;
+	// Two polygons in the same space (5D): the one the viewer sees the
+	// point in is where the view ray from the viewer's polygon arrives
+	if (ambiguous && p.viewer.x >= 0) {
+		int poly = p.viewer.x;
+		const float2 a = p.camera.xy, d = at.xy - p.camera.xy;
+		float t_prev = 0.0;
+		for (int step = 0; step < 64 && poly >= 0; ++step) {
+			int next = -1, edge = -1;
+			const float leave = polygon_exit(map, poly, a, d, t_prev, next, edge);
+			if (leave >= 1.0 || next < 0)
+				return poly;
+			poly = next;
+			t_prev = leave;
+		}
+	}
+	return found;
 }
 
 fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffer(0)]],
@@ -2069,6 +2100,37 @@ fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffe
 	if (p.traced.x != 0) {
 		const float3 o = P + N * 8.0;
 		const int poly = grid_polygon(p, grid_cells, grid_indices, map, o);
+		// Development: DURANDAL_AO_VIEW=6 compares the stored distance with the
+		// view ray walked through the map from the viewer's polygon (mid grey:
+		// the same; lighter: stored further than the map says)
+		if (p.view == 6.0) {
+			SurfaceHit hit;
+			const float3 dir = normalize(P - p.camera.xyz);
+			if (p.viewer.x < 0 || !trace_surfaces(map, p.viewer.x, p.camera.xyz, dir, 65536.0, hit))
+				return 0.0;
+			return saturate(0.5 + (d - hit.t) / 256.0);
+		}
+		// Development: DURANDAL_AO_VIEW=5 shows why the grid finds nothing: 0.2
+		// outside it, 0.4 an empty cell, 0.6 candidates beside the point, 0.8
+		// candidates above or below it, 1 found
+		if (p.view == 5.0) {
+			const int2 c = int2(floor((o.xy - p.grid.xy) * p.grid.z));
+			if (any(c < 0) || c.x >= p.traced.y || c.y >= p.traced.z)
+				return 0.2;
+			const int2 range = grid_cells[c.y * p.traced.y + c.x];
+			if (range.y == 0)
+				return 0.4;
+			bool beside = false;
+			for (int k = 0; k < range.y; ++k) {
+				const int q = grid_indices[range.x + k];
+				if (inside_polygon(map, q, o.xy))
+					beside = true;
+			}
+			return poly >= 0 ? 1.0 : beside ? 0.8 : 0.6;
+		}
+		// Development: DURANDAL_AO_VIEW=4 shows the polygon each pixel is placed in
+		if (p.view == 4.0)
+			return poly < 0 ? 1.0 : 0.1 + 0.8 * fract(float(poly) * 0.618034);
 		if (poly >= 0) {
 			Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, p.traced.w, float2(1e9) };
 			occ.self = figure_under(occ, poly, P, p.camera.xyz);
@@ -2084,7 +2146,8 @@ fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffe
 					hit_weight = f * f;
 				}
 				const float through = figures_between(occ, poly, o, dir * p.radius, 0.0, 1.0, p.radius * 0.5);
-				traced += max(hit_weight, 1.0 - through);
+				// Development: DURANDAL_AO_VIEW=2 the surfaces only, 3 the figures only
+				traced += p.view == 2.0 ? hit_weight : p.view == 3.0 ? 1.0 - through : max(hit_weight, 1.0 - through);
 			}
 			return saturate(1.0 - p.strength * traced / 4.0);
 		}

@@ -1043,6 +1043,24 @@ The folder name comes from the *localised* bundle name
     own figure's card (`figure_under`). No pixel polygon found: the
     screen-space estimate as before. AO pass bindings: buffer 1 map, 2-3
     grid, 4-6 occluders, texture 1 masks.
+  - First look (30 Sep 2026, on screen, L06 and the L01-L03 water film):
+    black blobs on walls near the viewer (the owner saw them). Cause: the
+    distance image held the vertices' distances blended across each
+    triangle, which run long on big surfaces close to the viewer, so the
+    traced pass placed pixels behind their walls; screen-space AO only
+    compares distances, so it got away with it. With Traced Ambient
+    Shadows on (`Uniforms::rampant.w`) world fragments now store their
+    own distance (`world_frag` `exact`, from `fogged_frag`) and the liquid
+    measures its murk path from its own exact distance; Flagship is
+    unchanged (the owner's call whether it gets the fix). A pixel inside
+    two polygons at once (5D) takes the one the view ray from the
+    viewer's polygon arrives in. Dev views: `DURANDAL_AO_VIEW=2` traced
+    surfaces only, 3 figures only, 4 the polygon each pixel is placed in,
+    5 why the grid finds none, 6 stored distance against the map's view
+    ray. Reflections seen working (goo reflects the wall, L06 tick 300);
+    the water film's pool reflects its dark ribbed wall, darker than the
+    old sheen: to be judged on the display. `ON_SCREEN=1` and `END_TICK=n`
+    for `scripts/looks.sh`.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

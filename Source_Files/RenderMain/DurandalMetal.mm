@@ -366,6 +366,7 @@ simd_float4 grid_header = { 0, 0, 1, 0 };
 int grid_columns = 0, grid_rows = 0;
 bool traced_ambient = false;
 int traced_ambient_polygons = 0;
+int traced_ambient_viewer = -1;		// the viewer's polygon
 
 // The level's surfaces for traced rays (reflecting liquids, R2)
 id<MTLBuffer> bound_surfaces;
@@ -917,9 +918,11 @@ void run_ao()
 		float radius, strength, far, view;
 		simd_float4 grid;		// traced (R3): the polygon grid's origin, cells per world unit
 		simd_int4 traced;		//   x on, y columns, z rows, w polygons in the occluder lists
+		simd_int4 viewer;		//   x the viewer's polygon
 	} params;
 	static float radius = 512, strength = 1.2f, far = 24 * 1024;
-	static const bool ao_view = getenv("DURANDAL_AO_VIEW") != nullptr;
+	// DURANDAL_AO_VIEW=2 or 3 (traced, R3): only the map's surfaces, or only the figures
+	static const int ao_view = getenv("DURANDAL_AO_VIEW") ? std::max(1, std::atoi(getenv("DURANDAL_AO_VIEW"))) : 0;
 	static bool parsed = false;
 	if (!parsed)
 	{
@@ -934,12 +937,13 @@ void run_ao()
 	params.radius = radius;
 	params.strength = strength;
 	params.far = far;
-	params.view = ao_view ? 1 : 0;
+	params.view = float(ao_view);
 	const bool traced = traced_ambient && bound_map && grid_cells && grid_indices;
 	params.grid = grid_header;
 	params.traced = simd_make_int4(traced ? 1 : 0, grid_columns, grid_rows, traced ? traced_ambient_polygons : 0);
+	params.viewer = simd_make_int4(traced_ambient_viewer, 0, 0, 0);
 	ao_far_reach = far;
-	ao_dev_view = ao_view;
+	ao_dev_view = ao_view != 0;
 
 	MTLRenderPassDescriptor* p = [MTLRenderPassDescriptor renderPassDescriptor];
 	p.colorAttachments[0].texture = ao_texture;
@@ -1548,10 +1552,11 @@ void SetPolygonGrid(simd_float4 header, int columns, int rows, const std::vector
 	grid_rows = rows;
 }
 
-void SetTracedAmbient(bool traced, int occluder_polygons)
+void SetTracedAmbient(bool traced, int occluder_polygons, int viewer_polygon)
 {
 	traced_ambient = traced;
 	traced_ambient_polygons = traced ? occluder_polygons : 0;
+	traced_ambient_viewer = viewer_polygon;
 }
 
 void SetSurfaces(const simd_float4* table, int count)

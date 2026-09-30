@@ -230,7 +230,11 @@ void RenderRasterize_Metal::render_tree()
 		if (DurandalLights::BuildGrid(header, columns, rows, cells, indices))
 			DurandalMetal::SetPolygonGrid(header, columns, rows, cells, indices);	// kept until the level changes
 	}
-	DurandalMetal::SetTracedAmbient(traced_ambient, occluder_count > 0 ? dynamic_world->polygon_count : 0);
+	DurandalMetal::SetTracedAmbient(traced_ambient, occluder_count > 0 ? dynamic_world->polygon_count : 0,
+									 view->origin_polygon_index);
+	// Traced ambient shadows place each pixel in the map by its distance, so
+	// the distance image holds each fragment's own (see world_frag)
+	u.rampant.w = traced_ambient ? 1 : 0;
 
 	// Reflecting liquids (R2, Rampant): the surfaces as a reflected ray sees
 	// them; the rays walk the map, so it is built for them too

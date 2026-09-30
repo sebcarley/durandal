@@ -96,7 +96,7 @@ struct Uniforms {
 	simd_int4 figure_patches;	// Bounced Light (R4): a sprite's floor and ceiling patches (x, y), -1 none;
 								//   z, w: a figure's own position (its card casts no shadow on itself), 1e5 none
 	simd_int4 rampant;			// Rampant: x traced shadows (R1), y polygons in the occluder lists,
-								//   z reflecting liquids (R2)
+								//   z reflecting liquids (R2), w exact distances in the distance image (R3)
 };
 
 // Dynamic lights (E2), world units. Must match struct Light in the shaders.
@@ -340,7 +340,7 @@ bool SetMask(int slice, const std::vector<std::vector<uint8_t>>& levels);
 // given to SetOccluders) instead of read from the picture.
 void SetPolygonGrid(simd_float4 header, int columns, int rows, const std::vector<simd_int2>& cells,
 					const std::vector<int>& indices);
-void SetTracedAmbient(bool traced, int occluder_polygons);
+void SetTracedAmbient(bool traced, int occluder_polygons, int viewer_polygon);
 
 // The surface table (DurandalSurfaces.h: `count` float4), for this frame's
 // draws. Call before the first draw.
