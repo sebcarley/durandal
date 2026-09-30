@@ -105,7 +105,8 @@ struct Patch {
 };
 
 // Dynamic lights (E2), world units: position and radius; colour and
-// strength; x: the map polygon the light is in, y: its size (traced shadows)
+// strength; x: the map polygon the light is in, y: its size (traced shadows),
+// z: 1 if it casts figures' shadows (the nearest few)
 struct Light {
 	float4 position_radius;
 	float4 colour_strength;
@@ -234,7 +235,7 @@ static float figures_between(thread const Occluders& occ, int poly, float3 from,
 // below its floor ends in a room over or under it (stacked rooms leaked
 // light through each other: found by scripts/trace-spike.swift)
 static float light_transmittance(device const float4* map, int poly, float3 from, float3 to, int light_poly,
-								 float light_size, thread const Occluders& occ)
+								 float light_size, thread const Occluders& occ, bool figures = true)
 {
 	const float3 d = to - from;
 	float t_prev = 0.0;
@@ -242,6 +243,10 @@ static float light_transmittance(device const float4* map, int poly, float3 from
 	for (int step = 0; step < 24; ++step) {
 		if (poly < 0)
 			return 0.0;
+		// The light's own polygon: the rest of the segment is inside it (as
+		// light_reaches, before its edges are looked at)
+		if (poly == light_poly)
+			return figures ? through * figures_between(occ, poly, from, d, t_prev, 1.0, light_size) : through;
 		const float4 h = map[poly * 9];
 		const int n = int(h.x);
 		float best = 2.0;
@@ -261,11 +266,11 @@ static float light_transmittance(device const float4* map, int poly, float3 from
 				next = int(e0.z);
 			}
 		}
-		through *= figures_between(occ, poly, from, d, t_prev, min(best, 1.0), light_size);
-		if (through <= 0.0)
-			return 0.0;
-		if (poly == light_poly)
-			return through;
+		if (figures) {
+			through *= figures_between(occ, poly, from, d, t_prev, min(best, 1.0), light_size);
+			if (through <= 0.0)
+				return 0.0;
+		}
 		if (best > 1.0)
 			return (to.z >= h.y - 1.0 && to.z <= h.z + 1.0) ? through : 0.0;
 		if (next < 0)
@@ -509,7 +514,8 @@ struct DynamicLight {
 	float3 tint;
 };
 
-// `visible(i)`: how much of light i reaches the point, 0 to 1
+// `visible(i, amount)`: how much of light i reaches the point, 0 to 1;
+// `amount` is what it would add unshadowed
 template <typename Visible>
 static DynamicLight dynamic_light_with(constant Uniforms& u, constant Light* lights, Lighting l, bool facing,
 									   Visible visible)
@@ -530,10 +536,11 @@ static DynamicLight dynamic_light_with(constant Uniforms& u, constant Light* lig
 				continue;
 			f *= 0.35 + 0.65 * nl;
 		}
-		const float seen = visible(i);
+		const float full = lights[i].colour_strength.w * f;
+		const float seen = visible(i, full);
 		if (seen <= 0.0)
 			continue;
-		const float a = lights[i].colour_strength.w * f * seen;
+		const float a = full * seen;
 		d.amount += a;
 		colour += lights[i].colour_strength.rgb * a;
 	}
@@ -547,7 +554,7 @@ static DynamicLight dynamic_light_with(constant Uniforms& u, constant Light* lig
 static DynamicLight dynamic_light(constant Uniforms& u, constant Light* lights, device const float4* map,
 								  Lighting l, bool facing, bool shadows = true)
 {
-	return dynamic_light_with(u, lights, l, facing, [&](uint i) {
+	return dynamic_light_with(u, lights, l, facing, [&](uint i, float) {
 		return (shadows && u.shadows && !light_reaches(map, u.polygon, l.world, lights[i].position_radius.xyz, lights[i].info.x))
 			? 0.0 : 1.0;
 	});
@@ -557,13 +564,19 @@ static DynamicLight dynamic_light(constant Uniforms& u, constant Light* lights, 
 static DynamicLight dynamic_light(constant Uniforms& u, constant Light* lights, device const float4* map,
 								  thread const Occluders& occ, Lighting l, bool facing)
 {
-	return dynamic_light_with(u, lights, l, facing, [&](uint i) {
+	return dynamic_light_with(u, lights, l, facing, [&](uint i, float amount) {
 		if (!u.shadows)
 			return 1.0;
 		const float3 to = lights[i].position_radius.xyz;
 		if (u.rampant.x != 0) {
+			// Light too faint to see is not walked at all, and faint light
+			// passes the walls only: a firing line of sixteen flashes walked
+			// every figure for every pixel (world pass p99 17 ms)
+			if (amount < 0.03)
+				return 0.0;
 			const float size = lights[i].info.y > 0 ? float(lights[i].info.y) : 150.0;
-			return light_transmittance(map, u.polygon, l.world, to, lights[i].info.x, size, occ);
+			return light_transmittance(map, u.polygon, l.world, to, lights[i].info.x, size, occ,
+									   amount >= 0.15 && lights[i].info.z != 0);
 		}
 		return light_reaches(map, u.polygon, l.world, to, lights[i].info.x) ? 1.0 : 0.0;
 	});

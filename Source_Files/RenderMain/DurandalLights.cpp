@@ -27,6 +27,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <unordered_map>
 
 namespace DurandalLights {
@@ -39,6 +40,13 @@ const float kRadius = 2.0f * WORLD_ONE;
 const float kStrength = 0.9f;
 
 const simd_float3 kWarm = { 1.0f, 0.85f, 0.6f };
+
+// Traced shadows (R1): how many of the lights, nearest the viewer first,
+// cast the figures' shadows. Development: DURANDAL_FIGURE_LIGHTS=<n>
+const int kFigureLights = [] {
+	const char* v = std::getenv("DURANDAL_FIGURE_LIGHTS");
+	return v ? std::max(0, std::atoi(v)) : 4;
+}();
 
 // The colour a frame lights with: its pixels' colours weighted by their
 // brightness squared, normalised so the strongest channel is 1
@@ -164,7 +172,13 @@ int Gather(const view_data* view, const std::vector<sorted_node_data>& nodes, fl
 	std::sort(found.begin(), found.end(), [](const Candidate& a, const Candidate& b) { return a.distance2 < b.distance2; });
 	const int count = std::min<int>(int(found.size()), DurandalMetal::kMaximumLights);
 	for (int i = 0; i < count; ++i)
+	{
 		out[i] = found[i].light;
+		// Traced shadows (R1): the nearest few throw figures' shadows; the
+		// rest walls' only (a firing line of sixteen flashes walking every
+		// figure for every pixel spiked the world pass)
+		out[i].info.z = i < kFigureLights ? 1 : 0;
+	}
 	return count;
 }
 
