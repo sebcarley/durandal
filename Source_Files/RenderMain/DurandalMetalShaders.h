@@ -1584,6 +1584,59 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 	return o;
 }
 
+// Air that moves (Rampant; DurandalAir.h): dust motes and embers, each a
+// small soft dot facing the viewer, composed over what is drawn and hidden
+// where a surface is nearer (the distance image, read in tile memory)
+struct Mote {
+	float4 position_size;
+	float4 colour;
+	float4 info;
+};
+
+struct MoteOut {
+	float4 position [[position]];
+	float2 corner;
+	float4 colour;
+	float glow;
+	float distance;
+};
+
+vertex MoteOut mote_vertex(uint vid [[vertex_id]], uint iid [[instance_id]], constant Uniforms& u [[buffer(1)]],
+						   device const Mote* motes [[buffer(12)]])
+{
+	const Mote m = motes[iid];
+	MoteOut o;
+	o.corner = float2((vid & 1u) ? 1.0 : -1.0, (vid & 2u) ? 1.0 : -1.0);
+	float4 eye = u.modelview * float4(m.position_size.xyz, 1.0);
+	o.distance = length(eye.xyz);
+	eye.xy += o.corner * m.position_size.w;
+	const float4 clip = u.projection * eye;
+	o.position = float4(clip.x, clip.y, (clip.z + clip.w) * 0.5, clip.w);	// as world_vertex: GL depth to Metal's
+	o.colour = m.colour;
+	o.glow = m.info.x;
+	return o;
+}
+
+struct MoteFrag {
+	float4 color [[color(0)]];
+	float4 glow [[color(1)]];
+	float4 distance [[color(2)]];
+};
+
+fragment MoteFrag mote_fragment(MoteOut in [[stage_in]], constant Uniforms& u [[buffer(1)]],
+								float4 below [[color(0)]], float4 below_glow [[color(1)]], float4 below_dist [[color(2)]])
+{
+	if (in.distance > below_dist.r)
+		discard_fragment();	// behind a wall, floor or figure
+	const float fall = saturate(1.0 - length_squared(in.corner));
+	const float a = in.colour.a * fall * fall * fog_factor(u, in.distance);
+	MoteFrag o;
+	o.color = float4(below.rgb + in.colour.rgb * a, below.a);
+	o.glow = float4(below_glow.rgb + (u.write_glow ? in.colour.rgb * a * in.glow : float3(0.0)), below_glow.a);
+	o.distance = below_dist;
+	return o;
+}
+
 static float static_rand(float2 co)
 {
 	const float dt = dot(co, float2(12.9898, 78.233));

@@ -77,6 +77,8 @@ enum Feature {
 	kTracedShadows,		// R1: figures cast soft shadows from dynamic lights, light no longer leaks between stacked rooms (with Light Shadows; Rampant; in QA)
 	kReflections,		// R2: water, sewage and goo reflect the room and the sky, traced through the map (with Real Liquids; Rampant; in QA)
 	kTracedAmbient,		// R3: ambient shadows traced through the map and the figures, not read from the picture (with Ambient Shadows; Rampant; in QA)
+	kDustEmbers,		// air that moves: dust lit where light falls on it, embers rising off lava (Metal; Rampant; in QA)
+	kHeatShimmer,		// air that moves: the air over lava wavers (with Bloom; Metal display; Rampant; in QA)
 	kNumberOfFeatures
 };
 

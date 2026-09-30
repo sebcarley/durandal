@@ -354,6 +354,18 @@ bool SetSurfaceColour(int slice, const std::vector<std::vector<uint8_t>>& levels
 // level down to 1x1 (a new texture each time).
 bool SetSky(const std::vector<std::vector<uint8_t>>& levels, int width, int height);
 
+// Air that moves (Rampant; DurandalAir.h): a dust mote or an ember. Must
+// match struct Mote in the shaders.
+struct Mote {
+	simd_float4 position_size;	// world position, half-size (world units)
+	simd_float4 colour;			// its lit colour, alpha its opacity
+	simd_float4 info;			// x: how much of it glows (embers), y-w: 0
+};
+constexpr int kMaximumMotes = 4096;
+// Draws motes into the world at their distances, hidden where a surface is
+// nearer (read from the distance image in tile memory); before the weapon
+void DrawMotes(const Mote* motes, int count, const Uniforms& uniforms);
+
 // Living water (R2): up to kMaximumRipples ripple sources for the liquid
 // surfaces this frame (x, y, strength, 0), world units
 constexpr int kMaximumRipples = 16;

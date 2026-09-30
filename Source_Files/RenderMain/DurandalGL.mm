@@ -168,6 +168,7 @@ struct OutputParams {
 	float bloom_strength;
 	float4 glow_rect;	// the world's rectangle in the canvas (x, y, w, h), top-left origin
 	float4 grade;		// scene grade: brightness offset, contrast, gamma, 1 when in force
+	float4 heat;		// heat shimmer: x on, y seconds
 };
 
 static float3 linear_to_srgb(float3 c)
@@ -185,7 +186,27 @@ fragment float4 output_fragment(BlitOut in [[stage_in]], constant OutputParams& 
 								texture2d<float> bloom [[texture(2)]])
 {
 	constexpr sampler s(filter::nearest, address::clamp_to_edge);
-	const float4 canvas = tex.sample(s, in.uv);
+	float4 canvas = tex.sample(s, in.uv);
+	// Heat shimmer (Rampant): where the bloom is warm (the air over lava),
+	// the world image wavers, rising; the HUD and overlays stay still
+	if (p.heat.x > 0.0 && p.bloom && canvas.a < 0.5) {
+		const float2 g = (in.uv * p.size - p.glow_rect.xy) / p.glow_rect.zw;
+		if (all(g >= 0.0) && all(g <= 1.0)) {
+			constexpr sampler hs(filter::linear, address::clamp_to_edge);
+			const float3 b = max(bloom.sample(hs, g).rgb, float3(0.0));
+			const float heat = saturate((b.r - b.b * 1.2) * 1.5);
+			if (heat > 0.01) {
+				const float2 px = in.uv * p.size;
+				const float t = p.heat.y;
+				const float2 wave = float2(sin(px.y * 0.09 + t * 7.0 + sin(px.x * 0.031 + t)),
+										   cos(px.x * 0.07 + px.y * 0.05 + t * 5.3));
+				const float2 moved = in.uv + wave * heat * 2.5 / p.size;
+				const float4 there = tex.sample(s, moved);
+				if (there.a < 0.5)
+					canvas = there;
+			}
+		}
+	}
 	float3 rgb = canvas.rgb;
 	// Scene grade (brightness, contrast, gamma) on the world image only:
 	// the world marks its pixels with alpha 0, overlays raise it
@@ -713,6 +734,8 @@ const float kBloomStrength = 0.35f;
 id<MTLTexture> frame_glow;
 id<MTLTexture> frame_bloom;
 float world_distortion = 0, world_time = 0;	// underwater (W1)
+bool frame_heat = false;		// heat shimmer this frame (SetHeatShimmer)
+float frame_heat_time = 0;
 // Development output capture (RequestOutputCapture)
 bool output_capture_requested = false, output_capture_wait = false, output_capture_ready = false, output_capture_half = false;
 id<MTLBuffer> output_capture_buffer;
@@ -1295,7 +1318,7 @@ void Present()
 				const Durandal::Preferences& prefs = Durandal::Prefs();
 				const bool graded = Durandal::Available() &&
 					(prefs.scene_brightness != 0 || prefs.scene_contrast != 100 || prefs.scene_gamma != 100);
-				struct { int decode; float test_headroom; simd_float2 size; int glow; float glow_gain; int bloom; float bloom_strength; simd_float4 glow_rect; simd_float4 grade; } params = {
+				struct { int decode; float test_headroom; simd_float2 size; int glow; float glow_gain; int bloom; float bloom_strength; simd_float4 glow_rect; simd_float4 grade; simd_float4 heat; } params = {
 					edr_target ? 1 : 0,
 					edr_test ? (edr_target ? std::max(1.0f, EDRHeadroom()) : 1.0f) : 0.0f,
 					simd_make_float2(drawable.texture.width, drawable.texture.height),
@@ -1306,7 +1329,9 @@ void Present()
 					simd_make_float4(frame_glow_viewport.originX, frame_glow_viewport.originY,
 									 std::max(1.0, frame_glow_viewport.width), std::max(1.0, frame_glow_viewport.height)),
 					simd_make_float4(prefs.scene_brightness / 100.0f, prefs.scene_contrast / 100.0f,
-									 std::max(prefs.scene_gamma, 1) / 100.0f, graded ? 1.0f : 0.0f) };
+									 std::max(prefs.scene_gamma, 1) / 100.0f, graded ? 1.0f : 0.0f),
+					simd_make_float4(frame_heat ? 1.0f : 0.0f, frame_heat_time, 0, 0) };
+				frame_heat = false;	// set again by the next world frame
 				[out setFragmentBytes:&params length:sizeof(params) atIndex:0];
 				[out setFragmentTexture:canvas atIndex:0];
 				[out setFragmentTexture:(frame_glow ? frame_glow : canvas) atIndex:1];
@@ -1445,6 +1470,12 @@ void SetWorldDistortion(float amount, float time_seconds)
 {
 	world_distortion = amount;
 	world_time = time_seconds;
+}
+
+void SetHeatShimmer(bool on, float time_seconds)
+{
+	frame_heat = on;
+	frame_heat_time = time_seconds;
 }
 
 bool GlowWanted()

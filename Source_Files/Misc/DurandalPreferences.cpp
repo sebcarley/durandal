@@ -86,6 +86,8 @@ const char* const kFeatureAttr[kNumberOfFeatures] = {
 	"traced_shadows",
 	"reflections",
 	"traced_ambient",
+	"dust_embers",
+	"heat_shimmer",
 };
 
 }
@@ -124,6 +126,8 @@ bool Released(Feature feature)
 		case kTracedShadows:
 		case kReflections:
 		case kTracedAmbient:
+		case kDustEmbers:
+		case kHeatShimmer:
 			return false;
 		default:
 			return true;
@@ -173,6 +177,8 @@ int FeatureTier(Feature feature)
 		case kTracedShadows:
 		case kReflections:
 		case kTracedAmbient:
+		case kDustEmbers:
+		case kHeatShimmer:
 			return kTierRampant;
 		default:
 			// Including the Metal renderer since Round 3: every Classic look
@@ -452,6 +458,8 @@ static Tab FeatureTab(Feature feature)
 		case kTracedShadows:
 		case kReflections:
 		case kTracedAmbient:
+		case kDustEmbers:
+		case kHeatShimmer:
 			return kTabRampant;
 		default:
 			return kTabLook;
@@ -545,6 +553,8 @@ void Dialog(void* parent_dialog)
 		"Traced Shadows",
 		"Reflecting Liquids",
 		"Traced Ambient Shadows",
+		"Dust and Embers",
+		"Heat Shimmer",
 	};
 	w_toggle* feature_w[kNumberOfFeatures];
 	w_select* style_w = nullptr;
@@ -624,7 +634,8 @@ void Dialog(void* parent_dialog)
 	tables[kTabRampant]->dual_add_row(new w_static_text("Bounced Light needs Light Redistribution;"), d);
 	tables[kTabRampant]->dual_add_row(new w_static_text("Traced Shadows need Dynamic Lights and Light Shadows;"), d);
 	tables[kTabRampant]->dual_add_row(new w_static_text("Reflecting Liquids need Real Liquids;"), d);
-	tables[kTabRampant]->dual_add_row(new w_static_text("Traced Ambient Shadows need Ambient Shadows."), d);
+	tables[kTabRampant]->dual_add_row(new w_static_text("Traced Ambient Shadows need Ambient Shadows;"), d);
+	tables[kTabRampant]->dual_add_row(new w_static_text("Heat Shimmer needs Bloom."), d);
 	// ART: the packs installed for each category (DurandalArt.h). The art
 	// is not shipped; the packs go in the user's Plugins folder
 	tables[kTabArt]->add_row(new w_spacer(), true);

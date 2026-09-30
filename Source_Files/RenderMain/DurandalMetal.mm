@@ -365,6 +365,10 @@ id<MTLBuffer> bound_occluders, bound_occluder_polygons, bound_occluder_indices;
 id<MTLTexture> mask_array;			// kMaskSlices silhouettes, R8, mipmapped
 id<MTLTexture> no_masks;			// 1x1x1: none
 
+// Air that moves: the motes' pipelines, single and multisampled
+id<MTLRenderPipelineState> mote_pipeline, mote_pipeline_msaa;
+bool motes_attempted = false;
+
 // Living water (R2): ripple sources, entry 0 the count
 simd_float4 bound_ripples[kMaximumRipples + 1];
 
@@ -1553,6 +1557,63 @@ bool SetMask(int slice, const std::vector<std::vector<uint8_t>>& levels)
 		}
 	}
 	return true;
+}
+
+static id<MTLRenderPipelineState> build_mote_pipeline(int samples)
+{
+	NSError* error = nil;
+	MTLRenderPipelineDescriptor* d = [MTLRenderPipelineDescriptor new];
+	d.vertexFunction = [library newFunctionWithName:@"mote_vertex"];
+	d.fragmentFunction = [library newFunctionWithName:@"mote_fragment"];
+	// Composed in the shader over what is drawn (it reads the attachments)
+	d.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA8Unorm;
+	d.colorAttachments[1].pixelFormat = kGlowFormat;
+	d.colorAttachments[2].pixelFormat = kDistanceFormat;
+	d.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+	d.rasterSampleCount = samples;
+	id<MTLRenderPipelineState> p = [device newRenderPipelineStateWithDescriptor:d error:&error];
+	if (!p)
+		logWarning("Durandal Metal: dust and embers unavailable: %s", error ? error.localizedDescription.UTF8String : "no function");
+	return p;
+}
+
+void DrawMotes(const Mote* motes, int count, const Uniforms& uniforms)
+{
+	if (!in_world_pass || count <= 0 || !motes)
+		return;
+	if (!motes_attempted)
+	{
+		motes_attempted = true;
+		mote_pipeline = build_mote_pipeline(1);
+		mote_pipeline_msaa = build_mote_pipeline(kMSAASamples);
+	}
+	id<MTLRenderPipelineState> pipeline = frame_msaa ? mote_pipeline_msaa : mote_pipeline;
+	static const bool log = getenv("DURANDAL_AIR_LOG") != nullptr;
+	static bool logged = false;
+	if (log && !logged)
+	{
+		logged = true;
+		fprintf(stderr, "Durandal air: pipelines %d/%d, msaa %d, %d motes\n", mote_pipeline != nil, mote_pipeline_msaa != nil, frame_msaa, count);
+	}
+	if (!pipeline || !open_world_encoder())
+		return;
+	count = std::min(count, kMaximumMotes);
+	static id<MTLBuffer> ring[3];
+	static int next = 0;
+	const size_t bytes = sizeof(Mote) * count;
+	__strong id<MTLBuffer>& b = ring[next];
+	next = (next + 1) % 3;	// at most two frames in flight
+	if (!b || b.length < bytes)
+		b = [device newBufferWithLength:sizeof(Mote) * kMaximumMotes options:MTLResourceStorageModeShared];
+	std::memcpy(b.contents, motes, bytes);
+	[encoder setRenderPipelineState:pipeline];
+	[encoder setDepthStencilState:depth_states[0][0]];
+	[encoder setCullMode:MTLCullModeNone];
+	[encoder setVertexBytes:&uniforms length:sizeof(Uniforms) atIndex:1];
+	[encoder setFragmentBytes:&uniforms length:sizeof(Uniforms) atIndex:1];
+	[encoder setVertexBuffer:b offset:0 atIndex:12];
+	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:count];
+	[encoder setCullMode:MTLCullModeBack];
 }
 
 void SetRipples(const simd_float4* sources, int count)

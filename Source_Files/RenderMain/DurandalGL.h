@@ -90,6 +90,9 @@ void DrawWorldImage(void* texture, float gamma, void* glow, void* bloom,
 					float distance_shade = 0);	// id<MTLTexture>
 // Liquids (W1): waver the next world image (0: none, 1: underwater)
 void SetWorldDistortion(float amount, float time_seconds);
+// Heat shimmer (Rampant; DurandalAir.h): the output pass wavers the world
+// where the bloom is warm (the air over lava), this frame
+void SetHeatShimmer(bool on, float time_seconds);
 // Glow (E1): whether the output can show glow (HDR output is on)
 bool GlowWanted();
 void FlushAndWait();			// commit, wait, and continue the frame in a new command buffer

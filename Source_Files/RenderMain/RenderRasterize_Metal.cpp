@@ -33,6 +33,7 @@
 #include "DurandalRadiance.h"
 #include "DurandalOccluders.h"
 #include "DurandalSurfaces.h"
+#include "DurandalAir.h"
 #include "DurandalGL.h"
 #include "DurandalBenchmark.h"
 
@@ -183,6 +184,9 @@ void RenderRasterize_Metal::render_tree()
 	}
 	u.caustics = 0;
 	u.liquid = simd_make_float4(0, 0, 0, 0);
+	// Heat shimmer (Rampant): the output pass wavers the air over lava
+	DurandalGL::SetHeatShimmer(Durandal::Enabled(Durandal::kHeatShimmer),
+							   (view->tick_count + view->heartbeat_fraction) / float(TICKS_PER_SECOND));
 	// Liquids (W1): the view wavers under a liquid
 	DurandalGL::SetWorldDistortion(Durandal::Enabled(Durandal::kLiquids) && view->under_media_boundary ? 1.0f : 0.0f,
 								   view->tick_count / float(TICKS_PER_SECOND));
@@ -348,6 +352,15 @@ void RenderRasterize_Metal::render_tree()
 
 	// GL also renders a kGlow pass for bloom; not ported yet.
 	RenderRasterizerClass::render_tree(kDiffuse);
+	// Air that moves (Rampant): dust and embers in the rooms in view, after
+	// the world and before the weapon in hand
+	if (Durandal::Enabled(Durandal::kDustEmbers)) {
+		static std::vector<DurandalMetal::Mote> motes;
+		const int count = DurandalAir::Build(view, RSPtr->SortedNodes, shadow_lights, shadow_light_count, motes);
+		Uniforms mu = frame_uniforms;
+		mu.clip_mask = 0;
+		DurandalMetal::DrawMotes(motes.data(), count, mu);
+	}
 	render_viewer_sprite_layer(kDiffuse);
 }
 
