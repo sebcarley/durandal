@@ -1374,7 +1374,10 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 	// Reflecting liquids (R2): the room above and the sky, broken by the
 	// ripples, in place of the surface's own colour in the sheen
 	if (u.rampant.z != 0 && camera.z > in.world.z && opacity < 0.99) {
-		const float3 r = reflect(v, n);
+		// A steep ripple at a grazing view can turn the ray under the
+		// surface; it stays just above it
+		float3 r = reflect(v, n);
+		r = normalize(float3(r.xy, max(r.z, 0.02)));
 		SurfaceHit hit;
 		float3 mirror = surface;	// nothing within reach: the surface's own colour, as before
 		if (trace_surfaces(map, u.polygon, in.world + float3(0.0, 0.0, 2.0), r, 32768.0, hit)) {
