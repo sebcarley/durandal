@@ -1102,6 +1102,17 @@ The folder name comes from the *localised* bundle name
       `DURANDAL_AIR_LOG=1|2`.
     - On screen, L06 to tick 1200, everything on: Rampant 177 fps average,
       92.6 at the 1% low; Flagship 226 / 125.
+  - Owner's first play (1 Oct 2026): every wall and ceiling shimmered
+    like a pool's ceiling, on levels without lava too. Two causes, both
+    fixed: Heat Shimmer was gated on warm bloom only, and the HD packs'
+    brown walls bloom a little (now each lava surface drawn notes its
+    rectangle on screen, `RenderRasterize_Metal::note_hot`, and the output
+    pass wavers only there and in the air above, `OutputParams::hot`); and
+    Bounced Light's refresh of settled patches blended a fresh 8-ray
+    estimate at a fixed 1/8 every pass, so the lumels moved by a few per
+    cent each time (now the running average carries on to 4096 samples,
+    `kBounceCap`, so each pass moves a patch less). Awaiting the owner's
+    second look.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
