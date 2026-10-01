@@ -45,7 +45,10 @@ const float kRefreshBlend = 1.0f / 24;	// each blended in this gently (the sampl
 									// moved: the ripple round door frames seen in QA)
 const int kTileBudget = 384;		// 8x8 tiles baked per frame
 const int kBounceTiles = 256;		// Bounced Light: settled tiles refreshed per frame (round robin), on top
-const float kBounceBlend = 1.0f / 8;	// each refresh blended in this gently
+const int kBounceCap = 4096;		// Bounced Light: a refreshed patch keeps averaging up to this many
+									// samples, so each refresh moves it less (a fixed 1/8 blend stirred
+									// every wall and ceiling by a few per cent a pass: dappled light
+									// that moved, like a pool's ceiling)
 const int kBounceBudget = 512;		// Bounced Light: tiles baked per frame in all (Rampant spends some
 									// headroom settling light about twice as fast; 768 spiked the bake
 									// to 2.5 ms p99 entering new rooms)
@@ -552,14 +555,20 @@ bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes, si
 				return;
 			const int n = std::min(total, room);
 			int& next = state.bounce_tile[patch];
+			// The running average carries on past settling: what the bounce
+			// brings comes in, the rays' noise averages away
+			const float blend = float(kRays) / float(state.samples[patch] + kRays);
 			for (int k = 0; k < n; ++k)
 			{
 				const int tile = (next + k) % total;
 				tiles.push_back({ simd_make_int4(patch, (tile % across) * DurandalMetal::kBakeTile,
 												 (tile / across) * DurandalMetal::kBakeTile, 0),
-								  simd_make_float4(kBounceBlend, 0, 0, 0) });
+								  simd_make_float4(blend, 0, 0, 0) });
 			}
+			const int was = next;
 			next = (next + n) % total;
+			if (n == total || next <= was)	// a whole pass over the patch
+				state.samples[patch] = std::min(state.samples[patch] + kRays, kBounceCap);
 			refreshed[patch] = true;
 			baked.push_back(patch);
 			baked_why.push_back(kBounce);
