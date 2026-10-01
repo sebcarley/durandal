@@ -168,7 +168,8 @@ struct OutputParams {
 	float bloom_strength;
 	float4 glow_rect;	// the world's rectangle in the canvas (x, y, w, h), top-left origin
 	float4 grade;		// scene grade: brightness offset, contrast, gamma, 1 when in force
-	float4 heat;		// heat shimmer: x on, y seconds
+	float4 heat;		// heat shimmer: x on, y seconds, z rectangles in hot
+	float4 hot[8];		//   the lava in view (x0, y0, x1, y1 in the world view, top-left origin)
 };
 
 static float3 linear_to_srgb(float3 c)
@@ -187,14 +188,24 @@ fragment float4 output_fragment(BlitOut in [[stage_in]], constant OutputParams& 
 {
 	constexpr sampler s(filter::nearest, address::clamp_to_edge);
 	float4 canvas = tex.sample(s, in.uv);
-	// Heat shimmer (Rampant): where the bloom is warm (the air over lava),
-	// the world image wavers, rising; the HUD and overlays stay still
-	if (p.heat.x > 0.0 && p.bloom && canvas.a < 0.5) {
+	// Heat shimmer (Rampant): over the lava in view and in the air rising
+	// above it, the world image wavers, the more where the bloom is warm;
+	// the HUD and overlays stay still. Only there: warm bloom alone (an HD
+	// pack's brown walls glow a little) set every wall and ceiling rippling
+	if (p.heat.x > 0.0 && p.heat.z > 0.0 && p.bloom && canvas.a < 0.5) {
 		const float2 g = (in.uv * p.size - p.glow_rect.xy) / p.glow_rect.zw;
-		if (all(g >= 0.0) && all(g <= 1.0)) {
+		float near_lava = 0.0;
+		for (int i = 0; i < min(int(p.heat.z), 8); ++i) {
+			const float4 r = p.hot[i];
+			const float rise = max(r.w - r.y, 0.03) * 1.5;	// the hot air, as far again and a half above
+			const float across = smoothstep(r.x - 0.02, r.x + 0.01, g.x) * (1.0 - smoothstep(r.z - 0.01, r.z + 0.02, g.x));
+			const float up = smoothstep(r.y - rise, r.y, g.y) * (1.0 - smoothstep(r.w, r.w + 0.02, g.y));
+			near_lava = max(near_lava, across * up);
+		}
+		if (near_lava > 0.0 && all(g >= 0.0) && all(g <= 1.0)) {
 			constexpr sampler hs(filter::linear, address::clamp_to_edge);
 			const float3 b = max(bloom.sample(hs, g).rgb, float3(0.0));
-			const float heat = saturate((b.r - b.b * 1.2) * 1.5);
+			const float heat = near_lava * saturate(0.35 + (b.r - b.b * 1.2) * 2.0);
 			if (heat > 0.01) {
 				const float2 px = in.uv * p.size;
 				const float t = p.heat.y;
@@ -736,6 +747,8 @@ id<MTLTexture> frame_bloom;
 float world_distortion = 0, world_time = 0;	// underwater (W1)
 bool frame_heat = false;		// heat shimmer this frame (SetHeatShimmer)
 float frame_heat_time = 0;
+simd_float4 frame_hot[DurandalGL::kMaximumHotRects];	// the lava in view
+int frame_hot_count = 0;
 // Development output capture (RequestOutputCapture)
 bool output_capture_requested = false, output_capture_wait = false, output_capture_ready = false, output_capture_half = false;
 id<MTLBuffer> output_capture_buffer;
@@ -1318,7 +1331,7 @@ void Present()
 				const Durandal::Preferences& prefs = Durandal::Prefs();
 				const bool graded = Durandal::Available() &&
 					(prefs.scene_brightness != 0 || prefs.scene_contrast != 100 || prefs.scene_gamma != 100);
-				struct { int decode; float test_headroom; simd_float2 size; int glow; float glow_gain; int bloom; float bloom_strength; simd_float4 glow_rect; simd_float4 grade; simd_float4 heat; } params = {
+				struct { int decode; float test_headroom; simd_float2 size; int glow; float glow_gain; int bloom; float bloom_strength; simd_float4 glow_rect; simd_float4 grade; simd_float4 heat; simd_float4 hot[kMaximumHotRects]; } params = {
 					edr_target ? 1 : 0,
 					edr_test ? (edr_target ? std::max(1.0f, EDRHeadroom()) : 1.0f) : 0.0f,
 					simd_make_float2(drawable.texture.width, drawable.texture.height),
@@ -1330,8 +1343,10 @@ void Present()
 									 std::max(1.0, frame_glow_viewport.width), std::max(1.0, frame_glow_viewport.height)),
 					simd_make_float4(prefs.scene_brightness / 100.0f, prefs.scene_contrast / 100.0f,
 									 std::max(prefs.scene_gamma, 1) / 100.0f, graded ? 1.0f : 0.0f),
-					simd_make_float4(frame_heat ? 1.0f : 0.0f, frame_heat_time, 0, 0) };
+					simd_make_float4(frame_heat ? 1.0f : 0.0f, frame_heat_time, float(frame_hot_count), 0), {} };
+				std::copy(frame_hot, frame_hot + frame_hot_count, params.hot);
 				frame_heat = false;	// set again by the next world frame
+				frame_hot_count = 0;
 				[out setFragmentBytes:&params length:sizeof(params) atIndex:0];
 				[out setFragmentTexture:canvas atIndex:0];
 				[out setFragmentTexture:(frame_glow ? frame_glow : canvas) atIndex:1];
@@ -1472,10 +1487,13 @@ void SetWorldDistortion(float amount, float time_seconds)
 	world_time = time_seconds;
 }
 
-void SetHeatShimmer(bool on, float time_seconds)
+void SetHeatShimmer(bool on, float time_seconds, const simd_float4* hot, int count)
 {
 	frame_heat = on;
 	frame_heat_time = time_seconds;
+	frame_hot_count = on && hot ? std::clamp(count, 0, kMaximumHotRects) : 0;
+	if (frame_hot_count)
+		std::copy(hot, hot + frame_hot_count, frame_hot);
 }
 
 bool GlowWanted()

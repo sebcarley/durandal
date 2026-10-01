@@ -184,9 +184,8 @@ void RenderRasterize_Metal::render_tree()
 	}
 	u.caustics = 0;
 	u.liquid = simd_make_float4(0, 0, 0, 0);
-	// Heat shimmer (Rampant): the output pass wavers the air over lava
-	DurandalGL::SetHeatShimmer(Durandal::Enabled(Durandal::kHeatShimmer),
-							   (view->tick_count + view->heartbeat_fraction) / float(TICKS_PER_SECOND));
+	// Heat shimmer (Rampant): the lava drawn this frame, set after the world
+	hot_rects.clear();
 	// Liquids (W1): the view wavers under a liquid
 	DurandalGL::SetWorldDistortion(Durandal::Enabled(Durandal::kLiquids) && view->under_media_boundary ? 1.0f : 0.0f,
 								   view->tick_count / float(TICKS_PER_SECOND));
@@ -361,6 +360,11 @@ void RenderRasterize_Metal::render_tree()
 		mu.clip_mask = 0;
 		DurandalMetal::DrawMotes(motes.data(), count, mu);
 	}
+	// Heat shimmer (Rampant): the output pass wavers the lava in view and
+	// the air over it
+	DurandalGL::SetHeatShimmer(Durandal::Enabled(Durandal::kHeatShimmer),
+							   (view->tick_count + view->heartbeat_fraction) / float(TICKS_PER_SECOND),
+							   hot_rects.data(), int(hot_rects.size()));
 	render_viewer_sprite_layer(kDiffuse);
 }
 
@@ -828,11 +832,52 @@ void RenderRasterize_Metal::render_node_floor_or_ceiling(clipping_window_data *w
 	}
 
 	draw(m, vertices, vertex_count);
+	// Heat shimmer: where lava is on screen
+	if (m.state.program == kLiquid && polygon->media_index != NONE &&
+		get_media_data(polygon->media_index)->type == _media_lava && Durandal::Enabled(Durandal::kHeatShimmer))
+		note_hot(vertices, vertex_count);
 
 	// GL: the pulsate uniform stays set from the wall set-up
 	m.uniforms.patch = -1;
 	if (m.state.program != kLiquid && setup_glow(m, 0, offset))
 		draw(m, vertices, vertex_count);
+}
+
+// A lava surface's rectangle on screen, in the world view (0-1, top-left
+// origin); corners behind the viewer widen it to the full width and down
+// to the bottom
+void RenderRasterize_Metal::note_hot(const DurandalMetal::Vertex* vertices, int count)
+{
+	const simd_float4x4 vp = simd_mul(frame_uniforms.projection, frame_uniforms.modelview);
+	float x0 = 1, y0 = 1, x1 = 0, y1 = 0;
+	bool behind = false, any = false;
+	for (int i = 0; i < count; ++i) {
+		const simd_float4 c = simd_mul(vp, simd_make_float4(vertices[i].x, vertices[i].y, vertices[i].z, 1));
+		if (c.w <= 1.0f) {
+			behind = true;
+			continue;
+		}
+		const float gx = 0.5f * (c.x / c.w + 1.0f), gy = 0.5f * (1.0f - c.y / c.w);
+		x0 = std::min(x0, gx); x1 = std::max(x1, gx);
+		y0 = std::min(y0, gy); y1 = std::max(y1, gy);
+		any = true;
+	}
+	if (!any)
+		return;
+	if (behind) {
+		x0 = 0; x1 = 1; y1 = 1;
+	}
+	x0 = std::max(x0, 0.0f); y0 = std::max(y0, 0.0f);
+	x1 = std::min(x1, 1.0f); y1 = std::min(y1, 1.0f);
+	if (x1 <= x0 || y1 <= y0)
+		return;
+	const simd_float4 r = simd_make_float4(x0, y0, x1, y1);
+	if (int(hot_rects.size()) < DurandalGL::kMaximumHotRects)
+		hot_rects.push_back(r);
+	else {
+		simd_float4& last = hot_rects.back();	// more than fit: the last grows to hold them
+		last = simd_make_float4(std::min(last.x, r.x), std::min(last.y, r.y), std::max(last.z, r.z), std::max(last.w, r.w));
+	}
 }
 
 void RenderRasterize_Metal::render_node_side(clipping_window_data *window, vertical_surface_data *surface, bool void_present, RenderStep renderStep)

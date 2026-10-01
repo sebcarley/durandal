@@ -36,6 +36,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <simd/simd.h>
 
 struct SDL_Window;
 
@@ -91,8 +92,12 @@ void DrawWorldImage(void* texture, float gamma, void* glow, void* bloom,
 // Liquids (W1): waver the next world image (0: none, 1: underwater)
 void SetWorldDistortion(float amount, float time_seconds);
 // Heat shimmer (Rampant; DurandalAir.h): the output pass wavers the world
-// where the bloom is warm (the air over lava), this frame
-void SetHeatShimmer(bool on, float time_seconds);
+// over the lava in view this frame, and the air rising above it, as hot as
+// the bloom there is warm. `hot`: the lava surfaces' rectangles in the
+// world view (x0, y0, x1, y1, 0-1, top-left origin), up to
+// kMaximumHotRects
+constexpr int kMaximumHotRects = 8;
+void SetHeatShimmer(bool on, float time_seconds, const simd_float4* hot, int count);
 // Glow (E1): whether the output can show glow (HDR output is on)
 bool GlowWanted();
 void FlushAndWait();			// commit, wait, and continue the frame in a new command buffer

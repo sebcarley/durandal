@@ -52,6 +52,10 @@ class RenderRasterize_Metal : public RenderRasterizerClass {
 	int shadow_light_count = 0;
 	// Bounced Light (R4): figures take the redistributed light around them
 	bool light_bounce = false;
+	// Heat shimmer: the lava surfaces drawn this frame, as rectangles in the
+	// world view (x0, y0, x1, y1, top-left origin)
+	std::vector<simd_float4> hot_rects;
+	void note_hot(const DurandalMetal::Vertex* vertices, int count);
 
 	// A surface's shader, colour and blend, as the GL renderer would set them
 	struct Material {
