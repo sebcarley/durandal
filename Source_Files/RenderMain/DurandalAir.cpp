@@ -180,8 +180,10 @@ int Build(const view_data* view, const std::vector<sorted_node_data>& nodes, con
 				// (half the size came out as one-pixel specks); they glow, so
 				// they bloom
 				m.position_size = simd_make_float4(x, y, z, 20.0f + 10.0f * unit(hash(h, 6)));
-				m.colour = simd_make_float4(2.0f * fade, 0.85f * fade, 0.2f * fade, 1.0f);
-				m.info = simd_make_float4(1.5f, 0, 0, 0);
+				// Half as bright and half the glow as first built (the owner's
+				// first look, 1 Oct 2026: too strong)
+				m.colour = simd_make_float4(1.0f * fade, 0.425f * fade, 0.1f * fade, 1.0f);
+				m.info = simd_make_float4(0.75f, 0, 0, 0);
 				out.push_back(m);
 			}
 		}
