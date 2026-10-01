@@ -1555,7 +1555,7 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 		r = normalize(float3(r.xy, max(r.z, 0.02)));
 		SurfaceHit hit;
 		float3 mirror = surface;	// nothing within reach: the surface's own colour, as before
-		const bool met = trace_surfaces(map, u.polygon, in.world + float3(0.0, 0.0, 2.0), r, 32768.0, hit);
+		const bool met = trace_surfaces(map, u.polygon, in.world + float3(0.0, 0.0, 2.0), r, 16384.0, hit);
 		if (met) {
 			mirror = shade_hit(u, surfaces, map, walls, sky, hit, r, in.fog_distance + hit.t);
 			mirror = mix(u.fog_color.rgb, mirror, fog_factor(u, hit.t)) * haze.a + haze.rgb;
@@ -1930,7 +1930,7 @@ kernel void volume_kernel(uint2 gid [[thread_position_in_grid]], constant Volume
 					// The figures standing about this polygon, for the lights that
 					// throw their shadows (the nearest few, where strong)
 					float seen = 1.0;
-					if (p.figures > 0 && lights[i].info.z != 0 && lights[i].colour_strength.w * f >= 0.1) {
+					if (p.figures > 0 && m < 8192.0 && lights[i].info.z != 0 && lights[i].colour_strength.w * f >= 0.1) {
 						const float size = lights[i].info.y > 0 ? float(lights[i].info.y) : 150.0;
 						seen = figures_between(occ, poly, x, lights[i].position_radius.xyz - x, 0.0, 1.0, size);
 					}
@@ -2286,6 +2286,32 @@ static int grid_polygon(constant AOParams& p, device const int2* cells, device c
 	return found;
 }
 
+// Development: DURANDAL_TRACE_VIEW=1 draws the world by tracing instead:
+// one ray per pixel walked through the map from the viewer's polygon,
+// what it meets shaded from the surface table (DurandalSurfaces.h) as a
+// reflection is. Set beside the drawn frame it shows whether the table
+// places every texture as the rasteriser does
+struct TraceViewParams {
+	float4x4 inverse;		// clip -> world
+	int4 viewer;			// x: the viewer's polygon
+};
+
+fragment float4 trace_view_fragment(BlitOut in [[stage_in]], constant Uniforms& u [[buffer(0)]],
+									constant TraceViewParams& p [[buffer(1)]], device const float4* map [[buffer(2)]],
+									device const float4* surfaces [[buffer(3)]], texture2d_array<float> walls [[texture(0)]],
+									texture2d<float> sky [[texture(1)]])
+{
+	const float4 clip = float4(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, 1.0, 1.0);
+	float4 w = p.inverse * clip;
+	w /= w.w;
+	const float3 o = u.camera.xyz;
+	const float3 d = normalize(w.xyz - o);
+	SurfaceHit hit;
+	if (p.viewer.x < 0 || !trace_surfaces(map, p.viewer.x, o, d, 65536.0, hit))
+		return float4(0.0, 0.0, 0.0, 1.0);
+	return float4(shade_hit(u, surfaces, map, walls, sky, hit, d, hit.t), 1.0);
+}
+
 fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffer(0)]],
 						   texture2d<float> dist [[texture(0)]],
 						   device const float4* map [[buffer(1)]], device const int2* grid_cells [[buffer(2)]],
@@ -2339,7 +2365,11 @@ fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffe
 	const float3 B = cross(N, T);
 	// Traced (R3): short rays walked through the map from the point, and the
 	// figures standing near it, so what is off screen still shades it
-	if (p.traced.x != 0) {
+	// Traced only near the viewer (within 10 WU, where it shows; the
+	// screen-space estimate beyond fades out anyway): eight rays to 4 WU,
+	// four beyond (every film's worst frames were in this pass)
+	if (p.traced.x != 0 && d < 10240.0) {
+		const int ray_count = d < 4096.0 ? 8 : 4;
 		const float3 o = P + N * 8.0;
 		const int poly = grid_polygon(p, grid_cells, grid_indices, map, o);
 		// Development: DURANDAL_AO_VIEW=6 compares the stored distance with the
@@ -2396,7 +2426,7 @@ fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffe
 									 float4(0.61, 0.61, 0.50, 0.0), float4(-0.40, 0.40, 0.82, 0.0),
 									 float4(-0.66, -0.66, 0.36, 0.0), float4(0.30, -0.30, 0.90, 0.0) };
 			float traced = 0.0;
-			for (int i = 0; i < 8; ++i) {
+			for (int i = 0; i < ray_count; ++i) {
 				const float3 dir = normalize(T * dirs[i].x + B * dirs[i].y + N * dirs[i].z);
 				SurfaceHit hit;
 				float hit_weight = 0.0;
@@ -2410,7 +2440,7 @@ fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffe
 				// Development: DURANDAL_AO_VIEW=2 the surfaces only, 3 the figures only
 				traced += p.view == 2.0 ? hit_weight : p.view == 3.0 ? 1.0 - through : max(hit_weight, 1.0 - through);
 			}
-			return saturate(1.0 - p.strength * traced / 8.0);
+			return saturate(1.0 - p.strength * traced / float(ray_count));
 		}
 	}
 	float occlusion = 0.0;

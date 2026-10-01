@@ -365,6 +365,12 @@ id<MTLBuffer> bound_occluders, bound_occluder_polygons, bound_occluder_indices;
 id<MTLTexture> mask_array;			// kMaskSlices silhouettes, R8, mipmapped
 id<MTLTexture> no_masks;			// 1x1x1: none
 
+// Development: the trace view
+Uniforms trace_uniforms;
+int trace_viewer = -1;
+bool trace_set = false;
+id<MTLRenderPipelineState> trace_pipeline;
+
 // Air that moves: the motes' pipelines, single and multisampled
 id<MTLRenderPipelineState> mote_pipeline, mote_pipeline_msaa;
 bool motes_attempted = false;
@@ -1616,6 +1622,49 @@ void DrawMotes(const Mote* motes, int count, const Uniforms& uniforms)
 	[encoder setCullMode:MTLCullModeBack];
 }
 
+void SetTraceView(const Uniforms& uniforms, int viewer_polygon)
+{
+	trace_uniforms = uniforms;
+	trace_viewer = viewer_polygon;
+	trace_set = true;
+}
+
+static void run_trace_view()
+{
+	if (!trace_set || !bound_map || !bound_surfaces || !world_color)
+		return;
+	trace_set = false;
+	if (!trace_pipeline)
+	{
+		NSError* error = nil;
+		MTLRenderPipelineDescriptor* d = [MTLRenderPipelineDescriptor new];
+		d.vertexFunction = [library newFunctionWithName:@"blit_vertex"];
+		d.fragmentFunction = [library newFunctionWithName:@"trace_view_fragment"];
+		d.colorAttachments[0].pixelFormat = world_color.pixelFormat;
+		trace_pipeline = [device newRenderPipelineStateWithDescriptor:d error:&error];
+		if (!trace_pipeline)
+		{
+			logWarning("Durandal Metal: trace view unavailable: %s", error ? error.localizedDescription.UTF8String : "no function");
+			return;
+		}
+	}
+	struct { simd_float4x4 inverse; simd_int4 viewer; } params = { view_inverse_matrix, simd_make_int4(trace_viewer, 0, 0, 0) };
+	MTLRenderPassDescriptor* pass = [MTLRenderPassDescriptor renderPassDescriptor];
+	pass.colorAttachments[0].texture = world_color;
+	pass.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+	pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+	id<MTLRenderCommandEncoder> e = [command_buffer renderCommandEncoderWithDescriptor:pass];
+	[e setRenderPipelineState:trace_pipeline];
+	[e setFragmentBytes:&trace_uniforms length:sizeof(Uniforms) atIndex:0];
+	[e setFragmentBytes:&params length:sizeof(params) atIndex:1];
+	[e setFragmentBuffer:bound_map offset:0 atIndex:2];
+	[e setFragmentBuffer:bound_surfaces offset:0 atIndex:3];
+	[e setFragmentTexture:(colour_array ? colour_array : no_colours) atIndex:0];
+	[e setFragmentTexture:(sky_texture ? sky_texture : no_sky) atIndex:1];
+	[e drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+	[e endEncoding];
+}
+
 void SetRipples(const simd_float4* sources, int count)
 {
 	count = std::clamp(count, 0, kMaximumRipples);
@@ -1970,6 +2019,10 @@ void EndWorld(float gamma)
 		{
 			// Metal display: no wait; the world is drawn into the current
 			// viewport of the frame being built
+			// Development: the world drawn by tracing (DURANDAL_TRACE_VIEW=1)
+			static const bool trace_view = getenv("DURANDAL_TRACE_VIEW") != nullptr;
+			if (trace_view)
+				run_trace_view();
 			const bool ao_now = frame_ao && !viewer_under_liquid;
 			if (ao_now)
 				run_ao();

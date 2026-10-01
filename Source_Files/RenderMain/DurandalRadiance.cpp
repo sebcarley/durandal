@@ -44,14 +44,13 @@ const float kRefreshBlend = 1.0f / 24;	// each blended in this gently (the sampl
 									// 64 before, an 11% blend of 8 noisy rays every frame a door
 									// moved: the ripple round door frames seen in QA)
 const int kTileBudget = 384;		// 8x8 tiles baked per frame
-const int kBounceTiles = 256;		// Bounced Light: settled tiles refreshed per frame (round robin), on top
+const int kBounceTiles = 128;		// Bounced Light: settled tiles refreshed per frame (round robin), on top
 const int kBounceCap = 4096;		// Bounced Light: a refreshed patch keeps averaging up to this many
 									// samples, so each refresh moves it less (a fixed 1/8 blend stirred
 									// every wall and ceiling by a few per cent a pass: dappled light
 									// that moved, like a pool's ceiling)
-const int kBounceBudget = 512;		// Bounced Light: tiles baked per frame in all (Rampant spends some
-									// headroom settling light about twice as fast; 768 spiked the bake
-									// to 2.5 ms p99 entering new rooms)
+const int kBounceBudget = 384;		// Bounced Light: tiles baked per frame in all (768, then 512, spiked
+									// the bake to 3-4 ms in the worst frames entering new rooms)
 const float kLampBoost = 2.0f;		// reviewed wall lights give off this much more
 const float kSky = 0.9f;			// sky light through landscape surfaces
 
@@ -67,6 +66,9 @@ struct State {
 	uint32_t frame = 0;
 	size_t bounce_cursor = 0;						// Bounced Light: where the refresh round got to
 	std::vector<int> bounce_tile;					// per patch: its next tile to refresh (large patches go a slice a frame)
+	std::vector<float> light_smooth;				// Bounced Light: per polygon, its light smoothed over half a second
+	std::vector<float> light_settled;				//   and where it was when its surfaces last settled
+	double light_time = -1;							//   world time of the last update
 	bool ready = false;
 };
 State state;
@@ -436,6 +438,29 @@ void build_surfaces(std::vector<simd_float4>& out)
 	}
 }
 
+// Bounced Light: the surfaces of polygon p and its neighbours settle again
+// from a few samples (their room's light has changed: a switch, a light
+// going out), as briskly as a patch seen for the first time
+const int kResettle = 32;
+void resettle_around(int p)
+{
+	auto resettle = [&](int patch) {
+		if (patch >= 0)
+			state.samples[patch] = std::min(state.samples[patch], kResettle);
+	};
+	auto polygon_patches = [&](int q) {
+		resettle(state.floor_patch[q]);
+		resettle(state.ceiling_patch[q]);
+		for (int i = 0; i < MAXIMUM_VERTICES_PER_POLYGON; ++i)
+			resettle(state.wall_patch[size_t(q) * MAXIMUM_VERTICES_PER_POLYGON + i]);
+	};
+	polygon_patches(p);
+	const polygon_data* polygon = get_polygon_data(p);
+	for (int i = 0; i < polygon->vertex_count && i < MAXIMUM_VERTICES_PER_POLYGON; ++i)
+		if (polygon->adjacent_polygon_indexes[i] != NONE)
+			polygon_patches(polygon->adjacent_polygon_indexes[i]);
+}
+
 // Patches around polygon p go back to being refreshed
 void refresh_around(int p)
 {
@@ -478,6 +503,42 @@ bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes, si
 		{
 			state.heights[p] = now;
 			refresh_around(p);
+		}
+	}
+
+	// Bounced Light: a settled patch averages over thousands of samples, so
+	// it would barely follow a room whose light changes. Each room's light
+	// in view is smoothed over half a second (so flickering lights, which
+	// Marathon has many of, do not count); when the smoothed light moves
+	// far from where the room settled, its surfaces settle again
+	if (bounce)
+	{
+		const int polygons = dynamic_world->polygon_count;
+		if (int(state.light_smooth.size()) != polygons)
+		{
+			state.light_smooth.assign(polygons, -1.0f);
+			state.light_settled.assign(polygons, -1.0f);
+		}
+		const double now = (double(view->tick_count) + view->heartbeat_fraction) / TICKS_PER_SECOND;
+		const float k = state.light_time < 0 ? 1.0f : float(1.0 - std::exp(-std::max(now - state.light_time, 0.0) / 0.5));
+		state.light_time = now;
+		for (const sorted_node_data& node : nodes)
+		{
+			const short p = node.polygon_index;
+			if (p < 0 || p >= polygons)
+				continue;
+			const polygon_data* polygon = get_polygon_data(p);
+			const float lit = 0.5f * (light(polygon->floor_lightsource_index) + light(polygon->ceiling_lightsource_index));
+			float& smooth = state.light_smooth[p];
+			float& settled = state.light_settled[p];
+			if (smooth < 0)
+				smooth = settled = lit;
+			smooth += (lit - smooth) * k;
+			if (std::abs(smooth - settled) > 0.15f)
+			{
+				settled = smooth;
+				resettle_around(p);
+			}
 		}
 	}
 

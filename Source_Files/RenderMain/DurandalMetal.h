@@ -371,6 +371,12 @@ void DrawMotes(const Mote* motes, int count, const Uniforms& uniforms);
 constexpr int kMaximumRipples = 16;
 void SetRipples(const simd_float4* sources, int count);
 
+// Development: DURANDAL_TRACE_VIEW=1 replaces the world image with one drawn
+// by tracing (trace_view_fragment), from these uniforms (the frame's, with
+// the headlight's flare and self-luminosity as walls get them) and the
+// viewer's polygon. Needs the surface table (SetSurfaces) and the map.
+void SetTraceView(const Uniforms& uniforms, int viewer_polygon);
+
 // Development (DURANDAL_GPU_TIMING): the display's own passes join a world
 // frame's stage timings. `pass` is an MTLRenderPassDescriptor, `command_buffer`
 // the frame's; the display ends the frame's timing after its output pass.

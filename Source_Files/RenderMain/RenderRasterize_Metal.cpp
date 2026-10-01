@@ -360,6 +360,14 @@ void RenderRasterize_Metal::render_tree()
 		mu.clip_mask = 0;
 		DurandalMetal::DrawMotes(motes.data(), count, mu);
 	}
+	// Development: DURANDAL_TRACE_VIEW=1 draws the world by tracing instead
+	static const bool trace_view = std::getenv("DURANDAL_TRACE_VIEW") != nullptr;
+	if (trace_view) {
+		Uniforms tu = frame_uniforms;
+		tu.flare = weaponFlare;
+		tu.self_luminosity = selfLuminosity;
+		DurandalMetal::SetTraceView(tu, view->origin_polygon_index);
+	}
 	// Heat shimmer (Rampant): the output pass wavers the lava in view and
 	// the air over it
 	DurandalGL::SetHeatShimmer(Durandal::Enabled(Durandal::kHeatShimmer),
