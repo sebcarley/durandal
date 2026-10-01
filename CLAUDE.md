@@ -1111,8 +1111,20 @@ The folder name comes from the *localised* bundle name
     Bounced Light's refresh of settled patches blended a fresh 8-ray
     estimate at a fixed 1/8 every pass, so the lumels moved by a few per
     cent each time (now the running average carries on to 4096 samples,
-    `kBounceCap`, so each pass moves a patch less). Awaiting the owner's
-    second look.
+    `kBounceCap`, so each pass moves a patch less). Second look: "looking
+    good".
+  - Headless pass (1 Oct 2026; the Mac busy with Spotlight, Xcode and
+    another app, so only relative numbers): six standard films hidden,
+    Flagship against Rampant, by GPU stage. Trimmed: traced AO only within
+    10 WU (8 rays to 4 WU, 4 beyond), bake back to 384 tiles a frame (128
+    refresh), fog shafts within 8 WU, reflections reach 16 WU; bake and
+    fog worst frames down a quarter to a third, AO and the world pass
+    hardly (to measure again on a quiet Mac). Bounced Light re-settles a
+    room whose smoothed light (0.5 s) moves more than 0.15 from where it
+    settled (`resettle_around`, from 32 samples). `DURANDAL_TRACE_VIEW=1`
+    (`trace_view_fragment`, run in EndWorld) draws the world by tracing
+    from the surface table: on L06 walls, floor and ceiling match the
+    drawn frame, so the table's placement is right (the sky not yet seen).
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
