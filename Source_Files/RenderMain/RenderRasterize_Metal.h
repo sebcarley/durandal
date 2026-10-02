@@ -50,6 +50,9 @@ class RenderRasterize_Metal : public RenderRasterizerClass {
 	// shadow direction
 	DurandalMetal::Light shadow_lights[DurandalMetal::kMaximumLights];
 	int shadow_light_count = 0;
+	// Contact shadows: this frame's casters, for culling them per draw
+	DurandalMetal::Caster frame_casters[DurandalMetal::kMaximumCasters];
+	int frame_caster_count = 0;
 	// Bounced Light (R4): figures take the redistributed light around them
 	bool light_bounce = false;
 	// Heat shimmer: the lava surfaces drawn this frame, as rectangles in the

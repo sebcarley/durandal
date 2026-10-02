@@ -97,6 +97,8 @@ struct Uniforms {
 								//   z, w: a figure's own position (its card casts no shadow on itself), 1e5 none
 	simd_int4 rampant;			// Rampant: x traced shadows (R1), y polygons in the occluder lists,
 								//   z reflecting liquids (R2), w exact distances in the distance image (R3)
+	simd_uint4 culling;			// per draw: x the dynamic lights, y the contact-shadow casters that can
+								//   reach the surface (bits; all set where nothing was culled); z, w 0
 };
 
 // Dynamic lights (E2), world units. Must match struct Light in the shaders.

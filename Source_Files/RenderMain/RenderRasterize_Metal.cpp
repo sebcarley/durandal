@@ -164,6 +164,7 @@ void RenderRasterize_Metal::render_tree()
 	u.alpha_threshold = -1;
 	u.distance_mode = 1;
 	u.viewer_light = simd_make_float4(0, 0, 0, 0);
+	u.culling = simd_make_uint4(0xFFFFFFFFu, 0xFFFFFFFFu, 0, 0);	// draw() narrows it
 	u.figure_patches = simd_make_int4(-1, -1, 100000, 100000);	// z, w: no figure (positions are 16-bit)
 	u.visibility = 1;
 	u.time = view->tick_count;
@@ -269,6 +270,8 @@ void RenderRasterize_Metal::render_tree()
 	u.caster_count = Durandal::Enabled(Durandal::kContactShadows)
 		? DurandalLights::GatherCasters(view, RSPtr->SortedNodes, casters) : 0;
 	SetCasters(casters, u.caster_count);
+	std::copy(casters, casters + u.caster_count, frame_casters);
+	frame_caster_count = u.caster_count;
 	DurandalBenchmark::FrameCounts(light_count, u.caster_count);	// development timing
 
 	// GL: gl_Fog is set by OGL_StartMain; U_FogMode = -1 when fog is off
@@ -464,6 +467,45 @@ void RenderRasterize_Metal::draw(Material& m, const Vertex* polygon, int count)
 	u.clip_mask = clip_mask;
 	for (int i = 0; i < 3; ++i)
 		u.clip_planes[i] = clip_planes[i];
+	// The lights and casters that cannot reach this surface leave the
+	// shader's loops. The shaders light each fragment at its texel's centre,
+	// which may lie a little off the polygon, so its bounds grow by a
+	// margin; what is left is lit exactly as before
+	if (u.light_count > 0 || u.caster_count > 0)
+	{
+		simd_float3 lo = simd_make_float3(polygon[0].x, polygon[0].y, polygon[0].z), hi = lo;
+		for (int i = 1; i < count; ++i)
+		{
+			const simd_float3 p = simd_make_float3(polygon[i].x, polygon[i].y, polygon[i].z);
+			lo = simd_min(lo, p);
+			hi = simd_max(hi, p);
+		}
+		const float margin = 32.0f;
+		lo -= margin;
+		hi += margin;
+		uint32_t reach_lights = 0;
+		for (int i = 0; i < int(u.light_count) && i < shadow_light_count; ++i)
+		{
+			const simd_float4 l = shadow_lights[i].position_radius;
+			const simd_float3 c = simd_clamp(l.xyz, lo, hi);
+			if (simd_length_squared(l.xyz - c) < l.w * l.w)
+				reach_lights |= 1u << i;
+		}
+		// A caster shades upward-facing points within 32 units of its height
+		// and its radius across
+		uint32_t reach_casters = 0;
+		for (int i = 0; i < int(u.caster_count) && i < frame_caster_count; ++i)
+		{
+			const simd_float4 p = frame_casters[i].position_radius;
+			if (p.z <= lo.z - 32.0f || p.z >= hi.z + 32.0f)
+				continue;
+			const simd_float2 c = simd_clamp(p.xy, lo.xy, hi.xy);
+			if (simd_length_squared(p.xy - c) < p.w * p.w)
+				reach_casters |= 1u << i;
+		}
+		u.culling.x &= reach_lights;
+		u.culling.y &= reach_casters;
+	}
 
 	// GL_POLYGON / GL_QUADS -> triangle fan
 	Vertex triangles[3 * (MAXIMUM_VERTICES_PER_POLYGON + 4)];

@@ -32,7 +32,12 @@ baseline.
 4. **Two ideas were measured and dropped:**
    - Compiling Rampant's paths out of the lower tiers (a per-tier shader build) made Flagship no faster.
    - A glow image at half the bytes (RG11B10) saved nothing.
-5. **Found on the way:** Bounced Light makes the picture differ slightly from one run to the next (about 0.5 in 255 on L28; exactly repeatable with it off). That points to a timing dependence or a read/write race in the light atlas. It harms nothing in play, but it blurs every exact comparison.
+5. **Found on the way:** the light passes that build up over frames do not quite repeat from one run to the next.
+   - Bounced Light differs by about 0.5 in 255 on L28.
+   - Under relaxed maths, light redistribution alone differs by about 0.13 on level 6, from tick 750.
+   - With both off, every frame repeats exactly.
+   - That points to a timing dependence (results read back from the GPU as and when they are ready) or a read/write race in the light atlas.
+   - It harms nothing in play, but exact comparisons have to switch both off.
 
 ## How it was measured
 
@@ -100,7 +105,7 @@ GPU ms per frame, measured by switching it off. Values within the noise are left
 
 | | What | Expected | Effort |
 |---|---|---|---|
-| 2a | **Cull lights per surface.** For each draw the CPU works out which of the 16 lights can reach its polygon (range against bounds, the facing side), and passes a mask. The shader loops only over those. Contact-shadow casters likewise. | Most of the 1.1 ms (2.2 at p99) that lights cost in a firefight, in every tier from Enhanced up | small |
+| 2a | **Cull lights per surface** (done 2 Oct 2026). For each draw the CPU works out which of the 16 lights can reach its polygon (range against its bounds, with a margin for texel-centred lighting), and passes a mask. The shader loops only over those, in the same order. Contact-shadow casters and the liquids' glints likewise. Pixel-identical (frame shots with the light passes that build up over time switched off). | Measured in level 6's firefight, before → after, average / 1% low: Enhanced 340/166 → 392/180, Flagship 228/116 → 274/130, Rampant 197/94 → 211/98. World pass at p99: −1.4 to −1.8 ms | small |
 | 2b | **The fog's light walks.** Walk each light once per column, not per slice. Use a tiling noise texture instead of 24 hashes a slice, and skip the detail noise where it has faded. | 0.3–0.6 ms; better lows (fog off lifts Flagship's 1% low by a third) | small to medium |
 | 2c | **Traced ambient shadows over time.** The level's own geometry does not move. Either accumulate the rays over frames (2 a frame, reprojected with last frame's view, which is already kept), or bake the walls' occlusion into the surface cache and trace only the figures each frame. | 0.5–0.7 ms; 0.9 at p99 | medium to high |
 | 2d | **Figure shadows in firefights.** Test figures only for the two nearest strong lights while more than eight lights are up (measured: 2 lights save 0.7 ms at p99, 0 save 1.2), and keep the figure test from repeating per light where the light disc is tiny. | up to 1 ms at p99 | small |
@@ -110,7 +115,7 @@ GPU ms per frame, measured by switching it off. Values within the noise are left
 | | What | Expected | Effort |
 |---|---|---|---|
 | 3a | **Bloom:** fewer, merged passes (or one compute pass with shared memory), its texture views made once, the sRGB decode done once. | about 0.5 ms from Enhanced up | medium |
-| 3b | **Bounced light:** write the bake's results to a small buffer instead of copying the whole atlas every frame; compute each group's average once, not once per member. Find and fix the run-to-run variance at the same time. | about 0.3 ms, and repeatable pictures | medium |
+| 3b | **Bounced light and redistribution:** write the bake's results to a small buffer instead of copying the whole atlas every frame; compute each group's average once, not once per member. Find and fix the run-to-run variance at the same time (both passes). | about 0.3 ms, and repeatable pictures | medium |
 | 3c | **CPU:** cache the parts of the per-frame tables that do not change (only lights, platform heights, liquids and animated textures do). Build a level's figure masks at level entry or on a worker thread. | about 1 ms of CPU, and the CPU part of the spikes | medium |
 | 3d | **The 8-bit ramp path** (players without HD art): fewer dependent lookups per tap. | some of its 3 ms | medium |
 | 3e | **Liquids under 4x MSAA:** trace reflection and refraction once per pixel, not per sample. | small now (0.26 ms) | high |
@@ -132,7 +137,7 @@ GPU ms per frame, measured by switching it off. Values within the noise are left
 
 1. Relaxed maths as the default (step 1), after a look on the display.
 2. The order of step 2; 2a and 2d are the quickest wins for the worst frames.
-3. Whether to chase Bounced Light's run-to-run variance (3b). It matters for exact comparisons, not for play.
+3. Whether to chase the light passes' run-to-run variance (3b). It matters for exact comparisons, not for play.
 
 ## Data
 

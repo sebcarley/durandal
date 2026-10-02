@@ -1196,7 +1196,9 @@ The folder name comes from the *localised* bundle name
     the first job. Compiling Rampant's paths out of the lower tiers and a
     RG11B10 glow image were measured and gave nothing.
   - Bounced Light makes frames differ slightly run to run (0.5/255 on
-    L28; exactly repeatable with it off): compare frame shots with it off.
+    L28), and under relaxed maths light redistribution does too (0.13 on
+    L06 from tick 750): compare frame shots with `light_bounce=0,
+    light_redistribution=0` when a change should be exact.
   - Fix (the owner, 2 Oct 2026: dead monsters cast "a light as a bar in the
     same plane as the sprite", in dark corners): traced ambient shadows'
     `figure_under` took any pixel within 48 units of a card facing the
@@ -1208,6 +1210,15 @@ The folder name comes from the *localised* bundle name
     does, and never a floor or ceiling. Off-centre figures no longer
     shade themselves either. `DURANDAL_AO_VIEW=7` blacks out the pixels
     taken as a figure's own.
+  - Step 2a, light culling: `RenderRasterize_Metal::draw` tests each
+    frame light's sphere and each contact-shadow caster's reach against the
+    polygon's bounds (+32 units: lighting is taken at texel centres) and
+    sets `Uniforms::culling` (x lights, y casters, bits; all set for draws
+    that skip draw(), e.g. 3D pickups); `dynamic_light_with`,
+    `contact_shadow` and the liquid glints loop over the set bits with
+    `ctz`, lowest first as before, so results are bit-identical. Firefight
+    (L06 0-300): Enhanced 340 -> 392 fps, Flagship 228 -> 274, Rampant
+    197 -> 211; world p99 down 1.4-1.8 ms.
   - Tools: `scripts/feature-costs.sh <out> <film> <end-tick> label=settings
     ...` (hidden, off-screen, GPU stage timing; `REPEAT=n` alternates the
     order; settings may start with `ENV=value ...@`, and `APP=<binary>`

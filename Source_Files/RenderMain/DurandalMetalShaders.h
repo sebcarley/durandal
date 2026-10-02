@@ -90,6 +90,7 @@ struct Uniforms {
 								//   z, w: a figure's own position (its card casts no shadow on itself)
 	int4 rampant;				// Rampant: x traced shadows (R1), y polygons in the occluder lists,
 								//   z reflecting liquids (R2), w exact distances (R3, below)
+	uint4 culling;				// x the lights, y the casters that can reach this draw (bits)
 };
 
 // Light redistribution (E4): one surface's lumels in the surface cache
@@ -581,7 +582,10 @@ static DynamicLight dynamic_light_with(constant Uniforms& u, constant Light* lig
 {
 	DynamicLight d = { 0.0, float3(1.0) };
 	float3 colour = float3(0.0);
-	for (uint i = 0; i < u.light_count; ++i) {
+	// Only the lights that can reach this surface (culled per draw on the
+	// CPU), in the same order as before, so the sums are the same
+	for (uint m = u.culling.x & ((1u << u.light_count) - 1u); m != 0u; m &= m - 1u) {
+		const uint i = ctz(m);
 		const float3 to = lights[i].position_radius.xyz - l.world;
 		const float r = lights[i].position_radius.w;
 		const float dist2 = length_squared(to);
@@ -685,7 +689,9 @@ static float contact_shadow(constant Uniforms& u, constant Caster* casters, Ligh
 	if (u.caster_count == 0 || l.normal.z < 0.7)
 		return 1.0;
 	float lit = 1.0;
-	for (uint i = 0; i < u.caster_count; ++i) {
+	// Only the casters that can reach this surface (culled per draw)
+	for (uint m = u.caster_count >= 32u ? u.culling.y : u.culling.y & ((1u << u.caster_count) - 1u); m != 0u; m &= m - 1u) {
+		const uint i = ctz(m);
 		const float4 p = casters[i].position_radius;
 		const float dz = abs(l.world.z - p.z);
 		if (dz >= 32.0)
@@ -1543,7 +1549,8 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 	const float facing = saturate(dot(n, -v));
 	const float fresnel = 0.02 + 0.98 * pow(1.0 - facing, 5.0);
 	float3 glint = float3(0.0);
-	for (uint i = 0; i < u.light_count; ++i) {
+	for (uint m = u.culling.x & ((1u << u.light_count) - 1u); m != 0u; m &= m - 1u) {
+		const uint i = ctz(m);
 		const float3 to = lights[i].position_radius.xyz - in.world;
 		const float r = lights[i].position_radius.w;
 		const float d2 = length_squared(to);
