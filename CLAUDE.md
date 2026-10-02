@@ -125,13 +125,13 @@ The folder name comes from the *localised* bundle name
   2026) everything that has passed QA runs however the app is launched
   (`Durandal::Available()`, closed only by `DURANDAL_STOCK=1`), so a
   built app plays as the owner plays. A feature still in QA
-  (`Durandal::Released()` false: today Weapon Takes the Light) runs only
+  (`Durandal::Released()` false: none since 2 Oct 2026) runs only
   in Debug builds or with `DURANDAL_QA=1` (`Durandal::QA()`; the shared
   scheme's Run action sets it), and has no switch in the dialog
   otherwise. When the owner passes a feature, take it out of
   `Released()`'s list. A feature is live only when its gate is open and
   its switch is on.
-- Preferences → DURANDAL: Quality (Stock / Classic / Enhanced / Flagship / Custom) and one switch
+- Preferences → DURANDAL: Quality (Stock / Classic / Enhanced / Flagship / Rampant / Custom) and one switch
   per feature. The first run applies Flagship (fps target 0 = display
   rate). Stock restores upstream exactly (30 fps, no features).
 - Add a feature: extend `Durandal::Feature`, `kFeatureAttr`, the dialog
@@ -673,9 +673,9 @@ The folder name comes from the *localised* bundle name
   flips the preference, prints "God mode on" on screen, writes the
   preferences, and the flag change follows as for the dialog, stopping
   any film recording).
-  Summon BOBs (2 Oct 2026, in QA: `Durandal::QA()`; `cheat_summon_key`,
+  Summon BOBs (2 Oct 2026, QA passed the same day; `cheat_summon_key`,
   default C, unbound upstream and in the owner's keys; Cheats tab "Summon
-  BOBs Key", shown only with the gate open): a press stops the film
+  BOBs Key"): a press stops the film
   recording and asks for five security BOBs (`_civilian_security`), which
   arrive at the start of the next tick (`DurandalCheats::BeforeTick`,
   called in `update_world` after `exit_interpolated_world`, so the world
@@ -1159,6 +1159,17 @@ The folder name comes from the *localised* bundle name
     reflective", ripples kept): the mirror's weight is 0.75 x Fresnel.
   - Ground truths for the guide's update (handed to Claude chat):
     `docs/RAMPANT-GROUND-TRUTH.md`.
+  - QA passed (2 Oct 2026): Weapon Takes the Light, the six Rampant
+    features and Summon BOBs are released (`Released()` returns true for
+    everything; the summon key needs no gate). The new illustrated guide
+    (`docs/GUIDE.html`, five tiers, part XII Rampant, XIII the limits)
+    was placed with corrections reported to the owner (HD art fetched,
+    not shipped; Weapon Takes the Light restored; contents and terminal
+    numbering), and `docs/GUIDE.md` brought in step. The owner wants the
+    HD packs included when the repository goes public, or failing that a
+    one-button in-game download: see `docs/HD_ASSETS.md` section 6 for
+    the licence position (CFP art has no grant; needs the maintainer's
+    permission to mirror; git cannot hold files over 100 MB anyway).
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

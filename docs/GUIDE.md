@@ -27,9 +27,10 @@ rather not.
 7. [The eye](#vii--the-eye)
 8. [The room answers](#viii--the-room-answers)
 9. [What the terminals say](#ix--what-the-terminals-say)
-10. [Four ways to run it](#x--four-ways-to-run-it)
+10. [Five ways to run it](#x--five-ways-to-run-it)
 11. [Watching it back](#xi--watching-it-back)
-12. [The edge of the known](#xii--the-edge-of-the-known)
+12. [Rampant](#xii--rampant)
+13. [The edge of the known](#xiii--the-edge-of-the-known)
 
 Durandal is Marathon 2 for Apple Silicon: a Metal renderer grown out of
 Aleph One, with lighting, liquids, air and sound built on top of it. It does
@@ -79,7 +80,7 @@ as it always was. Rock lends its colour to the shadows beside it. When a
 door opens, the change arrives gently.
 
 **The weapon in your hands** takes the light around you: it warms as a
-bolt passes close, and flares with its own fire. (Still in QA.)
+bolt passes close, and flares with its own fire.
 
 **Relief.** Under the headlight the old wall art stands up a little: seams,
 rivets and carved glyphs catch the light on one side and lose it on the
@@ -92,7 +93,7 @@ other. HD walls bring their own relief and use that instead.
 | Ceiling Light on Sprites | `sprite_lighting` | Light |
 | Glow, Bloom, HDR Sky | `glow`, `bloom`, `hdr_sky` | Light |
 | Light Redistribution, and its strength | `light_redistribution`, `gi_strength` | Light |
-| Weapon Takes the Light (in QA) | `weapon_lighting` | Light |
+| Weapon Takes the Light | `weapon_lighting` | Light |
 | Surface Relief | `surface_relief` | Look |
 | Normal Maps (HD walls) | `normal_maps` | Art |
 | HDR Output | `hdr_output` | Light |
@@ -313,7 +314,7 @@ every word the game puts on the screen.
 
 ---
 
-## X · Four ways to run it
+## X · Five ways to run it
 
 ### From 1995 to the full dark
 
@@ -326,12 +327,17 @@ every word the game puts on the screen.
 | **Classic** | The Metal renderer, Marathon's own shading, crisp art and text, wide screens, every frame your display can show |
 | **Enhanced** | Classic, with glow, cast light and its shadows, liquids, reverb and the new camera |
 | **Flagship** | Enhanced, with the air, travelling light, relief, depth, and the community's HD art |
+| **Rampant** | Flagship, with bounced light, traced shadows from every figure, reflecting water, traced ambient shadows, dust and embers, and heat shimmer |
 
 Pick a tier, or switch any one thing and the tier becomes **Custom**.
+Choosing Rampant also sets Redistribution Strength to Strong; the other
+named tiers set Medium.
 
 Measured on an M5 MacBook Air at 1080p on a 240 Hz display, Flagship with
-the full HD set: 130 to 200 frames a second, about 350 MB of memory. With
-the old art it is slower, not faster: the 8-bit shading does more work per
+the full HD set: 130 to 200 frames a second, and a few hundred megabytes
+of memory, depending on the level. Rampant costs a fifth to a third of
+that frame rate and about 250 MB more; part XII has the figures. With the
+old art it is slower, not faster: the 8-bit shading does more work per
 pixel than a photograph does.
 
 ---
@@ -344,35 +350,132 @@ pixel than a photograph does.
 
 A Marathon film is a list of keys pressed, replayed against the same
 random numbers, and it only works if nothing in the game has changed by so
-much as one. Nothing has. Forty-three films play to the same final number
-with everything here switched off and with everything switched on, and that
-check stands guard over every change made.
+much as one. Nothing has. Forty-three films, eighty-six checks, run three
+ways: stock, the default, and everything switched on. They play to the
+same final number every way, and that check stands guard over every change
+made.
 
-The testing cheats on the Cheats tab are for looking around. A film
-recorded with them carries them, and replays with them.
+The testing cheats on the Cheats tab are for looking around: Level Select
+on New Game, God Mode, All Weapons and Ammo, and Noclip. A film recorded
+with any of those begun with the game carries them, and replays with them.
+
+**Summon BOBs.** Press C and five armed security BOBs teleport in beside
+and behind you, with the usual effect and sound, and go for the nearest
+aliens. They arrive only where they could have walked to you in a straight
+line: no wall in the way, on your level, not over lava, goo or deep water,
+and clear of anyone else; if there is no room, the screen says so. It
+works in single-player games only, never a replay or a net game, and a
+summon ends that game's film recording, since a film cannot carry it. A
+game saved after a summon restores with its BOBs in any build. The key can
+be changed on the Cheats tab.
 
 ---
 
-## XII · The edge of the known
+## XII · Rampant
+
+### More than this machine was built for
+
+> Six switches, each needing something from the tiers below it. Every one
+> of them can be turned off.
+
+Rampant is the fifth tier, above Flagship, and it has its own tab. Six
+switches, all of them Metal only, all of them read-only on the game world:
+films, saves and the rules are untouched.
+
+**Bounced light.** Light that reaches a surface passes on to the next,
+frame after frame, so a lit room fills in its corners and colour carries
+from wall to wall. The sky gives off the landscape's own average colour.
+Figures take the light of the floor and ceiling around them. When a
+room's light changes for good, a switch thrown or a lamp failing, its
+surfaces settle again rather than keeping the old light.
+
+**Traced shadows.** Monsters, items, scenery and corpses cast shadows from
+cast light, from their own silhouettes rather than a blob. Edges are sharp
+at the feet and soften with distance, by the size of the light. Grates
+throw patterned shadows, and figures cut shafts out of lit fog. Up to 128
+figures near lights, in view or not.
+
+**Reflecting liquids.** Water, sewage and goo reflect the room above them,
+the sky, and whoever is standing at the edge, broken by ripples. Waders
+and splashes make ripple rings. What lies below bends, by an approximation
+of refraction. Not lava, and not from under the surface. The reflection
+is a quarter weaker than full Fresnel would make it.
+
+**Traced ambient shadows.** Ambient shadows found by tracing short rays
+through the level and the figures, rather than read from the picture: they
+know what is off screen and behind things. Within ten world units of you,
+eight rays a pixel out to four units and four beyond; further off, the
+screen-space estimate as before.
+
+**Dust, embers and heat.** Dust drifts in every room in view, within
+sixteen world units, lit by the room and glinting where cast light passes
+through it; rooms open to the sky carry more. Over real lava, embers rise
+off the surface, glowing, and fade as they climb, and the air above it
+wavers. The motes are made from the world time, so a film shows the same
+dust at the same tick.
+
+**How it traces.** Rampant traces its rays on the GPU through Marathon's
+own map, the same polygon walk the engine's line of sight uses, and not
+with the M5's ray-tracing hardware. The hardware was tried: a million rays
+a set, eight levels, both ways. Fourteen of Marathon 2's twenty-eight
+levels have rooms that overlap without being neighbours, which a triangle
+structure cannot represent, so the hardware answered wrongly there: 2.7%
+of shadow segments, 13% on 5-D Space, and 3.5% of long rays. The walk was
+also quicker for the long rays neighbouring pixels cast together. So the
+walk is the tracer, exact where the map folds through itself. Along the
+way a fault turned up in the engine's own light check, which let light
+leak between rooms stacked on each other; Rampant's shadows do not have it.
+
+**What it costs.** Six films, each run two minutes at Flagship and at
+Rampant, in alternating order, on an M5 MacBook Air at 1080p and 240 Hz
+with the four HD packs installed. Rampant cost 19 to 29% of the frame
+rate, averaged 111 to 134, and held 60 at the 1% low on all six; its worst
+single second was 58, once. The extra time goes on the GPU: four to seven
+milliseconds in the world pass for the traced shadows and reflections, two
+and a half to three and a half for the traced ambient shadows, up to two
+for the fog. It adds about 250 MB of GPU arrays (the figure silhouettes,
+about 170 MB, and the wall art it reflects, about 85).
+
+| Switch | Stored as | Needs |
+|---|---|---|
+| Bounced Light | `light_bounce` | Light Redistribution |
+| Traced Shadows | `traced_shadows` | Dynamic Lights, Light Shadows |
+| Reflecting Liquids | `reflections` | Real Liquids |
+| Traced Ambient Shadows | `traced_ambient` | Ambient Shadows |
+| Dust and Embers | `dust_embers` | nothing |
+| Heat Shimmer | `heat_shimmer` | Bloom |
+
+The tier itself is stored as `quality_tier`: Rampant is 5, and Custom
+stays 4, so existing preferences files are unaffected.
+
+---
+
+## XIII · The edge of the known
 
 ### What lies beyond the lamps
 
 > He has told you some of it. He has not told you the rest.
 
-Nothing here is ray traced. Cast light finds its shadows by walking the
-map, which is exact for walls and blind to sprites. Ambient shadows are
-read from the picture, not the world, so they know only what is on screen.
-The water does not refract and does not reflect. Light travels once across
-a room and stops.
+Below Rampant, nothing is ray traced: cast light finds its shadows by
+walking the map, which is exact for walls and blind to sprites; ambient
+shadows are read from the picture, so they know only what is on screen;
+the water neither reflects nor refracts; and light travels once across a
+room and stops. Rampant changes each of those (part XII).
 
 Pickups can be models; the Pfhor cannot, because nobody has made them, and
 the sprites are better than models would be. Models do not animate. The
-view can pitch to about sixty-five degrees and no further, because
-Marathon's world was never built to be seen from straight below.
+view can pitch to about sixty-five degrees and no further: straight up or
+down would need a second, backward walk through the map, and Marathon's
+world was never built to be seen from straight below.
 
-The Jjaro wall set has not had its lamps marked. Film export is not
-available on the Metal display. The OpenGL renderer is still there and
-gets none of this.
+In Rampant, reflections use the wall art at 256 pixels, from the HD pack
+where there is one, and the figures in them are flat cut-outs lit by the
+floor. Figures cast shadows only from the four nearest lights bright
+enough to matter; weaker and more distant lights still light, but cast
+none. Dust is drawn within sixteen world units.
+
+Film export is not available on the Metal display; screen recording does
+the job. The OpenGL renderer is still there and gets none of this.
 
 And none of it makes the game easier. The light shows you the shadow. It
 does not tell you whose it is.

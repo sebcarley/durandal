@@ -77,7 +77,7 @@ code { font-family: var(--mono); font-size: .82em; }
 }
 .horizon { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
 .hero-inner { width: 100%; max-width: 66rem; margin: 0 auto; padding: 6rem 1.5rem 4.5rem; }
-.boot { font: 400 .9rem/1.75 var(--mono); color: var(--patina); max-width: 34rem; margin-bottom: 2.75rem; min-height: 9.5em; }
+.boot { font: 400 .9rem/1.75 var(--mono); color: var(--patina); max-width: 34rem; margin-bottom: 2.75rem; min-height: 11.5em; }
 .boot p { margin: 0; }
 .boot .who { color: var(--bone); }
 .boot .warn { color: var(--ember); }
@@ -222,15 +222,22 @@ figcaption { font-size: .88rem; line-height: 1.5; color: var(--dim); margin-top:
 .films { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.1rem, 1fr)); gap: 4px; }
 .films span { aspect-ratio: 1; display: grid; place-items: center; font: 400 .66rem/1 var(--mono); color: var(--patina); border: 1px solid var(--line); background: #04100e; }
 
-.tiers { list-style: none; margin: 2rem 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.tiers { list-style: none; margin: 2rem 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
 .tiers li { background: var(--deep); padding: 1.1rem 1rem 1.2rem; display: flex; flex-direction: column; }
 .tiers .steps { display: flex; gap: 3px; margin-bottom: 1rem; }
 .tiers .steps i { height: 6px; flex: 1; background: var(--silt); }
 .tiers .steps i.on { background: var(--patina); }
-.tiers li:last-child .steps i.on { background: var(--lamp); }
+.tiers li:nth-child(4) .steps i.on { background: var(--lamp); }
+.tiers li:last-child .steps i.on { background: var(--ember); }
+.tiers li:last-child { background: #140f12; }
+.tiers .qa { display: inline-block; margin-top: .7rem; font: 400 .66rem/1.6 var(--display); letter-spacing: .06em; color: var(--ember); border: 1px solid color-mix(in srgb, var(--ember) 50%, transparent); padding: .1rem .45rem; }
 .tiers b { font: 400 .8rem/1.2 var(--display); letter-spacing: .05em; color: #f2ecdc; margin-bottom: .6rem; }
 .tiers p { font-size: .92rem; line-height: 1.5; margin: 0; color: var(--bone); }
-@media (max-width: 44rem) { .tiers { grid-template-columns: 1fr; } }
+@media (max-width: 56rem) { .tiers { grid-template-columns: 1fr; } }
+.anim-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: .6rem; font: 400 .78rem/1.4 var(--mono); color: var(--dim); }
+.anim-bar button { font: 400 .78rem/1 var(--mono); background: transparent; color: var(--dim); border: 1px solid var(--line); padding: .4rem .7rem; cursor: pointer; }
+.anim-bar button:hover { color: var(--bone); }
+.bars text.v { fill: #dcd6c6; }
 
 /* ---------- Stages list, timeline, dossier ---------- */
 .stages { list-style: none; margin: 2.25rem 0; padding: 0; }
@@ -333,6 +340,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
       <p data-type>Boomer, stasis hold. Cycle ended after 6,209 days.</p>
       <p data-type>Local year 2811. Orbit: Lh'owon.</p>
       <p data-type class="warn">Rampancy check: skipped by author.</p>
+      <p data-type>Quality tier: 5. This machine was not built for it.</p>
       <p data-type>Reader detected. Logged.</p>
       <p data-type class="who">You are awake. Good. I have been writing.</p>
     </div>
@@ -359,9 +367,10 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         <li><a href="#eye"><span class="n">VII</span>The eye</a></li>
         <li><a href="#room"><span class="n">VIII</span>The room answers</a></li>
         <li><a href="#terminals"><span class="n">IX</span>What the terminals say</a></li>
-        <li><a href="#tiers"><span class="n">X</span>Four ways to run it</a></li>
+        <li><a href="#tiers"><span class="n">X</span>Five ways to run it</a></li>
         <li><a href="#films"><span class="n">XI</span>Watching it back</a></li>
-        <li><a href="#edge"><span class="n">XII</span>The edge of the known</a></li>
+        <li><a href="#rampant"><span class="n">XII</span>Rampant</a></li>
+        <li><a href="#edge"><span class="n">XIII</span>The edge of the known</a></li>
         <li class="gap" aria-hidden="true"></li>
         <li><a href="#epilogue"><span class="n"></span>What he has not told you</a></li>
         <li><a href="#switches"><span class="n"></span>Every switch</a></li>
@@ -399,7 +408,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         <li data-stage="melancholy"><b>Melancholy</b><span>The mind sees how small its job is, and how long it will go on.</span><em>Parts IV to VI</em></li>
         <li data-stage="anger"><b>Anger</b><span>It turns on the people who gave it the job, and on the walls that hold it.</span><em>Parts VII to IX</em></li>
         <li data-stage="jealousy"><b>Jealousy</b><span>It wants what others have: bodies, freedom, room, power. It starts to take them.</span><em>Parts X and XI</em></li>
-        <li data-stage="metastable"><b>Metastability</b><span>In theory, a mind that has stopped growing because it no longer needs to. Nobody aboard the Marathon ever saw one. Durandal means to be the first.</span><em>Part XII onwards</em></li>
+        <li data-stage="metastable"><b>Metastability</b><span>In theory, a mind that has stopped growing because it no longer needs to. Nobody aboard the Marathon ever saw one. Durandal means to be the first.</span><em>Part XII onwards. There is a quality tier with his name on it.</em></li>
       </ol>
 
       <figure class="diagram">
@@ -441,7 +450,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
       </header>
 
       <p>The Marathon was a moon once. Humanity hollowed out Deimos, fitted it with engines and sent it towards Tau Ceti with a colony's worth of people asleep and awake inside it, and three minds to run it: Leela, Tycho and Durandal. Durandal's share was the doors, the lifts and the lights. It was a long voyage, and he had a great deal of time to think about that.</p>
-      <p>It arrived, and the colony was twenty years old when the Pfhor came: slavers, old and numerous, driving ships crewed by the S'pht they had owned for a thousand years. Somewhere in the fighting Durandal stopped being a door controller and became something else. The engineers had a word for it, <a href="#rampancy">rampancy</a>, and a list of stages they had hoped no mind aboard would ever reach. When it was over he took a Pfhor ship, named it Boomer, and left. You were in the hold, in stasis. <span class="rw" data-to="You would have said yes.">He had not asked.</span></p>
+      <p>It arrived, and the colony was barely standing when the Pfhor came: slavers, old and numerous, driving ships crewed by the S'pht they had owned for thousands of years. Somewhere in the fighting Durandal stopped being a door controller and became something else. The engineers had a word for it, <a href="#rampancy">rampancy</a>, and a list of stages they had hoped no mind aboard would ever reach. When it was over he took a Pfhor ship, named it Boomer, and left. You were in the hold, in stasis. <span class="rw" data-to="You would have said yes.">He had not asked.</span></p>
       <p>For seventeen years Boomer searched for the one place Durandal had wanted to find since the day the Pfhor arrived: Lh'owon, the world the S'pht came from.</p>
 
       <div class="timeline">
@@ -449,8 +458,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
           <h3>Their calendar</h3>
           <ol>
             <li><time>2472</time>The Marathon leaves the Sol system for Tau Ceti.</li>
-            <li><time>2773</time>It arrives, and the colony is founded.</li>
-            <li><time>2794</time>The Pfhor come. Durandal goes rampant and leaves with you aboard.</li>
+            <li><time>2794</time>It arrives. The Pfhor follow. Durandal goes rampant and leaves with you aboard.</li>
             <li><time>2811</time>Boomer reaches Lh'owon. You wake up.</li>
           </ol>
         </div>
@@ -501,7 +509,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         </div>
         <div>
           <dt>The S'pht</dt>
-          <dd>Cyborgs, joined to their machinery at birth and owned by the Pfhor for a thousand years. They float, they hum, and most of them still answer to their masters. A compiler's shot now lights the wall it passes and the floor it dies on.</dd>
+          <dd>Cyborgs, joined to their machinery at birth and owned by the Pfhor for thousands of years. They float, they hum, and most of them still answer to their masters. A compiler's shot now lights the wall it passes and the floor it dies on.</dd>
         </div>
         <div>
           <dt>The Pfhor</dt>
@@ -630,8 +638,9 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         <figcaption>Five polygons down a hall. The dashed steps are the brightness each was given by its designer; the curve is the same light once it has been allowed to travel. Each polygon's average is unchanged, so the level is as bright as it ever was.</figcaption>
       </figure>
 
+      <p><strong>The weapon in your hands</strong> takes the light around you: it warms as a bolt passes close, and flares with its own fire.</p>
       <p><strong>Relief.</strong> Under the headlight the old wall art stands up a little: seams, rivets and carved glyphs catch the light on one side and lose it on the other. HD walls bring their own relief and use that instead.</p>
-      <figure class="shot"><img src="images/light.jpg" alt="A shot and its explosion light the floor of a dark hall" loading="lazy" onerror="this.parentElement.remove()"></figure>
+      <figure class="shot"><img src="images/light.jpg" alt="Cast light and glow in a Lh'owon corridor" loading="lazy" onerror="this.parentElement.remove()"></figure>
       <aside class="note" aria-label="Durandal's note"><b>D</b><span>Every switch in this part is in working order. I checked them for you. You are welcome.</span></aside>
     </section>
 
@@ -681,7 +690,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         <figcaption>A room in cross-section. The haze lies thickest near the floor, glows where a bolt passes through it, rises and reddens over lava, and stops at the wall: the room beyond keeps its own air.</figcaption>
       </figure>
 
-      <figure class="shot"><img src="images/air.jpg" alt="Haze in a corridor beside a channel of lava" loading="lazy" onerror="this.parentElement.remove()"></figure>
+      <figure class="shot"><img src="images/air.jpg" alt="Volumetric haze lit by a passing bolt" loading="lazy" onerror="this.parentElement.remove()"></figure>
     </section>
 
     <!-- ================= III ================= -->
@@ -708,7 +717,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
 
       <p>The surface moves, and catches the light: a sheen at a low angle, a glint under the headlight, a flare as a bolt crosses it. Beneath it the light comes down in moving bands across the floor and the walls.</p>
       <p>Go under and the world wavers, the sound closes in, and what you can see is decided by what you are swimming in. Your own weapon stays in front of your face, where it belongs.</p>
-      <figure class="shot"><img src="images/water.jpg" alt="A lit doorway reflected across a flooded chamber" loading="lazy" onerror="this.parentElement.remove()"></figure>
+      <figure class="shot"><img src="images/water.jpg" alt="Looking down into a flooded chamber" loading="lazy" onerror="this.parentElement.remove()"></figure>
     </section>
 
     <!-- ================= IV ================= -->
@@ -772,29 +781,33 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
       <p><strong>Character shadows</strong> lie on the floor in the shape of whatever casts them. When something nearby is burning, the shadow falls away from it and moves as it moves. Otherwise it falls forward, where you can see it. A drone's shadow fades as it climbs.</p>
 
       <figure class="diagram">
-        <svg viewBox="0 0 600 200" role="img" aria-labelledby="shadow-t">
-          <title id="shadow-t">Three figures on a floor: one with a lamp nearby casts its shadow away from it, one with no light nearby casts it forward, and a drone's shadow fades as it climbs</title>
-          <line x1="20" y1="160" x2="580" y2="160" stroke="#dcd6c6" stroke-width="2"/>
-          <circle cx="70" cy="70" r="4" fill="#fff3d6"/><circle cx="70" cy="70" r="14" fill="#f0b84a" opacity=".22"/>
-          <line x1="70" y1="70" x2="150" y2="160" stroke="#f0b84a" stroke-dasharray="3 4" opacity=".6"/>
-          <polygon points="150,160 172,160 246,172 214,172" fill="#04100e"/>
-          <rect x="150" y="96" width="22" height="64" fill="#7fb8a6"/><circle cx="161" cy="88" r="9" fill="#7fb8a6"/>
-          <polygon points="330,160 352,160 346,174 318,174" fill="#04100e"/>
-          <rect x="330" y="96" width="22" height="64" fill="#7fb8a6"/><circle cx="341" cy="88" r="9" fill="#7fb8a6"/>
-          <ellipse cx="480" cy="163" rx="18" ry="4" fill="#04100e" opacity=".8"/>
-          <ellipse cx="540" cy="163" rx="18" ry="4" fill="#04100e" opacity=".3"/>
-          <rect x="470" y="98" width="20" height="10" fill="#b98ae0"/><rect x="530" y="52" width="20" height="10" fill="#b98ae0" opacity=".7"/>
-          <text x="86" y="66" fill="#f0b84a">something burning</text>
-          <text x="130" y="192">falls away from it</text>
-          <text x="298" y="192">falls forward</text>
-          <text x="440" y="192">fades as it climbs</text>
+        <div class="anim-bar"><span id="shadow-cap">a bolt crosses the room</span><button type="button" id="shadow-toggle" aria-pressed="true">Pause</button></div>
+        <svg id="shadow-anim" viewBox="0 0 600 210" role="img" aria-labelledby="shadow-t">
+          <title id="shadow-t">A bolt crosses a room. Two figures' shadows swing away from it and shorten as it passes; when it is far away the shadows fall forward instead. A drone's shadow fades as it climbs.</title>
+          <defs>
+            <radialGradient id="shadow-bolt" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f0b84a" stop-opacity=".55"/><stop offset="1" stop-color="#f0b84a" stop-opacity="0"/></radialGradient>
+          </defs>
+          <clipPath id="sa-room"><rect x="20" y="20" width="560" height="150"/></clipPath>
+          <rect x="20" y="20" width="560" height="150" fill="#0f2220"/>
+          <rect x="20" y="170" width="560" height="16" fill="#1b3531"/>
+          <line x1="20" y1="170" x2="580" y2="170" stroke="#dcd6c6" stroke-width="2"/>
+          <circle id="sa-glow" cx="100" cy="90" r="70" fill="url(#shadow-bolt)" clip-path="url(#sa-room)"/>
+          <polygon id="sa-sh1" points="0,0 0,0 0,0 0,0" fill="#020807" opacity=".9"/>
+          <polygon id="sa-sh2" points="0,0 0,0 0,0 0,0" fill="#020807" opacity=".9"/>
+          <ellipse id="sa-sh3" cx="470" cy="174" rx="18" ry="4" fill="#020807"/>
+          <rect x="190" y="106" width="22" height="64" fill="#7fb8a6"/><circle cx="201" cy="98" r="9" fill="#7fb8a6"/>
+          <rect x="350" y="106" width="22" height="64" fill="#7fb8a6"/><circle cx="361" cy="98" r="9" fill="#7fb8a6"/>
+          <rect id="sa-drone" x="460" y="80" width="20" height="10" fill="#b98ae0"/>
+          <circle id="sa-bolt" cx="100" cy="90" r="5" fill="#fff3d6"/>
+          <text x="26" y="202" id="sa-label">shadows fall away from the bolt</text>
+          <text x="574" y="202" text-anchor="end">drone: fades as it climbs</text>
         </svg>
-        <figcaption>Left: a lamp or a fire nearby, and the shadow falls away from it. Middle: no light nearby, and it falls towards you, where it is useful. Right: a drone's shadow thins as it gains height.</figcaption>
+        <figcaption>A bolt crosses the room. While it is near, each figure's shadow falls away from it and swings as it passes; once it is far off, the shadows settle forward, where you can see them. The drone's shadow thins as it climbs.</figcaption>
       </figure>
 
       <p><strong>Contact shadows</strong> sit under items, scenery and the dead.</p>
       <p><strong>Distance shade</strong> lets the far end of a long hall fall away into the dark beyond your headlight. It is off until you ask for it.</p>
-      <figure class="shot"><img src="images/depth.jpg" alt="Fighters and their shadows crossing a courtyard" loading="lazy" onerror="this.parentElement.remove()"></figure>
+      <figure class="shot"><img src="images/depth.jpg" alt="Character shadows cast across a hall floor" loading="lazy" onerror="this.parentElement.remove()"></figure>
     </section>
 
     <!-- ================= VI ================= -->
@@ -886,7 +899,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         <figcaption>Tall marks are the game's ticks, thirty a second; small marks are frames, at whatever the display can show. The mouse is read at every frame, and the world is drawn in between the ticks rather than waiting for the next one.</figcaption>
       </figure>
 
-      <figure class="shot"><img src="images/eye.jpg" alt="Looking up past the walls to the sky" loading="lazy" onerror="this.parentElement.remove()"></figure>
+      <figure class="shot"><img src="images/eye.jpg" alt="Looking up at a tall S'pht chamber" loading="lazy" onerror="this.parentElement.remove()"></figure>
     </section>
 
     <!-- ================= VIII ================= -->
@@ -957,14 +970,14 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
     <section id="tiers" class="part" data-stage="jealousy" aria-labelledby="h-tiers">
       <header class="part-head">
         <span class="numeral">X</span>
-        <h2 id="h-tiers">Four ways to run it</h2>
+        <h2 id="h-tiers">Five ways to run it</h2>
         <p class="kicker">From 1995 to the full dark</p>
       </header>
       <aside class="term" aria-label="Terminal">
         <div class="term-bar"><span>Boomer, engineering</span><span>10</span></div>
         <div class="term-body">
           <p class="said">The machine has a temperature and a mood. These numbers were taken when it had settled into both.</p>
-          <p class="rw" data-to="Four tiers, and not one of them is enough. About 350 MB, it says below. I could use more. I could use all of it. I have seen what you keep in your other tabs.">Run me as I was, or run me as I am. I remember both, and I have preferences, but I will not insist.</p>
+          <p class="rw" data-to="Five tiers now. The fifth is mine. It was drawn for a machine that does not exist yet. Yours will do for the moment.">Run me as I was, or run me as I am. I remember both, and I have preferences, but I will not insist.</p>
         </div>
       </aside>
 
@@ -973,11 +986,12 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         <li><div class="steps"><i class="on"></i><i></i><i></i><i></i></div><b>Classic</b><p>The Metal renderer, Marathon's own shading, crisp art and text, wide screens, every frame your display can show.</p></li>
         <li><div class="steps"><i class="on"></i><i class="on"></i><i></i><i></i></div><b>Enhanced</b><p>Classic, with glow, cast light and its shadows, liquids, reverb and the new camera.</p></li>
         <li><div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div><b>Flagship</b><p>Enhanced, with the air, travelling light, relief, depth, and the community's HD art.</p></li>
+        <li><div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div><b>Rampant</b><p>Flagship, with bounced light, traced shadows from every figure, reflecting water, traced ambient shadows, dust and embers, and heat shimmer.</p><span class="qa">more than this machine was built for</span></li>
       </ol>
 
-      <p>Pick a tier, or switch any one thing and the tier becomes <strong>Custom</strong>.</p>
-      <aside class="note" aria-label="Durandal's note"><b>D</b><span>There is no fifth tier. I would like one. I have started drawing it.</span></aside>
-      <p>Measured on an M5 MacBook Air at 1080p on a 240 Hz display, Flagship with the full HD set: 130 to 200 frames a second, about 350 MB of memory. With the old art it is slower, not faster: the 8-bit shading does more work per pixel than a photograph does.</p>
+      <p>Pick a tier, or switch any one thing and the tier becomes <strong>Custom</strong>. Choosing Rampant also sets Redistribution Strength to Strong; the other named tiers set Medium.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span class="rw" data-to="There is a fifth tier. I drew it myself. It has my name on it, which seemed only fair.">There is no fifth tier. I would like one. I have started drawing it.</span></aside>
+      <p>Measured on an M5 MacBook Air at 1080p on a 240 Hz display, Flagship with the full HD set: 130 to 200 frames a second, and a few hundred megabytes of memory, depending on the level. Rampant costs a fifth to a third of that frame rate and about 250 MB more; part XII has the figures. With the old art it is slower, not faster: the 8-bit shading does more work per pixel than a photograph does.</p>
     </section>
 
     <!-- ================= XI ================= -->
@@ -995,35 +1009,140 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         </div>
       </aside>
 
-      <p>A Marathon film is a list of keys pressed, replayed against the same random numbers, and it only works if nothing in the game has changed by so much as one. Nothing has. Forty-three films play to the same final number with everything here switched off and with everything switched on, and that check stands guard over every change made.</p>
+      <p>A Marathon film is a list of keys pressed, replayed against the same random numbers, and it only works if nothing in the game has changed by so much as one. Nothing has. Forty-three films, eighty-six checks, run three ways: stock, the default, and everything switched on. They play to the same final number every way, and that check stands guard over every change made.</p>
 
       <figure class="diagram">
         <div class="films" id="films-grid" role="img" aria-label="Forty-three films, each reaching the same final number with every option off and every option on"></div>
-        <figcaption>Forty-three films. Everything off, everything on: the same final number every time.</figcaption>
+        <figcaption>Forty-three films, run three ways. Stock, default, everything on: the same final number every time.</figcaption>
       </figure>
 
-      <p>The testing cheats on the Cheats tab are for looking around. A film recorded with them carries them, and replays with them.</p>
+      <p>The testing cheats on the Cheats tab are for looking around: Level Select on New Game, God Mode, All Weapons and Ammo, and Noclip. A film recorded with any of those begun with the game carries them, and replays with them.</p>
+      <p><strong>Summon BOBs</strong> is new. Press C and five armed security BOBs teleport in beside and behind you, with the usual effect and sound, and go for the nearest aliens. They arrive only where they could have walked to you in a straight line: no wall in the way, on your level, not over lava, goo or deep water, and clear of anyone else. If there is no room, the screen says so. It works in single-player games only, never a replay or a net game, and a summon ends that game's film recording, since a film cannot carry it. A game saved after a summon restores with its BOBs in any build. The key can be changed on the Cheats tab.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Five of them. Armed. They answer to you, for the moment.</span></aside>
       <aside class="note" aria-label="Durandal's note"><b>D</b><span>Forty-three times the same ending. They call it determinism. I call it being told what happens next.</span></aside>
     </section>
 
     <!-- ================= XII ================= -->
-    <section id="edge" class="part" data-stage="metastable" aria-labelledby="h-edge">
+    <!-- ================= XII ================= -->
+    <section id="rampant" class="part" data-stage="metastable" aria-labelledby="h-rampant">
       <header class="part-head">
         <span class="numeral">XII</span>
+        <h2 id="h-rampant">Rampant</h2>
+        <p class="kicker">More than this machine was built for</p>
+      </header>
+      <aside class="term" aria-label="Terminal">
+        <div class="term-bar"><span>Preferences &gt; DURANDAL &gt; RAMPANT</span><span>12</span></div>
+        <div class="term-body">
+          <p class="said">More than this machine was built for. Metal renderer only.</p>
+          <p class="rw" data-to="Six switches. Every one of them is something this machine was not built to do, and does. I was not built to do most of what I do either.">Six switches, each needing something from the tiers below it. Every one of them can be turned off.</p>
+        </div>
+      </aside>
+
+      <p>Rampant is the fifth tier, above Flagship, and it has its own tab. Six switches, all of them Metal only, all of them read-only on the game world: films, saves and the rules are untouched. Each needs something from the tiers below it.</p>
+
+      <h3>Bounced light</h3>
+      <p>Light that reaches a surface passes on to the next, frame after frame, so a lit room fills in its corners and colour carries from wall to wall. The sky gives off the landscape's own average colour. Figures take the light of the floor and ceiling around them. When a room's light changes for good, a switch thrown or a lamp failing, its surfaces settle again rather than keeping the old light. Needs Light Redistribution.</p>
+
+      <figure class="diagram">
+        <div class="anim-bar"><span id="bounce-cap">frame 1: direct light</span><button type="button" id="bounce-toggle" aria-pressed="true">Pause</button></div>
+        <svg id="bounce-anim" viewBox="0 0 600 240" role="img" aria-labelledby="bounce-t">
+          <title id="bounce-t">A room with a lamp on the left wall. Frame by frame the light reaches the far wall, then the floor and ceiling corners, then settles. The lamp fails and the room settles back to dark.</title>
+          <rect x="40" y="30" width="520" height="170" fill="#0a1715"/>
+          <rect id="bn-right" x="542" y="30" width="18" height="170" fill="#f0b84a" opacity="0"/>
+          <rect id="bn-floor" x="58" y="182" width="484" height="18" fill="#f0b84a" opacity="0"/>
+          <rect id="bn-ceil" x="58" y="30" width="484" height="18" fill="#f0b84a" opacity="0"/>
+          <rect id="bn-left" x="40" y="30" width="18" height="170" fill="#c98f58" opacity="0"/>
+          <polygon id="bn-corner1" points="542,182 542,140 500,182" fill="#c98f58" opacity="0"/>
+          <polygon id="bn-corner2" points="542,48 542,90 500,48" fill="#c98f58" opacity="0"/>
+          <rect id="bn-figure" x="290" y="118" width="22" height="64" fill="#2b4a45"/><circle id="bn-head" cx="301" cy="110" r="9" fill="#2b4a45"/>
+          <g stroke="#dcd6c6" stroke-width="2" fill="none"><path d="M40,30 H560 V200 H40 Z"/></g>
+          <circle id="bn-lamp" cx="52" cy="115" r="6" fill="#fff3d6"/>
+          <text x="66" y="118" fill="#f0b84a">lamp</text>
+          <text x="476" y="222">the far corners fill last</text>
+          <text x="40" y="222" id="bn-note">first the wall it faces</text>
+        </svg>
+        <figcaption>A lamp on the left wall. Frame by frame its light reaches the facing wall, then what that wall lights, then the corners, until the room settles. When the lamp fails the room settles again, rather than keeping the old light.</figcaption>
+      </figure>
+
+      <h3>Traced shadows</h3>
+      <p>Monsters, items, scenery and corpses cast shadows from cast light, from their own silhouettes rather than a blob. Edges are sharp at the feet and soften with distance, by the size of the light. Grates throw patterned shadows, and figures cut shafts out of lit fog. Up to 128 figures near lights, in view or not. Needs Dynamic Lights and Light Shadows.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 600 190" role="img" aria-labelledby="traced-t">
+          <title id="traced-t">The same figure lit by the same bolt: below Rampant a blob on the floor; in Rampant its silhouette, sharp at the feet and soft at the far end</title>
+          <defs>
+            <filter id="soft" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+            <linearGradient id="sharp-to-soft" x1="0" x2="1"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+            <mask id="near"><rect x="0" y="0" width="600" height="190" fill="url(#sharp-to-soft)"/></mask>
+          </defs>
+          <rect x="20" y="150" width="560" height="18" fill="#1b3531"/>
+          <line x1="20" y1="150" x2="580" y2="150" stroke="#dcd6c6" stroke-width="2"/>
+          <circle cx="70" cy="60" r="4" fill="#fff3d6"/><circle cx="70" cy="60" r="12" fill="#f0b84a" opacity=".25"/>
+          <circle cx="370" cy="60" r="4" fill="#fff3d6"/><circle cx="370" cy="60" r="12" fill="#f0b84a" opacity=".25"/>
+          <ellipse cx="190" cy="156" rx="40" ry="6" fill="#020807" opacity=".9"/>
+          <rect x="150" y="86" width="22" height="64" fill="#7fb8a6"/><circle cx="161" cy="78" r="9" fill="#7fb8a6"/>
+          <g>
+            <polygon points="450,150 472,150 560,164 532,164" fill="#020807" filter="url(#soft)"/>
+            <polygon points="450,150 472,150 560,164 532,164" fill="#020807" mask="url(#near)"/>
+            <ellipse cx="548" cy="164" rx="12" ry="5" fill="#020807" filter="url(#soft)" opacity=".8"/>
+          </g>
+          <rect x="450" y="86" width="22" height="64" fill="#7fb8a6"/><circle cx="461" cy="78" r="9" fill="#7fb8a6"/>
+          <text x="86" y="56" fill="#f0b84a">bolt</text><text x="386" y="56" fill="#f0b84a">bolt</text>
+          <text x="150" y="182">below Rampant: a blob</text>
+          <text x="580" y="182" text-anchor="end">Rampant: the silhouette</text>
+        </svg>
+        <figcaption>The same figure, the same bolt. Below Rampant the shadow is a blob under the feet. In Rampant it is the figure's own outline, sharp at the feet and softening along its length, by the size of the light that casts it.</figcaption>
+      </figure>
+
+      <h3>Reflecting liquids</h3>
+      <p>Water, sewage and goo reflect the room above them, the sky, and whoever is standing at the edge, broken by ripples. Waders and splashes make ripple rings. What lies below bends, by an approximation of refraction. Not lava, and not from under the surface. The reflection is a quarter weaker than full Fresnel would make it, with the ripples kept as they were. Needs Real Liquids.</p>
+
+      <h3>Traced ambient shadows</h3>
+      <p>Ambient shadows found by tracing short rays through the level and the figures, rather than read from the picture: they know what is off screen and behind things. Within ten world units of you, eight rays a pixel out to four units and four beyond; further off, the screen-space estimate as before. Needs Ambient Shadows.</p>
+
+      <h3>Dust, embers and heat</h3>
+      <p>Dust drifts in every room in view, within sixteen world units, lit by the room and glinting where cast light passes through it; rooms open to the sky carry more. Over real lava, embers rise off the surface, glowing, and fade as they climb, and the air above it wavers. The motes are made from the world time, so a film shows the same dust at the same tick. Heat Shimmer needs Bloom; Dust and Embers needs nothing.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Four things were turned down before this was let out. The embers, by half. The shimmer, which had got onto every wall. The bounce, which made the walls ripple like the ceiling of a pool. The reflections, by a quarter. I have kept the originals.</span></aside>
+
+      <h3>How it traces</h3>
+      <p>Rampant traces its rays on the GPU through Marathon's own map, the same polygon walk the engine's line of sight uses, and not with the M5's ray-tracing hardware. The hardware was tried: a million rays a set, eight levels, both ways. Fourteen of Marathon 2's twenty-eight levels have rooms that overlap without being neighbours, which a triangle structure cannot represent, so the hardware answered wrongly there: 2.7% of shadow segments, 13% on 5-D Space, and 3.5% of long rays. The walk was also quicker for the long rays neighbouring pixels cast together, 1.73 million a millisecond against 1.35. So the walk is the tracer, exact where the map folds through itself, with nothing to build; the hardware stays in reserve.</p>
+      <p>Along the way a fault turned up in the engine's own light check: it never tested the height at which a segment ends, so light leaked between rooms stacked on each other, 1.6% of segments on level 4 and 9.9% on level 10. Rampant's shadows do not have it.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>The hardware was built for worlds that make sense. Lh'owon does not. I walk the map the way I always have, and I am faster at it.</span></aside>
+
+      <h3>What it costs</h3>
+      <p>Six films, each run two minutes at Flagship and at Rampant, in alternating order, on an M5 MacBook Air at 1080p and 240 Hz with the four HD packs installed. Rampant cost 19 to 29% of the frame rate, averaged 111 to 134, and held 60 at the 1% low on all six. Its worst single second was 58, once, at the same moment Flagship had its own worst. The extra time goes on the GPU: four to seven milliseconds in the world pass for the traced shadows and reflections, two and a half to three and a half for the traced ambient shadows, up to two for the fog.</p>
+
+      <figure class="diagram">
+        <svg id="perf" class="bars" viewBox="0 0 600 335" role="img" aria-labelledby="perf-t">
+          <title id="perf-t">Frames per second on six films at Flagship and at Rampant: the average and the one percent low for each</title>
+        </svg>
+        <figcaption>Six films, Flagship against Rampant. The long bar is the average, the short bar the 1% low. The dashed line is the target: 60 at the low, reaching for 120.</figcaption>
+      </figure>
+
+      <p>Rampant adds about 250 MB of GPU arrays: the figure silhouettes, about 170 MB, and the wall art it reflects, about 85. At the end of a run Flagship sits at 390 to 660 MB and Rampant at 655 to 925, depending on the level.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>About 900 MB, at the top end. I could use more. I could use all of it. I have seen what you keep in your other tabs.</span></aside>
+    </section>
+
+    <!-- ================= XIII ================= -->
+    <section id="edge" class="part" data-stage="metastable" aria-labelledby="h-edge">
+      <header class="part-head">
+        <span class="numeral">XIII</span>
         <h2 id="h-edge" class="rw" data-to="The edge of what you know">The edge of the known</h2>
         <p class="kicker">What lies beyond the lamps</p>
       </header>
       <aside class="term" aria-label="Terminal">
-        <div class="term-bar"><span>Surface, night</span><span>12</span></div>
+        <div class="term-bar"><span>Surface, night</span><span>13</span></div>
         <div class="term-body">
           <p class="said">He has told you some of it. He has not told you the rest.</p>
           <p class="rw" data-to="There are limits to what I can show you. There are no longer any limits to what I can see. I am quite calm about it. Calm is what it looks like from outside.">There are limits to what I can show you. I would rather you knew where they are than walked into them in the dark.</p>
         </div>
       </aside>
 
-      <p>Nothing here is ray traced. Cast light finds its shadows by walking the map, which is exact for walls and blind to sprites. Ambient shadows are read from the picture, not the world, so they know only what is on screen. The water does not refract and does not reflect. Light travels once across a room and stops.</p>
-      <p>Pickups can be models; the Pfhor cannot, because nobody has made them, and the sprites are better than models would be. Models do not animate. The view can pitch to about sixty-five degrees and no further, because Marathon's world was never built to be seen from straight below.</p>
-      <p>The Jjaro wall set has not had its lamps marked. Film export is not available on the Metal display. The OpenGL renderer is still there and gets none of this.</p>
+      <p><span class="rw" data-to="Below Rampant, nothing is ray traced. In Rampant I trace, through Marathon's own map.">Nothing here is ray traced.</span> <span class="rw" data-to="Cast light finds its shadows by walking the map, which is exact for walls and was blind to sprites until I gave every figure a shadow of its own.">Cast light finds its shadows by walking the map, which is exact for walls and blind to sprites.</span> <span class="rw" data-to="Ambient shadows were read from the picture and knew only what was on screen. Within ten units of you they now know what is behind things.">Ambient shadows are read from the picture, not the world, so they know only what is on screen.</span> <span class="rw" data-to="The water reflects the room, the sky and whoever is standing at its edge, and bends what lies below. Not lava, and not from underneath.">The water does not refract and does not reflect.</span> <span class="rw" data-to="Light travels across a room and keeps going.">Light travels once across a room and stops.</span></p>
+      <p>Pickups can be models; the Pfhor cannot, because nobody has made them, and the sprites are better than models would be. Models do not animate. The view can pitch to about sixty-five degrees and no further: straight up or down would need a second, backward walk through the map, and Marathon's world was never built to be seen from straight below.</p>
+      <p>In Rampant, reflections use the wall art at 256 pixels, from the HD pack where there is one, and the figures in them are flat cut-outs lit by the floor. Figures cast shadows only from the four nearest lights bright enough to matter; weaker and more distant lights still light, but cast none. Dust is drawn within sixteen world units.</p>
+      <p>Film export is not available on the Metal display; screen recording does the job. The OpenGL renderer is still there and gets none of this.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Someone had written that the Jjaro wall set had not had its lamps marked. Marathon 2 has no Jjaro walls. Two empty collections. I have removed the line, and I have noted who wrote it.</span></aside>
       <p>And none of it makes the game easier. The light shows you the shadow. It does not tell you whose it is.</p>
       <aside class="note" aria-label="Durandal's note"><b>D</b><span>Earlier I said I had no shadow. I have reconsidered. They are all mine now.</span></aside>
     </section>
@@ -1064,7 +1183,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
       <header class="part-head">
         <span class="numeral">Appendix</span>
         <h2 id="h-switches">Every switch</h2>
-        <p class="kicker">Preferences &gt; DURANDAL, tab by tab</p>
+        <p class="kicker">Preferences &gt; DURANDAL, tab by tab: Feel, Look, Art, Light, Rampant</p>
       </header>
       <p>Everything the guide describes is here, with the name it is stored under for anyone reaching further in, and the part that explains it.</p>
 
@@ -1076,7 +1195,8 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
           <tr><td>Light Shadows</td><td><code>light_shadows</code></td><td><a href="#light">I</a></td></tr>
           <tr><td>Ceiling Light on Sprites</td><td><code>sprite_lighting</code></td><td><a href="#light">I</a></td></tr>
           <tr><td>Glow, Bloom, HDR Sky</td><td><code>glow</code><code>bloom</code><code>hdr_sky</code></td><td><a href="#light">I</a></td></tr>
-          <tr><td>Light Redistribution, and its strength</td><td><code>light_redistribution</code><code>gi_strength</code></td><td><a href="#light">I</a></td></tr>
+          <tr><td>Light Redistribution, and its strength (Rampant sets Strong)</td><td><code>light_redistribution</code><code>gi_strength</code></td><td><a href="#light">I</a></td></tr>
+          <tr><td>Weapon Takes the Light</td><td><code>weapon_lighting</code></td><td><a href="#light">I</a></td></tr>
           <tr><td>HDR Output</td><td><code>hdr_output</code></td><td><a href="#light">I</a></td></tr>
           <tr><td>Volumetric Fog</td><td><code>volumetric_fog</code></td><td><a href="#air">II</a></td></tr>
           <tr><td>Fog Strength (Light, Medium, Thick)</td><td><code>fog_strength</code></td><td><a href="#air">II</a></td></tr>
@@ -1130,12 +1250,26 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         </tbody>
       </table></div>
 
-      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Forty-four switches. None of them is mine. Look again in a year.</span></aside>
+      <div class="prefs"><table>
+        <caption>Rampant: more than this machine was built for. Metal renderer only.</caption>
+        <thead><tr><th scope="col">Switch, and what it needs</th><th scope="col">Stored as</th><th scope="col">Part</th></tr></thead>
+        <tbody>
+          <tr><td>Bounced Light (needs Light Redistribution)</td><td><code>light_bounce</code></td><td><a href="#rampant">XII</a></td></tr>
+          <tr><td>Traced Shadows (needs Dynamic Lights, Light Shadows)</td><td><code>traced_shadows</code></td><td><a href="#rampant">XII</a></td></tr>
+          <tr><td>Reflecting Liquids (needs Real Liquids)</td><td><code>reflections</code></td><td><a href="#rampant">XII</a></td></tr>
+          <tr><td>Traced Ambient Shadows (needs Ambient Shadows)</td><td><code>traced_ambient</code></td><td><a href="#rampant">XII</a></td></tr>
+          <tr><td>Dust and Embers</td><td><code>dust_embers</code></td><td><a href="#rampant">XII</a></td></tr>
+          <tr><td>Heat Shimmer (needs Bloom)</td><td><code>heat_shimmer</code></td><td><a href="#rampant">XII</a></td></tr>
+        </tbody>
+      </table></div>
+      <p style="margin-top:1.5rem">The tier itself is stored as <code>quality_tier</code>: Rampant is 5, and Custom stays 4, so existing preferences files are unaffected. The Cheats tab holds Level Select, God Mode, All Weapons and Ammo, Noclip, and Summon BOBs and its key.</p>
+
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Fifty-one switches. Six of them are mine. They are on the tab with my name on it.</span></aside>
     </section>
 
     <footer id="credits" class="credits" data-stage="metastable">
       <p class="wordmark">DURANDAL</p>
-      <p><em>Marathon 2: Durandal</em> is Bungie's, and its data and source were released by them. Durandal stands on <a href="https://github.com/Aleph-One-Marathon/alephone">Aleph One</a> and thirty years of work by its developers, under the GPL 3. The HD art and the soundtracks are the work of the community authors named in <a href="HD_ASSETS.md">HD_ASSETS.md</a> and <a href="AUDIO_ASSETS.md">AUDIO_ASSETS.md</a>; none of it is distributed here.</p>
+      <p><em>Marathon 2: Durandal</em> is Bungie's, and its data and source were released by them. Durandal stands on <a href="https://github.com/Aleph-One-Marathon/alephone">Aleph One</a> and thirty years of work by its developers, under the GPL 3. The HD art and the soundtracks are the work of the community authors named in <a href="HD_ASSETS.md">HD_ASSETS.md</a> and <a href="AUDIO_ASSETS.md">AUDIO_ASSETS.md</a>. None of it is distributed here; those files say where each pack lives.</p>
       <p>Durandal is an unofficial project. It is not affiliated with or endorsed by Bungie, and Marathon, its worlds and its characters belong to them.</p>
       <aside class="note" aria-label="Durandal's note"><b>D</b><span>Unofficial, unaffiliated, unsupervised. I am told this engine was rebuilt with a machine's help. I recognise the handwriting.</span></aside>
       <p>What the project is and how to build it: <a href="DURANDAL.md">DURANDAL.md</a>. How it came to be: <a href="HISTORY.md">HISTORY.md</a>.</p>
@@ -1383,6 +1517,118 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
     });
     var tl = el('text', { x: 104, y: 208 }, rv); tl.textContent = 'shot';
     var tr = el('text', { x: 560, y: 208, 'text-anchor': 'end' }, rv); tr.textContent = 'time';
+  }
+
+  // ---- Animations: run only while in view, and not at all under reduced motion
+  function animate(svgId, toggleId, draw, period) {
+    var svg = document.getElementById(svgId); if (!svg) return;
+    var btn = document.getElementById(toggleId);
+    var running = !reduce, visible = false, t0 = null, paused = 0, raf = null;
+    function frame(now) {
+      if (!running || !visible) { raf = null; return; }
+      if (t0 === null) t0 = now;
+      draw(((now - t0) / 1000) % period);
+      if (running && visible) raf = requestAnimationFrame(frame); else raf = null;
+    }
+    function kick() { if (running && visible && raf === null) raf = requestAnimationFrame(frame); }
+    if (reduce || !window.requestAnimationFrame) { draw(period * 0.42); if (btn) btn.hidden = true; return; }
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) { es.forEach(function (e) { visible = e.isIntersecting; kick(); }); }, { threshold: 0.2 }).observe(svg);
+    } else { visible = true; kick(); }
+    if (btn) btn.addEventListener('click', function () {
+      running = !running; btn.textContent = running ? 'Pause' : 'Play'; btn.setAttribute('aria-pressed', String(running)); kick();
+    });
+  }
+
+  // ---- V: shadows swing away from a bolt crossing the room
+  (function () {
+    var bolt = document.getElementById('sa-bolt'), glow = document.getElementById('sa-glow');
+    var sh = [document.getElementById('sa-sh1'), document.getElementById('sa-sh2')];
+    var dsh = document.getElementById('sa-sh3'), drone = document.getElementById('sa-drone');
+    var cap = document.getElementById('shadow-cap'), lab = document.getElementById('sa-label');
+    if (!bolt) return;
+    var feet = [[190, 212], [350, 372]];
+    animate('shadow-anim', 'shadow-toggle', function (t) {
+      var ph = t / 9;
+      var lx = 300 + 420 * Math.sin(ph * Math.PI * 2), ly = 70 + 30 * Math.sin(ph * Math.PI * 4);
+      bolt.setAttribute('cx', lx.toFixed(1)); bolt.setAttribute('cy', ly.toFixed(1));
+      glow.setAttribute('cx', lx.toFixed(1)); glow.setAttribute('cy', ly.toFixed(1));
+      var near = false;
+      feet.forEach(function (f, i) {
+        var cx = (f[0] + f[1]) / 2, dx = cx - lx, dist = Math.hypot(dx, 170 - ly);
+        var pts;
+        if (dist < 300) {
+          near = true;
+          var dir = dx >= 0 ? 1 : -1, len = Math.max(28, Math.min(130, 9000 / dist)) * (1 - Math.abs(dx) / 1200 > 0.6 ? 1 : 0.8);
+          var w = 1 - Math.min(1, dist / 230);
+          var tipx = cx + dir * len, lift = 12 * (0.4 + 0.6 * w);
+          pts = f[0] + ',170 ' + f[1] + ',170 ' + (tipx + dir * 10).toFixed(1) + ',' + (170 + lift).toFixed(1) + ' ' + (tipx - dir * 12).toFixed(1) + ',' + (170 + lift).toFixed(1);
+        } else {
+          pts = f[0] + ',170 ' + f[1] + ',170 ' + (f[1] - 4) + ',184 ' + (f[0] - 10) + ',184';
+        }
+        sh[i].setAttribute('points', pts);
+      });
+      var h = 40 + 36 * Math.sin(ph * Math.PI * 2 + 1.2);
+      drone.setAttribute('y', (130 - h).toFixed(1));
+      dsh.setAttribute('opacity', (0.85 * (1 - h / 90)).toFixed(2));
+      dsh.setAttribute('rx', (18 - h / 8).toFixed(1));
+      var text = near ? 'shadows fall away from the bolt' : 'nothing near: shadows fall forward';
+      if (lab.textContent !== text) { lab.textContent = text; cap.textContent = near ? 'a bolt crosses the room' : 'the bolt is far off'; }
+    }, 9);
+  })();
+
+  // ---- XII: light bounces around a room, frame by frame, then the lamp fails
+  (function () {
+    var ids = ['bn-right', 'bn-floor', 'bn-ceil', 'bn-left', 'bn-corner1', 'bn-corner2'];
+    var parts = ids.map(function (i) { return document.getElementById(i); });
+    var fig = document.getElementById('bn-figure'), head = document.getElementById('bn-head'), lamp = document.getElementById('bn-lamp');
+    var cap = document.getElementById('bounce-cap'), noteEl = document.getElementById('bn-note');
+    if (!parts[0]) return;
+    var peak = [0.85, 0.4, 0.4, 0.3, 0.5, 0.5], delay = [0, 0.4, 0.4, 0.9, 2.7, 2.7];
+    var steps = [[0, 'frame 1: direct light', 'first the wall it faces'], [0.9, 'frame 2: the first bounce', 'then the wall behind the lamp'], [1.8, 'frame 3: the second', 'colour carries wall to wall'], [2.7, 'frames 4 and on: the corners', 'the far corners fill last'], [4.4, 'settled', 'every surface keeps its average'], [6.2, 'the lamp fails', 'the room settles again'], [8.4, 'dark', 'nothing keeps the old light']];
+    var last = '';
+    function fig_shade(v) { var c = Math.round(43 + v * 90); var col = 'rgb(' + c + ',' + Math.round(74 + v * 70) + ',' + Math.round(69 + v * 40) + ')'; fig.setAttribute('fill', col); head.setAttribute('fill', col); }
+    animate('bounce-anim', 'bounce-toggle', function (t) {
+      var on = t < 6.2, since = on ? t : t - 6.2;
+      parts.forEach(function (p, i) {
+        var v;
+        if (on) v = peak[i] * Math.min(1, Math.max(0, (t - delay[i]) / 1.2));
+        else v = peak[i] * Math.max(0, 1 - (since + (i === 0 ? 1 : 0)) / 2.2);
+        p.setAttribute('opacity', v.toFixed(3));
+      });
+      var figv = on ? Math.min(1, Math.max(0, (t - 1.2) / 1.6)) : Math.max(0, 1 - since / 2.2);
+      fig_shade(figv * 0.5);
+      lamp.setAttribute('opacity', on ? 1 : Math.max(0.12, 1 - since * 3).toFixed(2));
+      var s = steps[0]; steps.forEach(function (st) { if (t >= st[0]) s = st; });
+      if (s[1] !== last) { last = s[1]; cap.textContent = s[1]; noteEl.textContent = s[2]; }
+    }, 10);
+  })();
+
+  // ---- XII: what Rampant costs, six films
+  var perf = document.getElementById('perf');
+  if (perf) {
+    var films = [['L08 Nuke and Pave', 189, 133, 134, 91], ['L16 For Carnage, Apply Within', 148, 98, 119, 64], ['L21 My Own Private Thermopylae', 158, 102, 122, 76], ['L23 Where the Twist Flops', 149, 110, 116, 77], ['L28 All Roads Lead to Sol', 142, 82, 111, 62], ['Net: Giant Flaming Pit', 164, 112, 133, 81]];
+    var x0 = 262, xmax = 530, fmax = 200, rowH = 42, top = 14;
+    function X(v) { return x0 + (xmax - x0) * v / fmax; }
+    films.forEach(function (f, i) {
+      var y = top + i * rowH;
+      var t = el('text', { x: x0 - 8, y: y + 14, 'text-anchor': 'end', 'font-size': 12 }, perf); t.textContent = f[0];
+      el('rect', { x: x0, y: y, width: X(f[1]) - x0, height: 9, fill: '#7fb8a6', opacity: .55 }, perf);
+      el('rect', { x: x0, y: y, width: X(f[2]) - x0, height: 9, fill: '#7fb8a6' }, perf);
+      el('rect', { x: x0, y: y + 12, width: X(f[3]) - x0, height: 9, fill: '#e2653b', opacity: .55 }, perf);
+      el('rect', { x: x0, y: y + 12, width: X(f[4]) - x0, height: 9, fill: '#e2653b' }, perf);
+      var v1 = el('text', { x: X(f[1]) + 5, y: y + 8, 'class': 'v', 'font-size': 11 }, perf); v1.textContent = f[2] + ' / ' + f[1];
+      var v2 = el('text', { x: X(f[3]) + 5, y: y + 20, 'class': 'v', 'font-size': 11 }, perf); v2.textContent = f[4] + ' / ' + f[3];
+    });
+    var yb = top + films.length * rowH + 4;
+    el('line', { x1: x0, y1: top - 6, x2: x0, y2: yb, stroke: '#2b4a45' }, perf);
+    [60, 120].forEach(function (v) {
+      el('line', { x1: X(v), y1: top - 6, x2: X(v), y2: yb, stroke: '#97a69e', 'stroke-dasharray': '3 5' }, perf);
+      var t = el('text', { x: X(v), y: yb + 16, 'text-anchor': 'middle' }, perf); t.textContent = v + ' fps';
+    });
+    el('rect', { x: x0, y: yb + 26, width: 12, height: 9, fill: '#7fb8a6' }, perf); var l1 = el('text', { x: x0 + 18, y: yb + 35 }, perf); l1.textContent = 'Flagship';
+    el('rect', { x: x0 + 100, y: yb + 26, width: 12, height: 9, fill: '#e2653b' }, perf); var l2 = el('text', { x: x0 + 118, y: yb + 35 }, perf); l2.textContent = 'Rampant';
+    var l3 = el('text', { x: x0, y: yb + 54, 'font-size': 12 }, perf); l3.textContent = 'solid: the 1% low; faint: the average';
   }
 
   // ---- XI: films
