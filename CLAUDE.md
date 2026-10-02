@@ -1125,6 +1125,14 @@ The folder name comes from the *localised* bundle name
     (`trace_view_fragment`, run in EndWorld) draws the world by tracing
     from the surface table: on L06 walls, floor and ceiling match the
     drawn frame, so the table's placement is right (the sky not yet seen).
+  - Embers halved in brightness and glow (the owner, 1 Oct 2026).
+  - Full screen on six films not used before (2 Oct 2026, 1080p 240 Hz,
+    first 2 min each, alternating order; `docs/benchmarks/r13-unseen-films.md`):
+    L08, L16, L21, L23, L28 and the net game Giant Flaming Pit. Rampant
+    111-134 fps average, 62-91 at the 1% low (60 held on all six; the
+    worst second 58 once, L28 at 65 s); Flagship 142-189 / 82-133.
+    Rampant's extra at the p99: world pass +4-7 ms, traced ambient
+    shadows +2.5-3.5 ms, fog +0.5-2 ms; its slow frames are GPU-bound.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
