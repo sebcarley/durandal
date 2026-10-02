@@ -1249,6 +1249,12 @@ The folder name comes from the *localised* bundle name
     there runs a kept build for A/B), `scripts/feature-costs.py <out>
     [--base <label>] [--md]`. Hidden runs only when the owner says the
     screen is not free.
+- Tag `baseline-9` (2 Oct 2026, the owner's word after playing it):
+  `durandal/optimisation` fast-forwarded into `durandal/main`: relaxed
+  shader maths, the exact light fixes, per-surface light culling, the
+  corpse-bar fix in traced ambient shadows and the skies that stay with
+  the world. Next: a full-screen rebench after a reboot on films not used
+  before, then the in-game HD art button.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
