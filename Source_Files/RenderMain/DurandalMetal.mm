@@ -612,10 +612,15 @@ bool init()
 
 		NSError* error = nil;
 		MTLCompileOptions* options = [MTLCompileOptions new];
+		// Safe (IEEE) maths, as GLSL behaved when parity with the OpenGL
+		// renderer was checked. Development: DURANDAL_MATH=relaxed|fast
+		// compiles the world shaders that way instead, for cost runs
+		const char* math = std::getenv("DURANDAL_MATH");
 		if (@available(macOS 15.0, *))
-			options.mathMode = MTLMathModeSafe;	// match GLSL's IEEE behaviour
+			options.mathMode = (math && std::strcmp(math, "fast") == 0) ? MTLMathModeFast
+				: (math && std::strcmp(math, "relaxed") == 0) ? MTLMathModeRelaxed : MTLMathModeSafe;
 		else
-			options.fastMathEnabled = NO;
+			options.fastMathEnabled = (math && std::strcmp(math, "fast") == 0) ? YES : NO;
 		library = [device newLibraryWithSource:[NSString stringWithUTF8String:kDurandalMetalShaderSource]
 									   options:options error:&error];
 		if (!library)

@@ -752,6 +752,13 @@ bool RenderRasterize_Metal::setup_glow(Material& m, float wobble, float offset)
 	m.uniforms.wobble = wobble;
 	m.uniforms.depth_offset = offset - 1.0f;
 	m.uniforms.glow = TMgr->MinGlowIntensity();
+	// At a minimum glow of 1 (the default) classic_intensity clamps every
+	// result to 1, so lights and caustics change nothing: not walked
+	if (m.uniforms.glow >= 1.0f)
+	{
+		m.uniforms.light_count = 0;
+		m.uniforms.caustics = 0;
+	}
 	// HD art: the glow image's bloom share (glow_bloom_*); the frame's own
 	// emissive light was written by the base pass
 	m.uniforms.bloom_scale = TMgr->GlowBloomScale();

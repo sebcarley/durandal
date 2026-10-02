@@ -899,18 +899,20 @@ fragment WorldFrag wall_fragment(WorldIn in [[stage_in]], constant Uniforms& u [
 	const Lighting l = texel_lighting(u, in, tc * float2(tex.get_width(), tex.get_height()));
 	// HD art: the pack's normal map shapes the light; dynamic lights see it
 	const Relief rf = normal_map_relief(u, in, bump, smp, tc, l);
+	const float4 color = crisp_sample(u, tex, smp, tc);
+	// A texel the alpha test will drop is dropped before its lights are
+	// walked (every derivative and implicit-LOD sample is above this line)
+	alpha_test(u, u.color.a * color.a);
 	Lighting lr = l;
 	lr.normal = rf.normal;
 	DynamicLight dl = dynamic_light(u, lights, map, occ, lr, true);
 	dl = add_caustics(u, dl, l);
-	const float4 color = crisp_sample(u, tex, smp, tc);
 	const float4 gi = redistribution(u, patches, averages, radiance, l.world);
 	const float mod = relief_factor(u, l.depth, rf);
 	const float3 intensity = add_light(classic_intensity(u, l.depth) * mod, classic_intensity(u, l.depth, dl.amount) * mod, dl)
 		* contact_shadow(u, casters, l) * gi.a * gi.rgb;
 	const float f = fog_factor(u, l.fog_distance);
 	const float4 out = float4(mix(u.fog_color.rgb, color.rgb * intensity, f), u.color.a * color.a);
-	alpha_test(u, out.a);
 	// Glow: a pack's bloom share of this image (HD art)
 	return fogged_frag(u, volume, in, out, u.write_glow ? pack_glow(u, color.rgb, intensity) * f : float3(0.0));
 }
@@ -939,18 +941,23 @@ fragment WorldFrag sprite_fragment(WorldIn in [[stage_in]], constant Uniforms& u
 	const Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, u.rampant.y, float2(u.figure_patches.zw),
 							u.rampant.z != 0 || (u.rampant.x & 2) != 0 ? surfaces : nullptr, walls };
 	const Lighting l = texel_lighting(u, in, in.texcoord * float2(tex.get_width(), tex.get_height()));
-	DynamicLight dl = dynamic_light(u, lights, map, occ, l, false);
+	const float4 color = crisp_sample(u, tex, smp, in.texcoord);
+	// A texel the alpha test will drop is dropped before its lights are
+	// walked (every derivative and implicit-LOD sample is above this line)
+	alpha_test(u, u.color.a * color.a);
+	DynamicLight dl;
 	if (u.viewer_light.a > 0.0) {
-		// The weapon in hand: lit by the lights around the viewer
+		// The weapon in hand: lit by the lights around the viewer, so the
+		// lights at its own (nominal) position are not walked
 		dl.amount = u.viewer_light.a;
 		dl.tint = u.viewer_light.rgb;
+	} else {
+		dl = dynamic_light(u, lights, map, occ, l, false);
 	}
-	const float4 color = crisp_sample(u, tex, smp, in.texcoord);
 	const float4 gi = figure_light(u, patches, averages, radiance, l.world);
 	const float3 intensity = add_light(classic_intensity(u, l.depth), classic_intensity(u, l.depth, dl.amount), dl) * gi.a * gi.rgb;
 	const float f = fog_factor(u, l.fog_distance);
 	const float4 out = float4(mix(u.fog_color.rgb, color.rgb * intensity, f), u.color.a * color.a);
-	alpha_test(u, out.a);
 	// Glow: projectiles, explosions, flashes and lava scenery (their frame's
 	// minimum light), and a pack's bloom share of its image (HD art)
 	return fogged_frag(u, volume, in, out,
@@ -1145,11 +1152,14 @@ static WorldFrag ramp_shade(WorldIn in, constant Uniforms& u, constant Light* li
 		relief_light(u, rf, l.normal, l.world);
 		lr.normal = rf.normal;
 	}
-	DynamicLight dl = dynamic_light(u, lights, map, occ, lr, repeat);
+	DynamicLight dl;
 	if (u.viewer_light.a > 0.0) {
-		// The weapon in hand: lit by the lights around the viewer
+		// The weapon in hand: lit by the lights around the viewer, so the
+		// lights at its own (nominal) position are not walked
 		dl.amount = u.viewer_light.a;
 		dl.tint = u.viewer_light.rgb;
+	} else {
+		dl = dynamic_light(u, lights, map, occ, lr, repeat);
 	}
 	dl = add_caustics(u, dl, l);
 	const float2 dtx = dfdx(texel0), dty = dfdy(texel0);
