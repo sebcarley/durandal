@@ -5,6 +5,12 @@ hidden and off-screen while the Mac was busy with other work, as the owner
 asked; numbers are for comparison between runs, not the official on-screen
 baseline.
 
+**Status (2 Oct 2026, evening):** closed after step 2a, on the owner's word.
+Relaxed maths, the exact fixes and the light culling are in. Big fights feel
+as smooth as they can be, so steps 2b onwards are not being pursued. The
+list stays here in case the lows need more later. Next: a full-screen
+rebench after a reboot, on films not used before.
+
 ## In short
 
 1. **One compile option is worth more than everything else put together.**

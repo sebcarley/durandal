@@ -1219,6 +1219,12 @@ The folder name comes from the *localised* bundle name
     `ctz`, lowest first as before, so results are bit-identical. Firefight
     (L06 0-300): Enhanced 340 -> 392 fps, Flagship 228 -> 274, Rampant
     197 -> 211; world p99 down 1.4-1.8 ms.
+  - Round closed after 2a (the owner, 2 Oct 2026: "big fights feel as
+    smooth as they can be"); steps 2b onwards stay in the plan, unbuilt.
+    Next: after a reboot, a full-screen rebench (1080p 240 Hz) on films
+    not used before (check `ps` for Spotlight and duetexpertd first). The
+    in-game HD art button waits until after that (see
+    `docs/HD_ASSETS.md` section 6 and the owner's wish to ship the packs).
   - Tools: `scripts/feature-costs.sh <out> <film> <end-tick> label=settings
     ...` (hidden, off-screen, GPU stage timing; `REPEAT=n` alternates the
     order; settings may start with `ENV=value ...@`, and `APP=<binary>`
