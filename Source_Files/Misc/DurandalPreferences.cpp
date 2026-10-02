@@ -232,6 +232,7 @@ void SetDefaults()
 	prefs.cheat_level_select = prefs.cheat_god = prefs.cheat_all_weapons = prefs.cheat_noclip = false;
 	prefs.cheat_god_key = SDL_SCANCODE_G;
 	prefs.cheat_noclip_key = SDL_SCANCODE_N;
+	prefs.cheat_summon_key = SDL_SCANCODE_C;	// unbound by default and in the owner's keys
 	prefs.soundtrack.clear();
 	read_durandal_element = false;
 }
@@ -286,6 +287,8 @@ void Parse(const InfoTree& root)
 		prefs.cheat_god_key = key;
 	if (root.read_attr("cheat_noclip_key", key) && key >= 0 && key < SDL_NUM_SCANCODES)
 		prefs.cheat_noclip_key = key;
+	if (root.read_attr("cheat_summon_key", key) && key >= 0 && key < SDL_NUM_SCANCODES)
+		prefs.cheat_summon_key = key;
 	root.read_attr("soundtrack", prefs.soundtrack);
 }
 
@@ -309,6 +312,7 @@ InfoTree Tree()
 	root.put_attr("cheat_noclip", prefs.cheat_noclip);
 	root.put_attr("cheat_god_key", prefs.cheat_god_key);
 	root.put_attr("cheat_noclip_key", prefs.cheat_noclip_key);
+	root.put_attr("cheat_summon_key", prefs.cheat_summon_key);
 	root.put_attr("soundtrack", prefs.soundtrack);
 	return root;
 }
@@ -708,9 +712,19 @@ void Dialog(void* parent_dialog)
 	w_key* noclip_key_w = new w_key(SDL_Scancode(prefs.cheat_noclip_key), w_key::KeyboardKey);
 	cheats->dual_add(noclip_key_w->label("Noclip Key"), d);
 	cheats->dual_add(noclip_key_w, d);
+	// Summon BOBs is in QA: its key shows only while the gate is open
+	w_key* summon_key_w = nullptr;
+	if (QA())
+	{
+		summon_key_w = new w_key(SDL_Scancode(prefs.cheat_summon_key), w_key::KeyboardKey);
+		cheats->dual_add(summon_key_w->label("Summon BOBs Key"), d);
+		cheats->dual_add(summon_key_w, d);
+	}
 	cheats->add_row(new w_spacer(), true);
-	cheats->dual_add_row(new w_static_text("Single player only. Using God Mode, All Weapons"), d);
-	cheats->dual_add_row(new w_static_text("or Noclip stops that game's film recording."), d);
+	cheats->dual_add_row(new w_static_text(summon_key_w ? "Single player only. God Mode, All Weapons, Noclip"
+														: "Single player only. Using God Mode, All Weapons"), d);
+	cheats->dual_add_row(new w_static_text(summon_key_w ? "and Summon BOBs stop that game's film recording."
+														: "or Noclip stops that game's film recording."), d);
 
 	for (int t = 0; t < kNumberOfTabs; ++t)
 		tabs->add(tables[t], true);
@@ -785,6 +799,8 @@ void Dialog(void* parent_dialog)
 		}
 		prefs.cheat_god_key = god_key_w->get_key();
 		prefs.cheat_noclip_key = noclip_key_w->get_key();
+		if (summon_key_w)
+			prefs.cheat_summon_key = summon_key_w->get_key();
 		if (tier != kTierStock)
 		{
 			const int choice = soundtrack_w->get_selection();

@@ -108,6 +108,8 @@ struct Preferences {
 	// Keys (SDL scancodes) that switch god mode and noclip during a game
 	int cheat_god_key;
 	int cheat_noclip_key;
+	// Key that brings five armed BOBs in beside the player (in QA)
+	int cheat_summon_key;
 	// Soundtrack (ART tab; DurandalArt.h): the name of the installed
 	// soundtrack plugin that plays, empty for none. Not part of any tier
 	// (Stock clears it); exactly one soundtrack plugin is enabled at a time

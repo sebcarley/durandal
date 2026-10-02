@@ -521,6 +521,8 @@ update_world()
 
 		// Transition from predictive -> real update mode, if necessary.
 		exit_predictive_mode();
+
+		DurandalCheats::BeforeTick();	// Durandal: summoned BOBs arrive (live solo games only)
 		
 		// Capture the flags for each player for use in prediction
 		for(short i = 0; i < dynamic_world->player_count; i++)
@@ -679,6 +681,7 @@ bool entering_map(bool restoring_saved)
 	mark_all_monster_collections(true);
 	mark_player_collections(true);
 	mark_map_collections(true);
+	DurandalCheats::MarkCollections();	// Durandal: Summon BOBs' shapes
 
 	MarkLuaCollections(true);
 	MarkLuaHUDCollections(true);
