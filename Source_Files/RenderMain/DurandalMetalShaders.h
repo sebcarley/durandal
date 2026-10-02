@@ -2221,21 +2221,27 @@ static int grid_polygon(constant AOParams& p, device const int2* cells, device c
 
 // The figure whose card, as the viewer sees it, a point lies on (a sprite's
 // own pixels must not be shadowed by its own card); far away if none
-static float2 figure_under(thread const Occluders& occ, int poly, float3 at, float3 camera)
+// A figure is drawn as an upright card through its position, square to
+// the view's yaw (`forward`, RenderRasterize_Metal's sprite transform), so
+// a pixel is the figure's own only when it lies on that card and faces the
+// way the card does. A floor, a ceiling or a wall beside it never is: the
+// old test took everything within 48 units of a card facing the
+// camera-to-figure ray, so a corpse's strip of floor and of the walls
+// either side skipped the corpse while the rest did not (a lighter bar in
+// the sprite's plane, plainest in dark corners; the owner, 2 Oct 2026), and
+// a figure off to the side of the view was not taken as itself and shaded
+// itself
+static float2 figure_under(thread const Occluders& occ, int poly, float3 at, float3 n, float2 forward)
 {
-	if (poly < 0 || poly >= occ.polygon_count)
+	if (poly < 0 || poly >= occ.polygon_count || abs(n.z) > 0.7 || abs(dot(n.xy, forward)) < 0.7)
 		return float2(1e9);
+	const float2 side = float2(-forward.y, forward.x);
 	const int2 range = occ.polygons[poly];
 	for (int k = 0; k < range.y; ++k) {
 		const Occluder o = occ.list[occ.indices[range.x + k]];
-		const float2 to = o.position.xy - camera.xy;
-		if (length_squared(to) < 1.0)
-			continue;
-		const float2 forward = normalize(to);
-		const float2 side = float2(-forward.y, forward.x);
 		const float2 r = at.xy - o.position.xy;
 		const float h = dot(r, side), z = at.z - o.position.z;
-		if (abs(dot(r, forward)) < 48.0 && h >= min(o.extent.x, -o.extent.y) - 8.0 && h <= max(o.extent.y, -o.extent.x) + 8.0 &&
+		if (abs(dot(r, forward)) < 16.0 && h >= min(o.extent.x, -o.extent.y) - 8.0 && h <= max(o.extent.y, -o.extent.x) + 8.0 &&
 			z >= o.extent.z - 8.0 && z <= o.extent.w + 8.0)
 			return o.position.xy;
 	}
@@ -2417,7 +2423,14 @@ fragment float ao_fragment(BlitOut in [[stage_in]], constant AOParams& p [[buffe
 			return poly < 0 ? 1.0 : 0.1 + 0.8 * fract(float(poly) * 0.618034);
 		if (poly >= 0) {
 			Occluders occ = { occluders, occluder_polygons, occluder_indices, masks, p.traced.w, float2(1e9), nullptr, masks };
-			occ.self = figure_under(occ, poly, P, p.camera.xyz);
+			// The view's yaw: the horizontal heading of the screen's centre
+			float2 forward = ao_world(p, float2(0.5), 1024.0).xy - p.camera.xy;
+			forward = length_squared(forward) > 1e-4 ? normalize(forward) : float2(1.0, 0.0);
+			occ.self = figure_under(occ, poly, P, N, forward);
+			// Development: DURANDAL_AO_VIEW=7 blacks out the pixels taken as a
+			// figure's own (they skip that figure's card)
+			if (p.view == 7.0)
+				return any(occ.self < float2(1e8)) ? 0.0 : 1.0;
 			// The few figures within reach, picked once for all eight rays
 			int near_figures[4];
 			int near_count = 0;

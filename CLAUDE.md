@@ -1180,8 +1180,10 @@ The folder name comes from the *localised* bundle name
     (Round 2, for OpenGL parity). Relaxed mode roughly halves GPU time per
     frame (Rampant L06 175 -> 311 fps, Flagship 211 -> 358; L28 125 -> 216
     and 155 -> 270) with no visible change on four films (5-D Space
-    included). `DURANDAL_MATH=safe|relaxed|fast` switches it for runs; the
-    default is still safe, awaiting the owner's look on the display.
+    included). Relaxed is the default since the owner's look on the
+    display (2 Oct 2026: "pretty solid 200 fps+ at Rampant");
+    `DURANDAL_MATH=safe` puts strict IEEE back for parity work, `fast` is
+    fast maths.
   - Three exact fixes (pixel-identical, checked): glow passes with a
     minimum glow of 1 get no lights (`setup_glow`; classic_intensity clamps
     them away), wall and sprite fragments discard transparent texels before
@@ -1195,6 +1197,17 @@ The folder name comes from the *localised* bundle name
     RG11B10 glow image were measured and gave nothing.
   - Bounced Light makes frames differ slightly run to run (0.5/255 on
     L28; exactly repeatable with it off): compare frame shots with it off.
+  - Fix (the owner, 2 Oct 2026: dead monsters cast "a light as a bar in the
+    same plane as the sprite", in dark corners): traced ambient shadows'
+    `figure_under` took any pixel within 48 units of a card facing the
+    camera-to-figure ray, within its width, as the figure's own, so the
+    strip of floor and walls at a corpse's depth skipped the corpse's
+    occlusion while the rest did not. Figures are drawn square to the
+    view's yaw through their position (the sprite transform), so a pixel
+    is now a figure's only on that card (16 units), facing the way it
+    does, and never a floor or ceiling. Off-centre figures no longer
+    shade themselves either. `DURANDAL_AO_VIEW=7` blacks out the pixels
+    taken as a figure's own.
   - Tools: `scripts/feature-costs.sh <out> <film> <end-tick> label=settings
     ...` (hidden, off-screen, GPU stage timing; `REPEAT=n` alternates the
     order; settings may start with `ENV=value ...@`, and `APP=<binary>`

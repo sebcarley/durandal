@@ -612,15 +612,17 @@ bool init()
 
 		NSError* error = nil;
 		MTLCompileOptions* options = [MTLCompileOptions new];
-		// Safe (IEEE) maths, as GLSL behaved when parity with the OpenGL
-		// renderer was checked. Development: DURANDAL_MATH=relaxed|fast
-		// compiles the world shaders that way instead, for cost runs
+		// Relaxed maths (2 Oct 2026): about half the GPU time per frame of
+		// safe (IEEE) maths, with no visible difference (frame shots of four
+		// films; the owner's look on the display). Safe was chosen in Round 2
+		// to match GLSL for the OpenGL parity checks; DURANDAL_MATH=safe puts
+		// it back for such work, =fast is fast maths (no Inf/NaN)
 		const char* math = std::getenv("DURANDAL_MATH");
 		if (@available(macOS 15.0, *))
-			options.mathMode = (math && std::strcmp(math, "fast") == 0) ? MTLMathModeFast
-				: (math && std::strcmp(math, "relaxed") == 0) ? MTLMathModeRelaxed : MTLMathModeSafe;
+			options.mathMode = (math && std::strcmp(math, "safe") == 0) ? MTLMathModeSafe
+				: (math && std::strcmp(math, "fast") == 0) ? MTLMathModeFast : MTLMathModeRelaxed;
 		else
-			options.fastMathEnabled = (math && std::strcmp(math, "fast") == 0) ? YES : NO;
+			options.fastMathEnabled = (math && std::strcmp(math, "safe") == 0) ? NO : YES;
 		library = [device newLibraryWithSource:[NSString stringWithUTF8String:kDurandalMetalShaderSource]
 									   options:options error:&error];
 		if (!library)
@@ -944,7 +946,7 @@ void run_ao()
 		simd_int4 viewer;		//   x the viewer's polygon
 	} params;
 	static float radius = 512, strength = 1.2f, far = 24 * 1024;
-	// DURANDAL_AO_VIEW=2 or 3 (traced, R3): only the map's surfaces, or only the figures
+	// DURANDAL_AO_VIEW=2 or 3 (traced, R3): only the map's surfaces, or only the figures; 7 the pixels taken as a figure's own
 	static const int ao_view = getenv("DURANDAL_AO_VIEW") ? std::max(1, std::atoi(getenv("DURANDAL_AO_VIEW"))) : 0;
 	static bool parsed = false;
 	if (!parsed)

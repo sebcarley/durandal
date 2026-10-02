@@ -88,12 +88,12 @@ GPU ms per frame, measured by switching it off. Values within the noise are left
 
 ## The plan
 
-### Step 1: now
+### Step 1: now (done 2 Oct 2026)
 
 - **Relaxed maths for the world shaders by default.**
   - `DURANDAL_MATH=safe` stays as a development switch, to put strict IEEE back for parity work; `fast` behaves the same as `relaxed` here.
   - Effort: one line.
-  - Judge on the display, with HDR. The checks so far were screenshots, which clip EDR.
+  - The owner judged it on the display: "pretty solid 200 fps+ at Rampant".
 - **The three exact fixes** (done on this branch, pixel-identical, film tests run).
 
 ### Step 2: the firefight frames (the 1% low, all tiers)
