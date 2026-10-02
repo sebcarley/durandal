@@ -1569,7 +1569,9 @@ fragment LiquidFrag liquid_fragment(WorldIn in [[stage_in]], constant Uniforms& 
 			const float ml = clamp(u.self_luminosity + u.flare - depth_h, 0.0, 1.0);
 			mirror = figure.rgb * clamp(1.0 + ml * 0.5, 0.0, 1.5) * haze.a + haze.rgb;
 		}
-		const float weight = fresnel * (1.0 - opacity * 0.5);
+		// A quarter less than full Fresnel (the owner, 2 Oct 2026: slightly
+		// less reflective; the ripples and glints unchanged)
+		const float weight = fresnel * (1.0 - opacity * 0.5) * 0.75;
 		colour = mix(mix(seen, surface, opacity), mirror, weight) + (glint + head * 0.25) * haze.a * (1.0 - opacity * 0.5);
 	}
 	const float f = fog_factor(u, l.fog_distance);

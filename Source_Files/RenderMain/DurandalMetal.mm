@@ -362,7 +362,7 @@ id<MTLBuffer> no_patch;
 
 // Traced shadows (R1)
 id<MTLBuffer> bound_occluders, bound_occluder_polygons, bound_occluder_indices;
-id<MTLTexture> mask_array;			// kMaskSlices silhouettes, R8, mipmapped
+id<MTLTexture> mask_array;			// kMaskSlices silhouettes, RGBA8 (colour, opacity), mipmapped
 id<MTLTexture> no_masks;			// 1x1x1: none
 
 // Development: the trace view
