@@ -673,6 +673,28 @@ The folder name comes from the *localised* bundle name
   flips the preference, prints "God mode on" on screen, writes the
   preferences, and the flag change follows as for the dialog, stopping
   any film recording).
+  Summon BOBs (2 Oct 2026, in QA: `Durandal::QA()`; `cheat_summon_key`,
+  default C, unbound upstream and in the owner's keys; Cheats tab "Summon
+  BOBs Key", shown only with the gate open): a press stops the film
+  recording and asks for five security BOBs (`_civilian_security`), which
+  arrive at the start of the next tick (`DurandalCheats::BeforeTick`,
+  called in `update_world` after `exit_interpolated_world`, so the world
+  is real, not interpolated, when objects are linked in). Spots beside and
+  behind the player (75-180 degrees off the facing first, then 40; rings
+  1-3 WU), each reached in a straight line without a solid line, steps
+  within 1/3 WU, room for the BOB's height and radius, no lava, goo or
+  liquid over half its height, no platform/teleporter/exit/ouch polygon,
+  clear of solid objects. Created invisible and activated, so they teleport in (effect
+  and sound) and hunt. While the cheat is available the BOB's collection
+  is marked at level entry (`DurandalCheats::MarkCollections` in
+  `entering_map`: a level without BOBs would not load it, and a monster's
+  animation drives its attacks), and in any build whenever the level
+  already holds a security BOB (a save made after a summon: unmarked, its
+  BOBs would stand frozen and invisible, and a film begun from it would
+  replay differently). Never in replays or net games.
+  `DURANDAL_SUMMON_TEST=<tick>` summons at that tick of a film run (frame
+  shots; the film desyncs after it): checked on L06 tick 150, five BOBs
+  teleported in beside the player.
 - Round 11 (HD art) on `durandal/hd-assets`, awaiting QA. The
   catalogue of packs and the engine notes are `docs/HD_ASSETS.md`
   (section 7: what was built). Everything is Flagship tier, on the new
@@ -1133,6 +1155,10 @@ The folder name comes from the *localised* bundle name
     worst second 58 once, L28 at 65 s); Flagship 142-189 / 82-133.
     Rampant's extra at the p99: world pass +4-7 ms, traced ambient
     shadows +2.5-3.5 ms, fog +0.5-2 ms; its slow frames are GPU-bound.
+  - Reflections a quarter weaker (the owner, 2 Oct 2026: "slightly less
+    reflective", ripples kept): the mirror's weight is 0.75 x Fresnel.
+  - Ground truths for the guide's update (handed to Claude chat):
+    `docs/RAMPANT-GROUND-TRUTH.md`.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
