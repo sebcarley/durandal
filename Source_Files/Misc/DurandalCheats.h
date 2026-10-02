@@ -8,7 +8,7 @@
 	the start of each level, and noclip (walls, monsters and scenery do
 	not stop the player; the void does). God mode and noclip also switch
 	on and off with a key each during a game (Cheats tab; G and N unless
-	changed). Summon BOBs (in QA; C unless changed) brings five armed
+	changed). Summon BOBs (C unless changed) brings five armed
 	security BOBs in beside and behind the player, teleporting in, to stand
 	with them in a fight.
 

@@ -119,16 +119,11 @@ bool QA()
 
 bool Released(Feature feature)
 {
+	// Nothing is in QA today: Weapon Takes the Light and the six Rampant
+	// features passed on 2 Oct 2026. A new feature goes here as a case
+	// returning false until the owner passes it
 	switch (feature)
 	{
-		case kWeaponLighting:
-		case kLightBounce:
-		case kTracedShadows:
-		case kReflections:
-		case kTracedAmbient:
-		case kDustEmbers:
-		case kHeatShimmer:
-			return false;
 		default:
 			return true;
 	}
@@ -712,19 +707,12 @@ void Dialog(void* parent_dialog)
 	w_key* noclip_key_w = new w_key(SDL_Scancode(prefs.cheat_noclip_key), w_key::KeyboardKey);
 	cheats->dual_add(noclip_key_w->label("Noclip Key"), d);
 	cheats->dual_add(noclip_key_w, d);
-	// Summon BOBs is in QA: its key shows only while the gate is open
-	w_key* summon_key_w = nullptr;
-	if (QA())
-	{
-		summon_key_w = new w_key(SDL_Scancode(prefs.cheat_summon_key), w_key::KeyboardKey);
-		cheats->dual_add(summon_key_w->label("Summon BOBs Key"), d);
-		cheats->dual_add(summon_key_w, d);
-	}
+	w_key* summon_key_w = new w_key(SDL_Scancode(prefs.cheat_summon_key), w_key::KeyboardKey);
+	cheats->dual_add(summon_key_w->label("Summon BOBs Key"), d);
+	cheats->dual_add(summon_key_w, d);
 	cheats->add_row(new w_spacer(), true);
-	cheats->dual_add_row(new w_static_text(summon_key_w ? "Single player only. God Mode, All Weapons, Noclip"
-														: "Single player only. Using God Mode, All Weapons"), d);
-	cheats->dual_add_row(new w_static_text(summon_key_w ? "and Summon BOBs stop that game's film recording."
-														: "or Noclip stops that game's film recording."), d);
+	cheats->dual_add_row(new w_static_text("Single player only. God Mode, All Weapons, Noclip"), d);
+	cheats->dual_add_row(new w_static_text("and Summon BOBs stop that game's film recording."), d);
 
 	for (int t = 0; t < kNumberOfTabs; ++t)
 		tabs->add(tables[t], true);
@@ -799,8 +787,7 @@ void Dialog(void* parent_dialog)
 		}
 		prefs.cheat_god_key = god_key_w->get_key();
 		prefs.cheat_noclip_key = noclip_key_w->get_key();
-		if (summon_key_w)
-			prefs.cheat_summon_key = summon_key_w->get_key();
+		prefs.cheat_summon_key = summon_key_w->get_key();
 		if (tier != kTierStock)
 		{
 			const int choice = soundtrack_w->get_selection();

@@ -80,7 +80,7 @@ int summon_test_tick()
 
 bool summon_available()
 {
-	return Durandal::Available() && Durandal::QA() && solo_game();
+	return Durandal::Available() && solo_game();
 }
 
 // The polygon a BOB could walk to at `to`, in a straight line from `from`
@@ -325,9 +325,9 @@ static void check_keys()
 	}
 	if (changed)
 		write_preferences();
-	// Summon BOBs (in QA): the BOBs arrive before the next tick, and the
-	// film stops now, as for a cheat switched in mid-game
-	if (Durandal::QA() && pressed(prefs.cheat_summon_key, summon_was_down) && !summon_pending)
+	// Summon BOBs: the BOBs arrive before the next tick, and the film
+	// stops now, as for a cheat switched in mid-game
+	if (pressed(prefs.cheat_summon_key, summon_was_down) && !summon_pending)
 	{
 		stop_film("summon BOBs");
 		summon_pending = true;

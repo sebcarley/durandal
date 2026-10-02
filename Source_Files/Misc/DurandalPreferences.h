@@ -72,13 +72,13 @@ enum Feature {
 	kAmbientShadows,	// Round 12: screen-space ambient occlusion from the world's depth (Metal display; Flagship)
 	kCharacterShadows,	// Round 12: sprites cast their silhouette on the floor (Metal; Flagship)
 	kTextureCache,		// HD art kept block-compressed in ~/Library/Caches, built at first load (DurandalTextureCache.h; Metal display; Flagship)
-	kWeaponLighting,	// the weapon in hand takes the strength and colour of the dynamic lights around the viewer (Metal; Enhanced; in QA)
-	kLightBounce,		// R4: redistributed light bounces on, figures take it, the sky gives its own colour (with Light Redistribution; Rampant; in QA)
-	kTracedShadows,		// R1: figures cast soft shadows from dynamic lights, light no longer leaks between stacked rooms (with Light Shadows; Rampant; in QA)
-	kReflections,		// R2: water, sewage and goo reflect the room and the sky, traced through the map (with Real Liquids; Rampant; in QA)
-	kTracedAmbient,		// R3: ambient shadows traced through the map and the figures, not read from the picture (with Ambient Shadows; Rampant; in QA)
-	kDustEmbers,		// air that moves: dust lit where light falls on it, embers rising off lava (Metal; Rampant; in QA)
-	kHeatShimmer,		// air that moves: the air over lava wavers (with Bloom; Metal display; Rampant; in QA)
+	kWeaponLighting,	// the weapon in hand takes the strength and colour of the dynamic lights around the viewer (Metal; Enhanced)
+	kLightBounce,		// R4: redistributed light bounces on, figures take it, the sky gives its own colour (with Light Redistribution; Rampant)
+	kTracedShadows,		// R1: figures cast soft shadows from dynamic lights, light no longer leaks between stacked rooms (with Light Shadows; Rampant)
+	kReflections,		// R2: water, sewage and goo reflect the room and the sky, traced through the map (with Real Liquids; Rampant)
+	kTracedAmbient,		// R3: ambient shadows traced through the map and the figures, not read from the picture (with Ambient Shadows; Rampant)
+	kDustEmbers,		// air that moves: dust lit where light falls on it, embers rising off lava (Metal; Rampant)
+	kHeatShimmer,		// air that moves: the air over lava wavers (with Bloom; Metal display; Rampant)
 	kNumberOfFeatures
 };
 
@@ -108,7 +108,7 @@ struct Preferences {
 	// Keys (SDL scancodes) that switch god mode and noclip during a game
 	int cheat_god_key;
 	int cheat_noclip_key;
-	// Key that brings five armed BOBs in beside the player (in QA)
+	// Key that brings five armed BOBs in beside the player
 	int cheat_summon_key;
 	// Soundtrack (ART tab; DurandalArt.h): the name of the installed
 	// soundtrack plugin that plays, empty for none. Not part of any tier
