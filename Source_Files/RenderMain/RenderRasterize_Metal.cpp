@@ -742,6 +742,8 @@ RenderRasterize_Metal::Material RenderRasterize_Metal::setupWallTexture(const sh
 			                   : 1 / double(1 << (-AdjustedVertExp));
 			m.uniforms.scaley = VertScale * TexScale * Radian2Circle;
 			m.uniforms.offsety = (0.5 + TMgr->U_Offset) * TexScale;
+			if (!opts->VertRepeat)
+				m.uniforms.sky |= 4u;	// ends at its image's top and bottom
 		}
 	}
 

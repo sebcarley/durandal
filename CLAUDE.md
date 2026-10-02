@@ -1219,6 +1219,24 @@ The folder name comes from the *localised* bundle name
     `ctz`, lowest first as before, so results are bit-identical. Firefight
     (L06 0-300): Enhanced 340 -> 392 fps, Flagship 228 -> 274, Rampant
     197 -> 211; world p99 down 1.4-1.8 ms.
+  - Skies (the owner, 2 Oct 2026: "they wrap and sway"): the flat
+    landscape mapping (`landscape_uv`, a port of the GL shader written for
+    the sheared view) took the eye-space direction, which with True Look
+    holds the pitch and the Sidestep Sway roll, and subtracted the pitch
+    again, so the sky turned and leaned with the head. `level_eye` now
+    takes the roll and then the pitch off (Rasterizer_Metal's order: base,
+    roll about forward, pitch about side, yaw), and the cylinder is
+    written with atan2 and the horizontal length so it runs on through
+    the zenith; with pitch and roll 0 (no True Look) it is the old
+    formula. Wrap: a landscape without vertical repeat is one mirrored-
+    repeat period around the horizon (v from floor(offsety); M2's
+    defaults with the CFP 4096x2160 skies: about 45 degrees either side),
+    and True Look sees past it, where the mirrored copies came round again
+    (a second, upside-down planet overhead). `landscape_colour` clamps to
+    the period and fades to the edge row's average beyond it (`u.sky` bit
+    2, set when `!VertRepeat`). Checked at `DURANDAL_LOOK_OFFSET` 0, 25 and
+    55 on 260929-1 tick 450: level unchanged (0.05/255). Sphere landscapes
+    were already corrected; reflections' sky is mapped separately.
   - Round closed after 2a (the owner, 2 Oct 2026: "big fights feel as
     smooth as they can be"); steps 2b onwards stay in the plan, unbuilt.
     Next: after a reboot, a full-screen rebench (1080p 240 Hz) on films

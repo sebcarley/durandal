@@ -68,7 +68,8 @@ struct Uniforms {
 	uint32_t filtering;			// bit 0: crisp texture filtering (L4)
 	float emissive;				// glow (E1): the object's minimum light, 0-1
 	uint32_t write_glow;		// 1: write the glow image
-	uint32_t sky;				// HDR sky (V2): bit 0 cylindrical projection, bit 1 sky glow
+	uint32_t sky;				// HDR sky (V2): bit 0 cylindrical projection, bit 1 sky glow;
+								//   bit 2 a landscape without vertical repeat (fades beyond its image)
 	uint32_t light_count;		// dynamic lights (E2) set by SetLights
 	simd_float4 camera;			// viewer position, world units
 	int32_t polygon;			// the map polygon being drawn (light shadows, E3)

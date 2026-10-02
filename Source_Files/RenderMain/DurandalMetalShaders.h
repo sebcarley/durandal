@@ -62,7 +62,7 @@ struct Uniforms {
 	uint filtering;				// bit 0: crisp texture filtering (L4)
 	float emissive;				// glow (E1): this object's minimum light, 0-1
 	uint write_glow;			// 1: write the glow image
-	uint sky;					// HDR sky (V2): bit 0 cylindrical projection, bit 1 sky glow
+	uint sky;					// HDR sky (V2): bit 0 cylindrical projection, bit 1 sky glow, bit 2 no vertical repeat
 	uint light_count;			// dynamic lights (E2) in buffer 2
 	float4 camera;				// viewer position, world units
 	int polygon;				// the map polygon being drawn, for light shadows (E3)
@@ -1694,19 +1694,63 @@ fragment WorldFrag invisible_fragment(WorldIn in [[stage_in]], constant Uniforms
 	return world_frag(in, out);
 }
 
-static float2 landscape_uv(constant Uniforms& u, float3 rel)
+// True Look: a flat landscape follows the view's yaw only. The eye space
+// also holds the view's pitch and roll (Rasterizer_Metal builds the view as
+// the base axes, roll about the forward axis, pitch about the side axis,
+// then yaw), so they are taken off here; mapped from the eye space as it
+// came, the sky turned and leaned with the head instead of staying with the
+// world (the owner, 2 Oct 2026: the skies "sway"). Pitch and roll are 0
+// without True Look, where nothing changes
+static float3 level_eye(constant Uniforms& u, float3 rel)
+{
+	float3 v = float3(-rel.z, rel.x, rel.y);	// the view's axes: forward, side, up
+	const float cr = cos(u.roll), sr = sin(u.roll);
+	v = float3(v.x, cr * v.y + sr * v.z, -sr * v.y + cr * v.z);	// the roll taken off
+	const float cp = cos(u.pitch), sp = sin(u.pitch);
+	v = float3(cp * v.x - sp * v.z, v.y, sp * v.x + cp * v.z);		// the pitch taken off
+	return float3(v.y, v.z, -v.x);
+}
+
+static float2 landscape_uv(constant Uniforms& u, float3 eye)
 {
 	const float zoom = 1.2;
-	const float pitch_adjust = 0.96;
-	const float3 facev = float3(cos(u.yaw), sin(u.yaw), sin(u.pitch));
+	const float3 rel = level_eye(u, eye);
 	// As the OpenGL renderer the sky is flat on the screen, so it stretches
 	// towards the sides at wide fields of view; with HDR Sky (V2) it is a
-	// cylinder around the viewer, identical at the centre of the view
-	const float t = rel.x / rel.z;
+	// cylinder around the viewer, identical at the centre of the view. Ahead
+	// is -z: the cylinder is written with atan2 and the horizontal length so
+	// it runs on, unbroken, up to and past straight up
 	const bool cylinder = (u.sky & 1u) != 0;
-	const float x = (cylinder ? atan(t) : t) / zoom + atan2(facev.x, facev.y);
-	const float y = rel.y / (rel.z * zoom) * (cylinder ? rsqrt(1.0 + t * t) : 1.0) - (facev.z * pitch_adjust);
+	const float across = cylinder ? atan2(-rel.x, -rel.z) : rel.x / rel.z;
+	const float up = cylinder ? -rel.y * rsqrt(max(rel.x * rel.x + rel.z * rel.z, 1e-12)) : rel.y / rel.z;
+	const float x = across / zoom + atan2(cos(u.yaw), sin(u.yaw));
+	const float y = up / zoom;
 	return float2(u.offsetx - x * u.scalex, u.offsety - y * u.scaley);
+}
+
+// A landscape without vertical repeat ends at its image's top and bottom:
+// the sampler repeats it mirrored (as OpenGL did), and the image proper is
+// the one period of that around the horizon (v = offsety; for M2's default
+// options, -1 to 0, about 45 degrees either side of the horizon). True Look
+// sees past it (to straight up, where the cylinder's height runs to
+// infinity), and the mirrored copies came round again and again there (the
+// owner: the skies "wrap"). Beyond the image the sky fades to the average of
+// its edge row, so stars do not smear into streaks
+static float4 landscape_colour(constant Uniforms& u, texture2d<float> tex, sampler smp, float3 eye)
+{
+	const float2 uv = landscape_uv(u, eye);
+	if ((u.sky & 4u) == 0)
+		return tex.sample(smp, uv);
+	const float top = floor(u.offsety), edge = 0.5 / float(tex.get_height());
+	const float v = clamp(uv.y, top + edge, top + 1.0 - edge);
+	const float4 c = tex.sample(smp, float2(uv.x, v), level(0));
+	const float over = max(top + edge - uv.y, uv.y - (top + 1.0 - edge));
+	if (over <= 0.0)
+		return c;
+	float4 row = float4(0.0);
+	for (int i = 0; i < 16; ++i)
+		row += tex.sample(smp, float2((float(i) + 0.5) / 16.0, v), level(0));
+	return mix(c, row / 16.0, smoothstep(0.0, 0.12, over));
 }
 
 // HDR sky (V2): the brightest parts of the landscape (sunlit sky, fiery
@@ -1746,14 +1790,14 @@ static float2 landscape_sphere_uv(constant Uniforms& u, float3 rel)
 fragment WorldFrag landscape_fragment(WorldIn in [[stage_in]], constant Uniforms& u [[buffer(1)]],
 								   texture3d<float> volume [[texture(3)]], texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]])
 {
-	const float4 color = tex.sample(smp, landscape_uv(u, in.rel_dir));
+	const float4 color = landscape_colour(u, tex, smp, in.rel_dir);
 	return fogged_frag(u, volume, in, float4(mix(color.rgb, u.fog_color.rgb, u.fog_mix), 1.0), sky_glow(u, color.rgb) * (1.0 - u.fog_mix));
 }
 
 fragment WorldFrag landscape_infravision_fragment(WorldIn in [[stage_in]], constant Uniforms& u [[buffer(1)]],
 											   texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]])
 {
-	const float4 color = tex.sample(smp, landscape_uv(u, in.rel_dir));
+	const float4 color = landscape_colour(u, tex, smp, in.rel_dir);
 	const float avg = (color.r + color.g + color.b) / 3.0;
 	return world_frag(in, float4(mix(u.color.rgb * avg, u.fog_color.rgb, u.fog_mix), 1.0), float3(0.0), u.distance_mode);
 }
