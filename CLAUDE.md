@@ -1255,6 +1255,21 @@ The folder name comes from the *localised* bundle name
   corpse-bar fix in traced ambient shadows and the skies that stay with
   the world. Next: a full-screen rebench after a reboot on films not used
   before, then the in-game HD art button.
+- Rebench after a reboot (3 Oct 2026, full screen 1080p 240 Hz, seven
+  films not used before: L05, L11, L14, L22, L24, L27, net House of Pain;
+  `docs/benchmarks/b9-unseen-films.md`): Rampant 198-276 avg, Flagship
+  235-288. L24's Rampant worst second was 35 (world pass up to 140 ms at
+  ticks 675-700): an explosion filling the view, its many blended layers
+  each walking the four figure-casting lights through ~50 figures listed
+  in one polygon. Draws already at full light (`u.color` >= 1: self-lit
+  frames, explosions) now get no lights in `RenderRasterize_Metal::draw`
+  (exact: the shaders take min(colour + light, 1); not liquids, whose
+  glints add), pixel-identical on that stretch; L24 Rampant then 236 avg,
+  98 1% low, worst second 93. `DURANDAL_OCCLUDER_LOG=1` prints the
+  figures gathered and the longest polygon list per frame. If a crowd
+  still spikes, the next lever is capping each polygon's figure list.
+  `scripts/diff-shots.swift` compares two directories of frame shots
+  (compile with `xcrun swiftc -O ... -o .deps/diff-shots`).
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

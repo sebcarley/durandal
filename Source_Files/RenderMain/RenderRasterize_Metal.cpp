@@ -505,6 +505,18 @@ void RenderRasterize_Metal::draw(Material& m, const Vertex* polygon, int count)
 		}
 		u.culling.x &= reach_lights;
 		u.culling.y &= reach_casters;
+		// A wall or sprite already at full light (a self-lit frame, an
+		// explosion) cannot be lit further: classic_intensity and
+		// classic_shade take min(colour + light, 1), so the lights change
+		// nothing there and are not walked (L24's explosions, layered over
+		// a crowded room, walked fifty figures a light per pixel: 140 ms
+		// frames). Not liquids, whose glints add on top
+		const DurandalMetal::Program p = m.state.program;
+		if ((p == DurandalMetal::kWall || p == DurandalMetal::kSprite) && u.color.x >= 1.0f && u.color.y >= 1.0f &&
+			u.color.z >= 1.0f)
+			u.culling.x = 0;
+		if ((p == DurandalMetal::kWallRamp || p == DurandalMetal::kSpriteRamp) && u.color.x >= 1.0f)
+			u.culling.x = 0;
 	}
 
 	// GL_POLYGON / GL_QUADS -> triangle fan

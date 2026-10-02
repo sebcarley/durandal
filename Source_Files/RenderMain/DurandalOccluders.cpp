@@ -25,6 +25,8 @@
 #include "lightsource.h"
 
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 #include <cmath>
 #include <cstring>
 #include <unordered_map>
@@ -321,6 +323,20 @@ int Gather(const view_data* view, const DurandalMetal::Light* light_list, int li
 		indices.insert(indices.end(), per_polygon[p].begin(), per_polygon[p].end());
 	}
 	DurandalMetal::SetOccluders(found.data(), int(found.size()), lists.data(), polygons, indices.data(), int(indices.size()));
+	// Development: DURANDAL_OCCLUDER_LOG=1 prints, each frame, the figures
+	// gathered, the longest polygon list and how many of them are garbage
+	static const bool log = getenv("DURANDAL_OCCLUDER_LOG") != nullptr;
+	if (log)
+	{
+		size_t longest = 0;
+		for (int p = 0; p < polygons; ++p)
+			longest = std::max(longest, per_polygon[p].size());
+		int garbage = 0;
+		for (const Candidate& c : candidates)
+			garbage += GET_OBJECT_OWNER(&ObjectList[c.index]) == _object_is_garbage ? 1 : 0;
+		fprintf(stderr, "Durandal occluders: tick %d, %zu figures (%zu candidates, %d garbage), longest polygon list %zu\n",
+				int(view->tick_count), found.size(), candidates.size(), garbage, longest);
+	}
 	return int(found.size());
 }
 
