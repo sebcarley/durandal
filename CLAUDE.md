@@ -1170,6 +1170,37 @@ The folder name comes from the *localised* bundle name
     one-button in-game download: see `docs/HD_ASSETS.md` section 6 for
     the licence position (CFP art has no grant; needs the maintainer's
     permission to mirror; git cannot hold files over 100 MB anyway).
+- Tag `baseline-8` (2 Oct 2026): Rampant, Weapon Takes the Light and
+  Summon BOBs released (QA passed), the new guide placed; `durandal/main`
+  fast-forwarded to it.
+- Optimisation (2 Oct 2026, on `durandal/optimisation`; the owner asked for
+  a plan, measured mainly headless). Plan and every number:
+  `docs/PLAN-optimisation.md`. Findings:
+  - The world shaders are compiled in Metal's safe (IEEE) maths mode
+    (Round 2, for OpenGL parity). Relaxed mode roughly halves GPU time per
+    frame (Rampant L06 175 -> 311 fps, Flagship 211 -> 358; L28 125 -> 216
+    and 155 -> 270) with no visible change on four films (5-D Space
+    included). `DURANDAL_MATH=safe|relaxed|fast` switches it for runs; the
+    default is still safe, awaiting the owner's look on the display.
+  - Three exact fixes (pixel-identical, checked): glow passes with a
+    minimum glow of 1 get no lights (`setup_glow`; classic_intensity clamps
+    them away), wall and sprite fragments discard transparent texels before
+    walking lights (all derivatives and implicit-LOD samples stay above
+    the discard), and the weapon in hand skips the light walk its
+    `viewer_light` replaces.
+  - After those the 1% low is the limit: firefights, GPU-bound, twice the
+    usual number of cast lights. Most of the lights' cost is the per-pixel
+    loop over all 16, not the shadow walks: per-surface light culling is
+    the first job. Compiling Rampant's paths out of the lower tiers and a
+    RG11B10 glow image were measured and gave nothing.
+  - Bounced Light makes frames differ slightly run to run (0.5/255 on
+    L28; exactly repeatable with it off): compare frame shots with it off.
+  - Tools: `scripts/feature-costs.sh <out> <film> <end-tick> label=settings
+    ...` (hidden, off-screen, GPU stage timing; `REPEAT=n` alternates the
+    order; settings may start with `ENV=value ...@`, and `APP=<binary>`
+    there runs a kept build for A/B), `scripts/feature-costs.py <out>
+    [--base <label>] [--md]`. Hidden runs only when the owner says the
+    screen is not free.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
