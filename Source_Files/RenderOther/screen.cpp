@@ -62,6 +62,9 @@
 #include "images.h"
 #include "motion_sensor.h"
 #include "Logging.h"
+#ifdef __APPLE__
+#include <CoreGraphics/CoreGraphics.h>	// Durandal: DURANDAL_DISPLAY=builtin
+#endif
 
 #include "sdl_fonts.h"
 
@@ -133,6 +136,73 @@ static bool passed_shader = false;      // remember when we passed Shader tests
 
 
 using namespace alephone;
+
+// Durandal: DURANDAL_DISPLAY=<index | builtin | part of the name> opens the
+// window (and full screen) on that display instead of the main one;
+// "builtin" is the Mac's own screen (found through CoreGraphics and matched
+// to SDL's display by its origin: this SDL names displays by number). Unset: the main display, as upstream. Set but matching
+// no display: the game quits rather than open on the wrong screen.
+static int durandal_display()
+{
+	static int display = -1;
+	if (display >= 0)
+		return display;
+	const char* want = getenv("DURANDAL_DISPLAY");
+	if (!want || !*want)
+		return display = 0;
+	const int count = SDL_GetNumVideoDisplays();
+	char* end = nullptr;
+	const long index = strtol(want, &end, 10);
+	if (end && *end == 0 && index >= 0 && index < count)
+		display = int(index);
+#ifdef __APPLE__
+	else if (strcasecmp(want, "builtin") == 0)
+	{
+		CGDirectDisplayID ids[16];
+		uint32_t n = 0;
+		CGGetActiveDisplayList(16, ids, &n);
+		for (uint32_t k = 0; k < n && display < 0; ++k)
+		{
+			if (!CGDisplayIsBuiltin(ids[k]))
+				continue;
+			const CGRect b = CGDisplayBounds(ids[k]);
+			for (int i = 0; i < count; ++i)
+			{
+				SDL_Rect r;
+				if (SDL_GetDisplayBounds(i, &r) == 0 && r.x == int(b.origin.x) && r.y == int(b.origin.y))
+				{
+					display = i;
+					break;
+				}
+			}
+		}
+	}
+#endif
+	else
+		for (int i = 0; i < count; ++i)
+		{
+			const char* name = SDL_GetDisplayName(i);
+			if (name && strcasestr(name, want))
+			{
+				display = i;
+				break;
+			}
+		}
+	if (display < 0)
+	{
+		fprintf(stderr, "DURANDAL_DISPLAY=%s matches no display; displays:\n", want);
+		for (int i = 0; i < count; ++i)
+		{
+			SDL_Rect r = {};
+			SDL_GetDisplayBounds(i, &r);
+			fprintf(stderr, "  %d: %s, %dx%d at %d,%d\n", i, SDL_GetDisplayName(i), r.w, r.h, r.x, r.y);
+		}
+		exit(1);
+	}
+	logNote("DURANDAL_DISPLAY: display %d (%s) of %d", display, SDL_GetDisplayName(display), count);
+	return display;
+}
+#define DURANDAL_WINDOWPOS SDL_WINDOWPOS_CENTERED_DISPLAY(durandal_display())
 
 Screen Screen::m_instance;
 
@@ -225,7 +295,7 @@ void Screen::Initialize(screen_mode_data* mode)
 		
 		m_modes.clear();
 		SDL_DisplayMode desktop;
-		if (SDL_GetDesktopDisplayMode(0, &desktop) == 0)
+		if (SDL_GetDesktopDisplayMode(durandal_display(), &desktop) == 0)	// Durandal: was display 0
 		{
 			if (desktop.w >= 640 && desktop.h >= 480)
 			{
@@ -808,7 +878,7 @@ static bool need_mode_change(int window_width, int window_height,
 		SDL_GetWindowSize(main_screen, &w, &h);
 		if (w != window_width || h != window_height) {
 			SDL_SetWindowSize(main_screen, window_width, window_height);
-			SDL_SetWindowPosition(main_screen, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+			SDL_SetWindowPosition(main_screen, DURANDAL_WINDOWPOS, DURANDAL_WINDOWPOS);
 		}
 	}
 	if (!hasgl) {
@@ -953,8 +1023,8 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 		SDL_FilterEvents(change_window_filter, &window_id);
 	}
 	main_screen = SDL_CreateWindow(get_application_name().c_str(),
-								   SDL_WINDOWPOS_CENTERED,
-								   SDL_WINDOWPOS_CENTERED,
+								   DURANDAL_WINDOWPOS,
+								   DURANDAL_WINDOWPOS,
 								   sdl_width, sdl_height,
 								   flags);
 
@@ -967,8 +1037,8 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 		DurandalGL::Disable();
 		flags = (flags & ~SDL_WINDOW_METAL) | SDL_WINDOW_OPENGL;
 		main_screen = SDL_CreateWindow(get_application_name().c_str(),
-									   SDL_WINDOWPOS_CENTERED,
-									   SDL_WINDOWPOS_CENTERED,
+									   DURANDAL_WINDOWPOS,
+									   DURANDAL_WINDOWPOS,
 									   sdl_width, sdl_height,
 									   flags);
 	}
@@ -980,8 +1050,8 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
 		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
 		main_screen = SDL_CreateWindow(get_application_name().c_str(),
-									   SDL_WINDOWPOS_CENTERED,
-									   SDL_WINDOWPOS_CENTERED,
+									   DURANDAL_WINDOWPOS,
+									   DURANDAL_WINDOWPOS,
 									   sdl_width, sdl_height,
 									   flags);
 		if (main_screen)
@@ -994,8 +1064,8 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
 		main_screen = SDL_CreateWindow(get_application_name().c_str(),
-									   SDL_WINDOWPOS_CENTERED,
-									   SDL_WINDOWPOS_CENTERED,
+									   DURANDAL_WINDOWPOS,
+									   DURANDAL_WINDOWPOS,
 									   sdl_width, sdl_height,
 									   flags);
 		if (main_screen)
@@ -1022,8 +1092,8 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 			fprintf(stderr, "WARNING: Retrying with Software renderer\n");
 			screen_mode.acceleration = graphics_preferences->screen_mode.acceleration = _no_acceleration;
 			main_screen = SDL_CreateWindow(get_application_name().c_str(),
-										   SDL_WINDOWPOS_CENTERED,
-										   SDL_WINDOWPOS_CENTERED,
+										   DURANDAL_WINDOWPOS,
+										   DURANDAL_WINDOWPOS,
 										   sdl_width, sdl_height,
 										   flags);
 		}
@@ -1046,8 +1116,8 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
 
 		main_screen = SDL_CreateWindow(get_application_name().c_str(),
-									   SDL_WINDOWPOS_CENTERED,
-									   SDL_WINDOWPOS_CENTERED,
+									   DURANDAL_WINDOWPOS,
+									   DURANDAL_WINDOWPOS,
 									   sdl_width, sdl_height,
 									   flags);
 #endif
@@ -1058,8 +1128,8 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 		logWarning("Trying windowed mode");
 		uint32 tempflags = flags & SDL_WINDOW_FULLSCREEN_DESKTOP;
 		main_screen = SDL_CreateWindow(get_application_name().c_str(),
-									   SDL_WINDOWPOS_CENTERED,
-									   SDL_WINDOWPOS_CENTERED,
+									   DURANDAL_WINDOWPOS,
+									   DURANDAL_WINDOWPOS,
 									   vmode_width, vmode_height,
 									   tempflags);
 		if (main_screen) {
@@ -1072,8 +1142,8 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 		logWarning("Trying software mode");
 		uint32 tempflags = (flags & ~SDL_WINDOW_OPENGL) | SDL_SWSURFACE;
 		main_screen = SDL_CreateWindow(get_application_name().c_str(),
-									   SDL_WINDOWPOS_CENTERED,
-									   SDL_WINDOWPOS_CENTERED,
+									   DURANDAL_WINDOWPOS,
+									   DURANDAL_WINDOWPOS,
 									   sdl_width, sdl_height,
 									   tempflags);
 		if (main_screen) {
@@ -1086,8 +1156,8 @@ static void change_screen_mode(int width, int height, int depth, bool nogl, bool
 		logWarning("Trying software windowed mode");
 		uint32 tempflags = (flags & ~(SDL_WINDOW_OPENGL|SDL_WINDOW_FULLSCREEN_DESKTOP)) | SDL_SWSURFACE;
 		main_screen = SDL_CreateWindow(get_application_name().c_str(),
-									   SDL_WINDOWPOS_CENTERED,
-									   SDL_WINDOWPOS_CENTERED,
+									   DURANDAL_WINDOWPOS,
+									   DURANDAL_WINDOWPOS,
 									   vmode_width, vmode_height,
 									   tempflags);
 		if (main_screen) {

@@ -213,6 +213,12 @@ The folder name comes from the *localised* bundle name
   enlarges side by side; `scripts/stats.swift x y w h <png>...` prints mean
   RGB. `DURANDAL_DUMP_RAMPS=<file>` writes the 8-bit ramp tables as built.
   Keep frame-shot spacing under 40 s of film time (the scripts' watchdog).
+- `DURANDAL_DISPLAY=<index | builtin | part of a name>` opens the window
+  and full screen on that display instead of the main one (screen.cpp,
+  `durandal_display`); `builtin` is the MacBook's own screen, found through
+  CoreGraphics (this SDL names displays "0", "1"). Set but matching nothing:
+  the game quits rather than open on the wrong screen. The owner asked on
+  3 Oct 2026 for on-screen work on the laptop screen, not the MSI.
 - `DURANDAL_BENCHMARK_SHOW_FPS=1` turns the in-game fps counter on for a
   benchmark run (in-game text in frame comparisons: `SHOW_FPS=1
   scripts/frames.sh ...`).
@@ -1383,8 +1389,10 @@ The folder name comes from the *localised* bundle name
   Marathon 1's converted films and Infinity's in sync. GET HD ART... shows
   only in Marathon 2 (its pack list is Marathon 2's art) until T1/T2 give
   the others theirs (`Scenario::instance()->GetID()`). `setup.sh` still
-  builds Marathon 2 alone (T3). Next: the first look on screen (the owner
-  plays each at Flagship and Rampant; frame shots of the demo films).
+  builds Marathon 2 alone (T3). First look, frame shots on the laptop screen
+  (`docs/PLAN-trilogy.md`, "T0 results"): Infinity fine; Marathon in
+  Rampant much too dark in dim rooms, washed green near Hunters, and a few
+  350 ms hitches on L1. Next: the owner's own play of each game.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

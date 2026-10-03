@@ -106,6 +106,40 @@ four or more, each plus the owner's QA.
   Rampant. I take frame shots of the upstream demo films. Together they
   give the list of what is wrong.
 
+### T0 results (3 Oct 2026)
+
+- **Built and named:** Durandal Infinity.app and Durandal Marathon.app,
+  signed to run locally; scripts take `GAME` (`scripts/game.sh`).
+- **Film gate:** green first time, three ways, for all three games
+  (Marathon 2 86 assertions, Infinity 66, Marathon 56).
+- **Get HD Art** shows only in Marathon 2 until each game has its list.
+- **`DURANDAL_DISPLAY=builtin`** puts on-screen runs on the MacBook's own
+  screen (the owner's ask: not the MSI).
+- **First look, frame shots** (`.deps/looks/t0-first-look`: Infinity's four
+  demos and Marathon's L1, L8 and L16, first 90 s each, stock against
+  Rampant, full screen on the laptop at 2940x1846):
+  - **Infinity:** nothing wrong seen. Widescreen, fog, ambient shadows,
+    lamps, skies, sewage and water liquids all behave as in Marathon 2.
+  - **Marathon, the HUD:** its Lua HUD draws correctly on the Metal
+    display; the view stays 4:3 with black bars either side (expected: no
+    widescreen with a Lua HUD).
+  - **Marathon, too dark:** in Rampant, walls that are dim in stock fall
+    to near black, with blotchy dark patches in dim rooms and corridors
+    (L1 tick 2401, L8 throughout, L16 tick 1501). Not seen in Infinity.
+    Suspects: the haze table (Marathon's environment codes pick Marathon
+    2's lava/sewage/Jjaro haze), light redistribution or bounced light
+    with Marathon's palettes, traced ambient shadows. To isolate by
+    switching features one at a time.
+  - **Marathon, green flood:** in Rampant, the rooms around Hunters on L16
+    wash green (ticks 601, 2401) where stock shows grey: sewage-green air
+    and/or the Hunters' self-lit armour as strong dynamic lights. Same
+    isolation.
+  - **Marathon, hitches:** 13 frames of the L1 run took ~350 ms to render
+    (longest 646 ms), at 30 fps capped; Infinity showed none. To look at
+    with the cache log (texture builds on first sight?).
+- **Still to do:** the owner's own play of each game at Flagship and
+  Rampant (on the laptop screen).
+
 ### T1 — Infinity (M)
 
 - **Which game is this:** a small `DurandalScenario` module (from the
