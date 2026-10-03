@@ -47,6 +47,11 @@
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
+            key = "DURANDAL_DISPLAY"
+            value = "builtin"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
             key = "DURANDAL_EDR_TEST"
             value = "1"
             isEnabled = "NO">
