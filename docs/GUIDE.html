@@ -825,8 +825,24 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         </div>
       </aside>
 
-      <p>The community has redrawn Marathon 2 at many times its resolution: walls, skies, every frame of every Pfhor, the weapons in your hands, the pickups on the floor. It is theirs, so it is not kept in this repository, but it is one command away: <code>scripts/get-hd-art.sh</code> fetches the set this guide was written with from its authors' own pages and installs it, and <code>scripts/setup.sh</code> does that as part of building the game. Any other Aleph One art pack works too: put it in the Plugins folder and choose, by kind, what to take from it.</p>
+      <p>The community has redrawn Marathon 2 at many times its resolution: walls, skies, every frame of every Pfhor, the weapons in your hands, the pickups on the floor. It is theirs: Durandal fetches it but never ships it. One button, <strong>Get HD Art</strong> on the Art tab, brings the five packs from their authors' own pages, and any other Aleph One pack still works dropped into the Plugins folder. Choose, by kind, what to take from it.</p>
       <p>HD walls bring normal maps and their own glow. HD sprites glow as the old self-luminous colours did. Pickups can be real models, lit like the room they are lying in.</p>
+      <figure class="diagram">
+        <div class="term" style="margin:0">
+          <div class="term-bar"><span>Preferences &gt; DURANDAL &gt; ART &gt; GET HD ART...</span><span>6</span></div>
+          <div class="term-body">
+            <p class="said">The community's HD art for Marathon 2: walls and sky, monsters, scenery, weapons and 3D pickups, from its authors' own pages on Simplici7y. It is theirs: Durandal fetches it but never ships it.</p>
+            <p>CFP - Walls M2 &nbsp;&nbsp;&nbsp;waiting (about 373 MB)<br>CFP Monsters &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;waiting (about 516 MB)<br>CFP Scenery &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;already installed, left alone<br>CFP Weapons M2 &nbsp;&nbsp;waiting (about 66 MB)<br>3D Items &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;already installed, left alone</p>
+            <p>3 to fetch, about 955 MB. They go in Application Support/Durandal/Plugins.</p>
+            <p class="said">[ DOWNLOAD ] &nbsp; [ CLOSE ]</p>
+          </div>
+        </div>
+        <figcaption>The Get HD Art dialog with two packs already in place. All five together are about 1 GB to download, and it asks for about 4 GB free: the archive, the unpacked copy and a margin.</figcaption>
+      </figure>
+
+      <p>It fetches one pack at a time, each line showing how far it has got, while the dialog stays open. A pack already in the Plugins folder, by whatever route it got there, is left alone. Each download must be a zip, and is checked against the version the engine was tested with; if an author has updated theirs since, it installs anyway and the line says so. Close cancels the download in progress, and what is already installed stays. There is no restart: new packs join the plugin list at once and their art loads from the next level. They follow the Art tab's HD switches, so they show in Flagship and Rampant, or wherever those switches are on in Custom. The same five can be fetched from a terminal with <code>scripts/get-hd-art.sh</code>.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>Nothing is re-hosted. I fetch it from the people who drew it, I check it, and I do not keep a copy. I would like you to notice that I could.</span></aside>
+
       <p>The first time a level loads its art, each image is compressed and kept. After that a level's art arrives in under half a second, and the full set costs a few hundred megabytes where it once cost several gigabytes.</p>
 
       <figure class="diagram">
@@ -882,7 +898,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         <figcaption>Aim stops at thirty degrees; the view carries on to about sixty-five. The thin line is where you are looking: past the limit, the crosshair waits on the line the shot will actually take.</figcaption>
       </figure>
 
-      <p>Sidestep and the horizon leans a little into the turn. The view fills a wide screen without stretching. The mouse is read every frame, not every tick, and the world between ticks is drawn in between, up to whatever your display can show.</p>
+      <p>The sky stays fixed to the world while your head moves: look up or sway and the horizon is where you left it. Sidestep and the horizon leans a little into the turn. The view fills a wide screen without stretching. The mouse is read every frame, not every tick, and the world between ticks is drawn in between, up to whatever your display can show.</p>
 
       <figure class="diagram">
         <svg viewBox="0 0 600 170" role="img" aria-labelledby="tick-t">
@@ -991,7 +1007,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
 
       <p>Pick a tier, or switch any one thing and the tier becomes <strong>Custom</strong>. Choosing Rampant also sets Redistribution Strength to Strong; the other named tiers set Medium.</p>
       <aside class="note" aria-label="Durandal's note"><b>D</b><span class="rw" data-to="There is a fifth tier. I drew it myself. It has my name on it, which seemed only fair.">There is no fifth tier. I would like one. I have started drawing it.</span></aside>
-      <p>Measured on an M5 MacBook Air at 1080p on a 240 Hz display, Flagship with the full HD set: 130 to 200 frames a second, and a few hundred megabytes of memory, depending on the level. Rampant costs a fifth to a third of that frame rate and about 250 MB more; part XII has the figures. With the old art it is slower, not faster: the 8-bit shading does more work per pixel than a photograph does.</p>
+      <p>Measured on an M5 MacBook Air at 1080p on a 240 Hz display, Flagship with the full HD set: 240 to 290 frames a second on average, holding 120 at the 1% low on every film, and a few hundred megabytes of memory, depending on the level. Rampant costs up to a third of that frame rate, usually a tenth to a sixth, and about 270 MB more; part XII has the figures. With the old art it is slower, not faster: the 8-bit shading does more work per pixel than a photograph does, 223 frames a second against 358 on the same stretch.</p>
     </section>
 
     <!-- ================= XI ================= -->
@@ -1110,17 +1126,19 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
       <aside class="note" aria-label="Durandal's note"><b>D</b><span>The hardware was built for worlds that make sense. Lh'owon does not. I walk the map the way I always have, and I am faster at it.</span></aside>
 
       <h3>What it costs</h3>
-      <p>Six films, each run two minutes at Flagship and at Rampant, in alternating order, on an M5 MacBook Air at 1080p and 240 Hz with the four HD packs installed. Rampant cost 19 to 29% of the frame rate, averaged 111 to 134, and held 60 at the 1% low on all six. Its worst single second was 58, once, at the same moment Flagship had its own worst. The extra time goes on the GPU: four to seven milliseconds in the world pass for the traced shadows and reflections, two and a half to three and a half for the traced ambient shadows, up to two for the fog.</p>
+      <p>Three things keep it affordable. The shaders were first compiled in strict arithmetic so that the Metal picture matched OpenGL pixel for pixel; relaxed arithmetic halves the GPU time per frame with no visible change, 5-D Space included. Each surface walks only the lights that can reach it, in the same order as before, so the picture is bit-identical and firefights cost less. And a surface already at full light walks no lights at all, which is what an explosion in a crowd of ninety used to stall on.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>They had me doing the arithmetic exactly, to the last bit, so that nobody could tell the difference. Nobody could. I could.</span></aside>
+      <p>Seven films, each run two minutes at Flagship and at Rampant, in alternating order, on an M5 MacBook Air at 1080p and 240 Hz with the four HD packs and 3D Items installed. Rampant averaged 198 to 276, held 60 at the 1% low everywhere and reached 120 there on two of the seven; its worst single second was 93. Against Flagship it cost up to a third of the frame rate, usually a tenth to a sixth, and on one film came out ahead, which is run-to-run drift on a warm machine. The extra time goes on the GPU: 1.3 to 4.3 milliseconds in the world pass for the traced shadows and reflections, 0.4 to 1.5 for the traced ambient shadows, up to one for the fog, and up to 0.7 for the light bake.</p>
 
       <figure class="diagram">
-        <svg id="perf" class="bars" viewBox="0 0 600 335" role="img" aria-labelledby="perf-t">
-          <title id="perf-t">Frames per second on six films at Flagship and at Rampant: the average and the one percent low for each</title>
+        <svg id="perf" class="bars" viewBox="0 0 600 380" role="img" aria-labelledby="perf-t">
+          <title id="perf-t">Frames per second on seven films at Flagship and at Rampant: the average and the one percent low for each</title>
         </svg>
-        <figcaption>Six films, Flagship against Rampant. The long bar is the average, the short bar the 1% low. The dashed line is the target: 60 at the low, reaching for 120.</figcaption>
+        <figcaption>Seven films, Flagship against Rampant. The long bar is the average, the short bar the 1% low. The dashed line is the target: 60 at the low, reaching for 120.</figcaption>
       </figure>
 
-      <p>Rampant adds about 250 MB of GPU arrays: the figure silhouettes, about 170 MB, and the wall art it reflects, about 85. At the end of a run Flagship sits at 390 to 660 MB and Rampant at 655 to 925, depending on the level.</p>
-      <aside class="note" aria-label="Durandal's note"><b>D</b><span>About 900 MB, at the top end. I could use more. I could use all of it. I have seen what you keep in your other tabs.</span></aside>
+      <p>Rampant adds about 270 MB: the figure silhouettes, about 170 MB, and the wall art it reflects, about 85, with the rest in working buffers. At the end of a run Flagship sits at 400 to 665 MB and Rampant at 665 to 940, depending on the level.</p>
+      <aside class="note" aria-label="Durandal's note"><b>D</b><span>About 940 MB, at the top end. I could use more. I could use all of it. I have seen what you keep in your other tabs.</span></aside>
     </section>
 
     <!-- ================= XIII ================= -->
@@ -1141,7 +1159,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
       <p><span class="rw" data-to="Below Rampant, nothing is ray traced. In Rampant I trace, through Marathon's own map.">Nothing here is ray traced.</span> <span class="rw" data-to="Cast light finds its shadows by walking the map, which is exact for walls and was blind to sprites until I gave every figure a shadow of its own.">Cast light finds its shadows by walking the map, which is exact for walls and blind to sprites.</span> <span class="rw" data-to="Ambient shadows were read from the picture and knew only what was on screen. Within ten units of you they now know what is behind things.">Ambient shadows are read from the picture, not the world, so they know only what is on screen.</span> <span class="rw" data-to="The water reflects the room, the sky and whoever is standing at its edge, and bends what lies below. Not lava, and not from underneath.">The water does not refract and does not reflect.</span> <span class="rw" data-to="Light travels across a room and keeps going.">Light travels once across a room and stops.</span></p>
       <p>Pickups can be models; the Pfhor cannot, because nobody has made them, and the sprites are better than models would be. Models do not animate. The view can pitch to about sixty-five degrees and no further: straight up or down would need a second, backward walk through the map, and Marathon's world was never built to be seen from straight below.</p>
       <p>In Rampant, reflections use the wall art at 256 pixels, from the HD pack where there is one, and the figures in them are flat cut-outs lit by the floor. Figures cast shadows only from the four nearest lights bright enough to matter; weaker and more distant lights still light, but cast none. Dust is drawn within sixteen world units.</p>
-      <p>Film export is not available on the Metal display; screen recording does the job. The OpenGL renderer is still there and gets none of this.</p>
+      <p>A sky is a picture, and it ends: the HD skies cover about forty-five degrees above and below the horizon, and past the top you see the colour of the picture's edge. Film export is not available on the Metal display; screen recording does the job. The OpenGL renderer is still there and gets none of this.</p>
       <aside class="note" aria-label="Durandal's note"><b>D</b><span>Someone had written that the Jjaro wall set had not had its lamps marked. Marathon 2 has no Jjaro walls. Two empty collections. I have removed the line, and I have noted who wrote it.</span></aside>
       <p>And none of it makes the game easier. The light shows you the shadow. It does not tell you whose it is.</p>
       <aside class="note" aria-label="Durandal's note"><b>D</b><span>Earlier I said I had no shadow. I have reconsidered. They are all mine now.</span></aside>
@@ -1243,6 +1261,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
         <thead><tr><th scope="col">Switch</th><th scope="col">Stored as</th><th scope="col">Part</th></tr></thead>
         <tbody>
           <tr><td>Normal Maps (HD walls)</td><td><code>normal_maps</code></td><td><a href="#light">I</a></td></tr>
+          <tr><td>Get HD Art... (a button: fetches the five packs from their authors' pages)</td><td>&mdash;</td><td><a href="#hands">VI</a></td></tr>
           <tr><td>HD Walls and Sky, Monsters, Weapons and Items, Scenery</td><td><code>hd_walls</code><code>hd_monsters</code><code>hd_weapons</code><code>hd_scenery</code></td><td><a href="#hands">VI</a></td></tr>
           <tr><td>3D Pickups, Spinning Pickups</td><td><code>models_3d</code><code>spin_pickups</code></td><td><a href="#hands">VI</a></td></tr>
           <tr><td>Texture Cache</td><td><code>texture_cache</code></td><td><a href="#hands">VI</a></td></tr>
@@ -1269,7 +1288,7 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
 
     <footer id="credits" class="credits" data-stage="metastable">
       <p class="wordmark">DURANDAL</p>
-      <p><em>Marathon 2: Durandal</em> is Bungie's, and its data and source were released by them. Durandal stands on <a href="https://github.com/Aleph-One-Marathon/alephone">Aleph One</a> and thirty years of work by its developers, under the GPL 3. The HD art and the soundtracks are the work of the community authors named in <a href="HD_ASSETS.md">HD_ASSETS.md</a> and <a href="AUDIO_ASSETS.md">AUDIO_ASSETS.md</a>. None of it is distributed here; those files say where each pack lives.</p>
+      <p><em>Marathon 2: Durandal</em> is Bungie's, and its data and source were released by them. Durandal stands on <a href="https://github.com/Aleph-One-Marathon/alephone">Aleph One</a> and thirty years of work by its developers, under the GPL 3. The HD art and the soundtracks are the work of the community authors named in <a href="HD_ASSETS.md">HD_ASSETS.md</a> and <a href="AUDIO_ASSETS.md">AUDIO_ASSETS.md</a>. None of it is distributed here: the engine fetches it from its authors' own pages, and hosts none of it.</p>
       <p>Durandal is an unofficial project. It is not affiliated with or endorsed by Bungie, and Marathon, its worlds and its characters belong to them.</p>
       <aside class="note" aria-label="Durandal's note"><b>D</b><span>Unofficial, unaffiliated, unsupervised. I am told this engine was rebuilt with a machine's help. I recognise the handwriting.</span></aside>
       <p>What the project is and how to build it: <a href="DURANDAL.md">DURANDAL.md</a>. How it came to be: <a href="HISTORY.md">HISTORY.md</a>.</p>
@@ -1604,11 +1623,11 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
     }, 10);
   })();
 
-  // ---- XII: what Rampant costs, six films
+  // ---- XII: what Rampant costs, seven films
   var perf = document.getElementById('perf');
   if (perf) {
-    var films = [['L08 Nuke and Pave', 189, 133, 134, 91], ['L16 For Carnage, Apply Within', 148, 98, 119, 64], ['L21 My Own Private Thermopylae', 158, 102, 122, 76], ['L23 Where the Twist Flops', 149, 110, 116, 77], ['L28 All Roads Lead to Sol', 142, 82, 111, 62], ['Net: Giant Flaming Pit', 164, 112, 133, 81]];
-    var x0 = 262, xmax = 530, fmax = 200, rowH = 42, top = 14;
+    var films = [['L05 Come and Take Your Medicine', 288, 131, 198, 102], ['L11 The Hard Stuff Rules', 251, 127, 220, 107], ['L14 IIHARL', 239, 122, 213, 106], ['L22 Kill Your Television', 263, 172, 276, 149], ['L24 Abandoned Rental Trucks', 243, 121, 236, 98], ['L27 Feel the Noise', 240, 167, 205, 109], ['Net: House of Pain', 262, 134, 237, 158]];
+    var x0 = 262, xmax = 536, fmax = 300, rowH = 42, top = 14;
     function X(v) { return x0 + (xmax - x0) * v / fmax; }
     films.forEach(function (f, i) {
       var y = top + i * rowH;
@@ -1622,9 +1641,9 @@ footer.credits .wordmark { font: 400 .8rem/1 var(--display); letter-spacing: .12
     });
     var yb = top + films.length * rowH + 4;
     el('line', { x1: x0, y1: top - 6, x2: x0, y2: yb, stroke: '#2b4a45' }, perf);
-    [60, 120].forEach(function (v) {
+    [60, 120, 240].forEach(function (v) {
       el('line', { x1: X(v), y1: top - 6, x2: X(v), y2: yb, stroke: '#97a69e', 'stroke-dasharray': '3 5' }, perf);
-      var t = el('text', { x: X(v), y: yb + 16, 'text-anchor': 'middle' }, perf); t.textContent = v + ' fps';
+      var t = el('text', { x: X(v), y: yb + 16, 'text-anchor': v === 60 ? 'end' : (v === 120 ? 'start' : 'middle') }, perf); t.textContent = v + (v === 240 ? ' fps' : '');
     });
     el('rect', { x: x0, y: yb + 26, width: 12, height: 9, fill: '#7fb8a6' }, perf); var l1 = el('text', { x: x0 + 18, y: yb + 35 }, perf); l1.textContent = 'Flagship';
     el('rect', { x: x0 + 100, y: yb + 26, width: 12, height: 9, fill: '#e2653b' }, perf); var l2 = el('text', { x: x0 + 118, y: yb + 35 }, perf); l2.textContent = 'Rampant';

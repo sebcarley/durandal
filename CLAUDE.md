@@ -213,9 +213,12 @@ The folder name comes from the *localised* bundle name
 
 ## GitHub
 
-- Remote `github`: a private repository, meant to go public. It holds
-  `master` (the untouched upstream mirror), `durandal/main` and the tag
-  `baseline-7`, and opens on `durandal/main`. Its history begins at
+- Remote `github` (`sebcarley/durandal`): **public since 3 Oct 2026**, on
+  the owner's word, pushed at `baseline-11` with the guide F placed. It
+  holds `master` (the untouched upstream mirror), `durandal/main` and the
+  tags `baseline-7` to `baseline-11`, and opens on `durandal/main`.
+  Everything pushed there is public at once: scan new commits for the
+  owner's name and for secrets before every push. Its history begins at
   baseline-7: one commit on upstream `master` carrying the whole fork.
   `docs/HISTORY.md` summarises what came before, `docs/GUIDE.md` is the
   field guide, `docs/DURANDAL.md` the write-up. Push only when the owner
@@ -1304,6 +1307,16 @@ The folder name comes from the *localised* bundle name
   the illustrated edition's chart data). Neither guide edition has been
   changed since `baseline-8`; bring `docs/GUIDE.md` in step when the
   owner's updated guide arrives.
+- Guide F placed (3 Oct 2026, `docs/GUIDE.html`, the owner's update from
+  those ground truths; `docs/GUIDE.md` in step). Corrections made on
+  placing it, reported to the owner: it was built on the edition before
+  the last placing, so the contents' "Five ways", the Weapon Takes the
+  Light paragraph and table row, "Fifty-one switches" and part XIII's box
+  number (13) were put back; the Get HD Art box numbered 6 (the boxes
+  carry their part's number); "the game stays playable" while fetching
+  became "while the dialog stays open" (Close cancels); the credits' "keeps
+  nothing" became "hosts none of it" (installed packs stay on the Mac).
+  Then pushed and the repository made public.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

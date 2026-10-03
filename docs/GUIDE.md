@@ -220,12 +220,23 @@ beyond your headlight. It is off until you ask for it.
 
 The community has redrawn Marathon 2 at many times its resolution: walls,
 skies, every frame of every Pfhor, the weapons in your hands, the pickups
-on the floor. It is theirs, so it is not kept in this repository, but it
-is one command away: `scripts/get-hd-art.sh` fetches the set this guide
-was written with from its authors' own pages and installs it, and
-`scripts/setup.sh` does that as part of building the game. Any other
-Aleph One art pack works too: put it in the Plugins folder and choose, by
-kind, what to take from it.
+on the floor. It is theirs: Durandal fetches it but never ships it. One
+button, **Get HD Art** on the Art tab, brings the five packs from their
+authors' own pages, and any other Aleph One pack still works dropped into
+the Plugins folder. Choose, by kind, what to take from it.
+
+It fetches one pack at a time, each line showing how far it has got, while
+the dialog stays open. All five together are about 1 GB to download, and
+it asks for about 4 GB free: the archive, the unpacked copy and a margin.
+A pack already in the Plugins folder, by whatever route it got there, is
+left alone. Each download must be a zip, and is checked against the
+version the engine was tested with; if an author has updated theirs
+since, it installs anyway and the line says so. Close cancels the
+download in progress, and what is already installed stays. There is no
+restart: new packs join the plugin list at once and their art loads from
+the next level. They follow the Art tab's HD switches, so they show in
+Flagship and Rampant, or wherever those switches are on in Custom. The
+same five can be fetched from a terminal with `scripts/get-hd-art.sh`.
 
 HD walls bring normal maps and their own glow. HD sprites glow as the old
 self-luminous colours did. Pickups can be real models, lit like the room
@@ -241,6 +252,7 @@ costs a few hundred megabytes where it once cost several gigabytes.
 | 3D Pickups, Spinning Pickups | `models_3d`, `spin_pickups` | Art |
 | Texture Cache | `texture_cache` | Art |
 | Soundtrack | `soundtrack` | Art |
+| Get HD Art... (a button: fetches the five packs from their authors' pages) | | Art |
 
 The packs, their authors and where to find them are in
 [HD_ASSETS.md](HD_ASSETS.md) and [AUDIO_ASSETS.md](AUDIO_ASSETS.md).
@@ -260,8 +272,9 @@ thirty degrees, because the game's rules say so, but the view does not. Keep
 looking and the crosshair stays behind on the true aim, so you always know
 where the shot will go.
 
-Sidestep and the horizon leans a little into the turn. The view fills a
-wide screen without stretching. The mouse is read every frame, not every
+The sky stays fixed to the world while your head moves: look up or sway
+and the horizon is where you left it. Sidestep and the horizon leans a
+little into the turn. The view fills a wide screen without stretching. The mouse is read every frame, not every
 tick, and the world between ticks is drawn in between, up to whatever your
 display can show.
 
@@ -334,11 +347,13 @@ Choosing Rampant also sets Redistribution Strength to Strong; the other
 named tiers set Medium.
 
 Measured on an M5 MacBook Air at 1080p on a 240 Hz display, Flagship with
-the full HD set: 130 to 200 frames a second, and a few hundred megabytes
-of memory, depending on the level. Rampant costs a fifth to a third of
-that frame rate and about 250 MB more; part XII has the figures. With the
-old art it is slower, not faster: the 8-bit shading does more work per
-pixel than a photograph does.
+the full HD set: 240 to 290 frames a second on average, holding 120 at
+the 1% low on every film, and a few hundred megabytes of memory,
+depending on the level. Rampant costs up to a third of that frame rate,
+usually a tenth to a sixth, and about 270 MB more; part XII has the
+figures. With the old art it is slower, not faster: the 8-bit shading does
+more work per pixel than a photograph does, 223 frames a second against
+358 on the same stretch.
 
 ---
 
@@ -426,15 +441,39 @@ walk is the tracer, exact where the map folds through itself. Along the
 way a fault turned up in the engine's own light check, which let light
 leak between rooms stacked on each other; Rampant's shadows do not have it.
 
-**What it costs.** Six films, each run two minutes at Flagship and at
+**What keeps it affordable.** The shaders were first compiled in strict
+arithmetic so that the Metal picture matched OpenGL pixel for pixel;
+relaxed arithmetic halves the GPU time per frame with no visible change,
+5-D Space included. Each surface walks only the lights that can reach it,
+in the same order as before, so the picture is bit-identical and
+firefights cost less. And a surface already at full light walks no lights
+at all, which is what an explosion in a crowd of ninety used to stall on.
+
+**What it costs.** Seven films, each run two minutes at Flagship and at
 Rampant, in alternating order, on an M5 MacBook Air at 1080p and 240 Hz
-with the four HD packs installed. Rampant cost 19 to 29% of the frame
-rate, averaged 111 to 134, and held 60 at the 1% low on all six; its worst
-single second was 58, once. The extra time goes on the GPU: four to seven
-milliseconds in the world pass for the traced shadows and reflections, two
-and a half to three and a half for the traced ambient shadows, up to two
-for the fog. It adds about 250 MB of GPU arrays (the figure silhouettes,
-about 170 MB, and the wall art it reflects, about 85).
+with the four HD packs and 3D Items installed. Rampant averaged 198 to
+276, held 60 at the 1% low everywhere and reached 120 there on two of the
+seven; its worst single second was 93. Against Flagship it cost up to a
+third of the frame rate, usually a tenth to a sixth, and on one film came
+out ahead, which is run-to-run drift on a warm machine. The extra time
+goes on the GPU: 1.3 to 4.3 milliseconds in the world pass for the traced
+shadows and reflections, 0.4 to 1.5 for the traced ambient shadows, up to
+one for the fog, and up to 0.7 for the light bake.
+
+| Film | Flagship avg / 1% low | Rampant avg / 1% low |
+|---|---|---|
+| L05 Come and Take Your Medicine | 288 / 131 | 198 / 102 |
+| L11 The Hard Stuff Rules | 251 / 127 | 220 / 107 |
+| L14 IIHARL | 239 / 122 | 213 / 106 |
+| L22 Kill Your Television | 263 / 172 | 276 / 149 |
+| L24 Beware of Abandoned Rental Trucks | 243 / 121 | 236 / 98 |
+| L27 Feel the Noise | 240 / 167 | 205 / 109 |
+| Net: House of Pain | 262 / 134 | 237 / 158 |
+
+Rampant adds about 270 MB: the figure silhouettes, about 170 MB, and the
+wall art it reflects, about 85, with the rest in working buffers. At the
+end of a run Flagship sits at 400 to 665 MB and Rampant at 665 to 940,
+depending on the level.
 
 | Switch | Stored as | Needs |
 |---|---|---|
@@ -474,8 +513,10 @@ floor. Figures cast shadows only from the four nearest lights bright
 enough to matter; weaker and more distant lights still light, but cast
 none. Dust is drawn within sixteen world units.
 
-Film export is not available on the Metal display; screen recording does
-the job. The OpenGL renderer is still there and gets none of this.
+A sky is a picture, and it ends: the HD skies cover about forty-five
+degrees above and below the horizon, and past the top you see the colour
+of the picture's edge. Film export is not available on the Metal display;
+screen recording does the job. The OpenGL renderer is still there and gets none of this.
 
 And none of it makes the game easier. The light shows you the shadow. It
 does not tell you whose it is.
@@ -487,8 +528,9 @@ were released by them. Durandal stands on [Aleph
 One](https://github.com/Aleph-One-Marathon/alephone) and thirty years of
 work by its developers, under the GPL 3. The HD art and the soundtracks
 are the work of the community authors named in
-[HD_ASSETS.md](HD_ASSETS.md) and [AUDIO_ASSETS.md](AUDIO_ASSETS.md); none
-of it is distributed here.
+[HD_ASSETS.md](HD_ASSETS.md) and [AUDIO_ASSETS.md](AUDIO_ASSETS.md). None
+of it is distributed here: the engine fetches it from its authors' own
+pages, and hosts none of it.
 
 What the project is and how to build it: [DURANDAL.md](DURANDAL.md). How it
 came to be: [HISTORY.md](HISTORY.md).
