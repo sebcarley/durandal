@@ -12,7 +12,7 @@ changing the game. Films still replay tick for tick.
 That builds the game with the community's HD art and leaves `Durandal.app`
 in the folder. [More](docs/DURANDAL.md#playing-it).
 
-**[The field guide](docs/GUIDE.md)** ([illustrated edition](docs/GUIDE.html): open it in a browser) ·
+**[The field guide](docs/GUIDE.md)** ([illustrated edition](https://sebcarley.github.io/durandal/)) ·
 **[What it is and how to build it](docs/DURANDAL.md)** ·
 **[Development to date](docs/HISTORY.md)**
 

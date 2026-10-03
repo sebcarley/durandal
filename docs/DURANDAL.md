@@ -93,7 +93,7 @@ borrowed from the sister project's Quake work where it suits Marathon.
 
 ## Where to read more
 
-- `docs/GUIDE.html`: the field guide, illustrated and annotated by its namesake (open it in a browser); `docs/GUIDE.md` is the plain edition
+- `docs/GUIDE.html`: the field guide, illustrated and annotated by its namesake (on the web at https://sebcarley.github.io/durandal/); `docs/GUIDE.md` is the plain edition
 - `docs/HISTORY.md`: the development to date
 - `docs/ROADMAP.md`: the plan, feature by feature
 - `docs/AUDIT.md`: how the original renderer produces its look, and what must not change

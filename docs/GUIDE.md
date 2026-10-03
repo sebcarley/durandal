@@ -3,8 +3,8 @@
 *Marathon 2 · a native Metal engine for Apple Silicon · Autumn 2026*
 
 *This is the plain edition, which reads on GitHub. The illustrated edition,
-annotated by Durandal himself, is [GUIDE.html](GUIDE.html): open it in a
-browser.*
+annotated by Durandal himself, is on the web at
+[sebcarley.github.io/durandal](https://sebcarley.github.io/durandal/).*
 
 Seventeen years after the Marathon, you are woken above a dead marsh world
 by the machine that stole you. Lh'owon was beautiful once. Now its sewers
@@ -531,6 +531,9 @@ are the work of the community authors named in
 [HD_ASSETS.md](HD_ASSETS.md) and [AUDIO_ASSETS.md](AUDIO_ASSETS.md). None
 of it is distributed here: the engine fetches it from its authors' own
 pages, and hosts none of it.
+
+Durandal is an unofficial project. It is not affiliated with or endorsed by
+Bungie, and Marathon, its worlds and its characters belong to them.
 
 What the project is and how to build it: [DURANDAL.md](DURANDAL.md). How it
 came to be: [HISTORY.md](HISTORY.md).

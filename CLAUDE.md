@@ -1317,6 +1317,20 @@ The folder name comes from the *localised* bundle name
   became "while the dialog stays open" (Close cancels); the credits' "keeps
   nothing" became "hosts none of it" (installed packs stay on the Mac).
   Then pushed and the repository made public.
+- Guide H placed (3 Oct 2026; a redesign in Marathon's terminal colours,
+  with a prologue, a note on rampancy and Tycho's epilogue; switches listed
+  once in an appendix; `docs/GUIDE.md` keeps the per-part tables).
+  Corrections on placing, reported to the owner: Weapon Takes the Light
+  (paragraph, row, "Fifty-one") again; "the game stays playable" while
+  fetching and "keeps nothing" again; the S'pht enslaved "a thousand
+  years" ago (the game's terminals; "thousands" had crept in at guide E),
+  and the calendar's 2773 arrival restored; Summon BOBs allows shallow
+  water; memory is at the end of a run, not a level; the Get HD Art box's
+  empty header filled. Links to the other docs point at GitHub (Pages
+  would serve the bare .md files raw). GitHub Pages on since 3 Oct 2026:
+  `durandal/main`, `/docs`, `docs/.nojekyll` (served as-is, no Jekyll),
+  https://sebcarley.github.io/durandal/ (`docs/index.html` redirects to
+  the guide).
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
