@@ -11,6 +11,7 @@
 
 #include "cseries.h"
 #include "DurandalCheats.h"
+#include "DurandalScenario.h"
 #include "DurandalPreferences.h"
 
 #include "interface.h"
@@ -62,7 +63,22 @@ void stop_film(const char* what)
 }
 
 // Summon BOBs: the key asks, the next tick's start delivers
-constexpr short kSummonType = _civilian_security;	// "steve": pistol, toughest, fires every second
+// Marathon 2 and Infinity: _civilian_security ("steve": pistol, toughest,
+// fires every second). Marathon numbers its monsters differently (its 14
+// is a hostile S'pht) and its BOBs (6-9) carry no weapon, so the cheat is
+// left out there. Development: DURANDAL_SUMMON_TYPE=<n> tries another (QA
+// gate open; prints what it summoned with DURANDAL_SUMMON_TEST)
+short summon_type()
+{
+	static const short override_type = [] {
+		const char* v = std::getenv("DURANDAL_SUMMON_TYPE");
+		return v ? short(std::atoi(v)) : short(NONE);
+	}();
+	if (override_type != NONE && Durandal::QA())
+		return override_type;
+	return _civilian_security;
+}
+#define kSummonType summon_type()
 constexpr int kSummoned = 5;
 bool summon_pending = false;
 
@@ -80,7 +96,7 @@ int summon_test_tick()
 
 bool summon_available()
 {
-	return Durandal::Available() && solo_game();
+	return Durandal::Available() && solo_game() && (!DurandalScenario::Marathon1() || summon_test_tick() >= 0);
 }
 
 // The polygon a BOB could walk to at `to`, in a straight line from `from`
@@ -162,6 +178,9 @@ void summon()
 	const object_data* body = get_object_data(player->object_index);
 	const monster_definition* definition = get_monster_definition_external(kSummonType);
 	const world_distance radius = definition->radius, height = definition->height;
+	if (summon_test_tick() >= 0)
+		fprintf(stderr, "Summon BOBs: monster type %d (collection %d, colour table %d, ranged attack %d, class %08x)\n", kSummonType,
+				GET_COLLECTION(definition->collection), GET_COLLECTION_CLUT(definition->collection), definition->ranged_attack.type, unsigned(definition->_class));
 	const world_point2d centre = { body->location.x, body->location.y };
 	const world_distance floor = get_polygon_data(body->polygon)->floor_height;
 	// Beside and behind, so they do not stand in the line of fire
@@ -266,6 +285,9 @@ void LevelBegins()
 void MarkCollections()
 {
 	summon_pending = false;
+	// Marathon has no summon (its monster 14 is not a BOB): nothing to load
+	if (DurandalScenario::Marathon1() && summon_test_tick() < 0)
+		return;
 	// A level restored from a save may hold BOBs summoned earlier: their
 	// shapes load whatever the gate says, or they would stand frozen (and a
 	// film begun there would replay differently from the game)
@@ -327,7 +349,10 @@ static void check_keys()
 		write_preferences();
 	// Summon BOBs: the BOBs arrive before the next tick, and the film
 	// stops now, as for a cheat switched in mid-game
-	if (pressed(prefs.cheat_summon_key, summon_was_down) && !summon_pending)
+	const bool summon_pressed = pressed(prefs.cheat_summon_key, summon_was_down) && !summon_pending;
+	if (summon_pressed && DurandalScenario::Marathon1())
+		screen_printf("Summon BOBs: Marathon's BOBs carry no weapons");
+	else if (summon_pressed)
 	{
 		stop_film("summon BOBs");
 		summon_pending = true;

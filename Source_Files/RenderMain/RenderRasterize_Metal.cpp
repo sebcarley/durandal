@@ -97,7 +97,9 @@ VolumeParams RenderRasterize_Metal::volume_params(bool shadows) const
 {
 	struct Haze { float r, g, b, density, dust, mist; };
 	Haze haze;
-	switch (static_world->environment_code) {
+	// Marathon's environment codes name other places (and it has no
+	// liquids, so no lava smoke or sewage air): its ship air everywhere
+	switch (DurandalScenario::Marathon1() ? 0 : static_world->environment_code) {
 		case 1:  haze = { 0.80f, 0.48f, 0.28f, 0.012f, 1.0f, 1.6f }; break;	// lava
 		case 2:  haze = { 0.52f, 0.62f, 0.40f, 0.010f, 1.0f, 1.8f }; break;	// sewage
 		case 3:  haze = { 0.56f, 0.52f, 0.70f, 0.005f, 0.9f, 1.2f }; break;	// Jjaro
@@ -306,6 +308,12 @@ void RenderRasterize_Metal::render_tree()
 		case 2: u.gi_range = simd_make_float4(0.55f, 0.8f, 0.6f, 0.18f); break;
 		default: u.gi_range = simd_make_float4(0.4f, 0.35f, 0.5f, 0.12f); break;
 	}
+	// Marathon lights long corridors evenly, so a corridor's ceiling or wall
+	// is one group whose brighter end sets the average and the rest sits at
+	// the floor of the clamp (and its ramps darken fast at the bottom): it
+	// may fall only half as far (trilogy T2, judged on L16)
+	if (DurandalScenario::Marathon1())
+		u.gi_range.x *= 0.5f;
 	// Bounced Light (R4, Rampant): the bake passes light on as it is drawn,
 	// and figures take the light of the floor and ceiling around them
 	light_bounce = redistribution && Durandal::Enabled(Durandal::kLightBounce);

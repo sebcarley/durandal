@@ -11,6 +11,7 @@
 
 #include "cseries.h"
 #include "DurandalLights.h"
+#include "DurandalScenario.h"
 #include "DurandalShading.h"
 
 #include "map.h"
@@ -160,7 +161,11 @@ int Gather(const view_data* view, const std::vector<sorted_node_data>& nodes, fl
 			if (!info)
 				continue;
 			const float minimum = PIN(info->minimum_light_intensity, 0, FIXED_ONE) / float(FIXED_ONE);
-			// Monsters light only on their firing frames
+			// Monsters light only on their firing frames. Marathon draws some
+			// monsters self-lit on every frame (its Hunters), which would
+			// make each one a lamp: there, only projectiles and effects light
+			if (owner == _object_is_monster && DurandalScenario::Marathon1())
+				continue;
 			if (minimum < (owner == _object_is_monster ? 0.5f : 0.1f))
 				continue;
 			const float height = (owner == _object_is_monster) ? 0.6f * WORLD_ONE : 0.0f;
