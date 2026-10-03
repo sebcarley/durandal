@@ -977,7 +977,7 @@ The folder name comes from the *localised* bundle name
   folder (`DURANDAL_PLUGINS_DIR` to install elsewhere). It never
   overwrites. The art is not ours to re-host (the CFP art derives from
   Freeverse's; only the scripts repository is GPL), so it is fetched,
-  never shipped. Not done: a signed, notarised release to download.
+  never shipped. The signed, notarised app: Releases (below).
   Fetching the art from inside the game: Get HD Art (below).
 - The field guide (29 Sep 2026): `docs/GUIDE.html` is the owner's
   illustrated edition ("Durandal, by Durandal": the guide annotated by
@@ -1331,6 +1331,23 @@ The folder name comes from the *localised* bundle name
   `durandal/main`, `/docs`, `docs/.nojekyll` (served as-is, no Jekyll),
   https://sebcarley.github.io/durandal/ (`docs/index.html` redirects to
   the guide).
+- Release 0.1.0 (3 Oct 2026, the owner's ask, "as for Quake"): GitHub
+  Release `v0.1.0` on `sebcarley/durandal`
+  (https://github.com/sebcarley/durandal/releases/latest), the app built
+  from `ec2147d0`, Developer ID signed (team A4MCX56UAS), notarised
+  (submission d24f4934) and stapled; `Durandal-0.1.0.zip` (35 MB, the app
+  alone, Marathon 2 data inside) and its SHA-256. `scripts/make-release.sh
+  <version>` does it all: build from a clean commit, check the binary links
+  only macOS and the data is bundled, sign inside out with the hardened
+  runtime and the build's entitlements (microphone), notarise, staple,
+  Gatekeeper check, ditto zip, into `.deps/release/<version>/`.
+  Notarisation uses the keychain profile the owner stored for the sister
+  project (`RELEASE_NOTARY_PROFILE=metalquake`; the script's default name is
+  `durandal`, not stored). The first attempt got HTTP 403 (Apple's updated
+  developer agreement unaccepted): only the account holder can accept it,
+  at developer.apple.com/account; it took about four minutes to reach the
+  notary service after. Release notes: `.deps/release/notes-0.1.0.md`. Tested
+  on macOS 27 only (deployment target 12.0).
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
