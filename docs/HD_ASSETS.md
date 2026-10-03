@@ -683,3 +683,22 @@ shows the cache's size, and deleting the folder is always safe.
 Not done: the OpenGL path never sees the cache (Metal display only);
 `landscape_bloom`; opacity-hack entries (`opac_type` 2 and 3, `opac_scale`,
 `opac_shift`: a few CFP walls) decode to RGBA at level load as before.
+
+## 9. Get HD Art, the in-game button (3 October 2026)
+
+Preferences > DURANDAL > ART > GET HD ART... does in the game what
+`scripts/get-hd-art.sh` does from a terminal, for the same five packs (the
+four CFP packs and 3D Items, about 1 GB): one line per pack (already
+installed, waiting, finding, downloading with megabytes, checking,
+unpacking, installed, or why it failed), DOWNLOAD and CLOSE (which cancels
+a running fetch; packs already installed stay). Each comes from its
+authors' Simplici7y page by the link they publish, so nothing is re-hosted
+and the licence position in section 6 is unchanged. Nothing is
+overwritten; a pack whose SHA-256 differs from the version tested installs
+all the same and its line says so. It needs about three times the download
+free (archive, unpacked copy, margin). New packs join the plugin list
+without a restart and their art loads from the next level. Only what
+macOS provides (NSURLSession, CommonCrypto, `ditto`, `unzip`).
+Code: `Source_Files/Misc/DurandalFetch.*`, the dialog in
+`DurandalPreferences.cpp` (`GetHDArtDialog`), `Plugins::add_directory`.
+QA passed 3 October 2026 (`baseline-11`).

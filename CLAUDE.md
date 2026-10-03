@@ -1274,8 +1274,9 @@ The folder name comes from the *localised* bundle name
   ways): `durandal/rebench-fixes` fast-forwarded into `durandal/main`:
   the full-light skip and the rebench write-up. Next: the in-game HD art
   button.
-- Get HD Art (3 Oct 2026, on `durandal/hd-button`, in QA: the button shows
-  only with `Durandal::QA()`). ART tab "GET HD ART..." opens a dialog (one
+- Get HD Art (3 Oct 2026, on `durandal/hd-button`; QA passed the same day,
+  so the button shows on every launch, closed only by `DURANDAL_STOCK=1`;
+  `docs/HD_ASSETS.md` section 9). ART tab "GET HD ART..." opens a dialog (one
   line per pack, DOWNLOAD and CLOSE, which cancels a running fetch and
   closes once it has stopped). `Misc/DurandalFetch.*` does in the game what
   `scripts/get-hd-art.sh` does: per pack, skip if its folder is in the
@@ -1295,6 +1296,14 @@ The folder name comes from the *localised* bundle name
   fetched CFP Scenery and 3D Items into a scratch folder and installed
   both (3 Oct 2026). The owner's packs are symlinks into `Assets/`, so the
   button can be tried by moving one link out of the Plugins folder.
+- Tag `baseline-11` (3 Oct 2026, the owner's word after QA; film tests green
+  three ways on the commit before, the release only shows the button):
+  `durandal/hd-button` fast-forwarded into `durandal/main`: Get HD Art
+  released. Ground truths for the guide since `baseline-8`:
+  `docs/GROUND-TRUTH-baseline-11.md` (the button, the new bench figures and
+  the illustrated edition's chart data). Neither guide edition has been
+  changed since `baseline-8`; bring `docs/GUIDE.md` in step when the
+  owner's updated guide arrives.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

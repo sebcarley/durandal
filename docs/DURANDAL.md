@@ -50,7 +50,8 @@ Store (open it once so that it finishes installing). Then, in Terminal:
 That fetches the game data, the build tools and the community HD art,
 builds the game, and leaves **Durandal.app** in the folder. Double-click
 it. About 20 minutes the first time, most of it unattended; about 1 GB of
-art to download. `scripts/setup.sh --no-art` skips the art.
+art to download. `scripts/setup.sh --no-art` skips the art (the game's
+GET HD ART... button, below, fetches it later).
 
 The game starts on the Flagship tier. If it is too slow on your Mac:
 Preferences > DURANDAL > Quality.
@@ -62,7 +63,10 @@ is not ours to re-host. `scripts/get-hd-art.sh` fetches the set we play
 with (the four Community/Freeverse packs and the 3D Items plugin) from its
 authors' own pages and installs it as ordinary Aleph One plugins in
 `~/Library/Application Support/Durandal/Plugins`. It never overwrites a
-pack that is already there. The ART tab chooses which kinds to use.
+pack that is already there. The game can do the same itself: Preferences >
+DURANDAL > ART > **GET HD ART...** lists the five packs, fetches the
+missing ones with a line of progress each, and switches them on from the
+next level, no restart. The ART tab chooses which kinds to use.
 
 Any other Aleph One art or music pack works the same way: unzip it into
 that folder. `docs/HD_ASSETS.md` and `docs/AUDIO_ASSETS.md` catalogue what
