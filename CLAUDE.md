@@ -86,9 +86,10 @@ The film test (below) is the gate. To keep it green:
 - CLI build: `scripts/build.sh [Release|Debug] [tests]` — uses
   `.deps/DerivedData`, so it never collides with Xcode's Run.
 - Film determinism test (run before finishing any session):
-  `scripts/test-films.sh` — replays the 43 Marathon 2 films under
+  `scripts/test-films.sh` — replays the 42 Marathon 2 films under
   `tests/replays/Marathon 2` headless and checks each final RNG seed. Must
-  report `All tests passed (86 assertions in 1 test case)`.
+  report `All tests passed (86 assertions in 1 test case)` (two per film, two
+  for set-up; "43 films" in older notes and the guide was a miscount).
 - Xcode: scheme **Marathon 2**, destination **My Mac**. Run uses **Release**
   (set in the shared scheme). Other schemes are hidden by the user's own
   `xcschememanagement.plist` under `xcuserdata` (local, git-ignored).
@@ -1348,6 +1349,15 @@ The folder name comes from the *localised* bundle name
   at developer.apple.com/account; it took about four minutes to reach the
   notary service after. Release notes: `.deps/release/notes-0.1.0.md`. Tested
   on macOS 27 only (deployment target 12.0).
+- Trilogy plan (3 Oct 2026, the owner's ask: "the same with Marathon 1 and
+  Infinity, to complete the trilogy"): `docs/PLAN-trilogy.md` on
+  `durandal/trilogy`. Outline only, decisions open: three apps or one,
+  names, releases, M1's HD art, the guides. Rounds T0 baseline (targets,
+  scripts, the 27 M1 and 32 Infinity films three ways, a first look), T1
+  Infinity, T2 Marathon 1, T3 together. The plan's inventory lists every
+  M2 assumption found (collection numbers, wall lamps, haze by environment,
+  liquids, summon monster, HD packs, Lua HUD and widescreen, skies, app
+  identity, scripts).
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
