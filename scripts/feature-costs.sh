@@ -16,8 +16,9 @@
 # Kills a run that has not finished after 300 s.
 set -uo pipefail
 ROOT=${0:A:h:h}
+source "$ROOT/scripts/game.sh"   # GAME=m2|inf|m1
 OUT=${1:?out dir}; FILM=${2:?film}; END=${3:?end tick}; shift 3
-APP="$ROOT/.deps/DerivedData/Build/Products/Release/Durandal.app/Contents/MacOS/Durandal"
+APP="$(game_app)"
 SIZE=${SIZE:-1920x1080}
 mkdir -p "$OUT"
 variants=("$@")

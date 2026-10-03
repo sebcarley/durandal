@@ -16,6 +16,7 @@
 #include "DurandalFetch.h"
 #include "DurandalTextureCache.h"
 #include "Plugins.h"
+#include "Scenario.h"
 #include "shell.h"
 #include "XML_ParseTreeRoot.h"
 #include "XML_LevelScript.h"
@@ -778,7 +779,9 @@ void Dialog(void* parent_dialog)
 	tables[kTabArt]->dual_add_row(new w_static_text("at the next level (a Lua soundtrack at the next new game)."), d);
 	tables[kTabArt]->dual_add_row(new w_static_text("Packs go in Application Support/Durandal/Plugins."), d);
 	// Get HD Art (QA passed 3 Oct 2026): the community's packs fetched and installed
-	if (Available())
+	// The pack list is Marathon 2's: until Infinity and Marathon have their own
+	// (trilogy rounds T1 and T2), the other games do not offer it.
+	if (Available() && Scenario::instance()->GetID() == "Marathon 2")
 		tables[kTabArt]->dual_add_row(new w_button("GET HD ART...", [](void*) { GetHDArtDialog(); }, nullptr), d);
 	// Texture cache: what the first loads have built so far
 	static char cache_line[96];

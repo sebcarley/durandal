@@ -8,8 +8,9 @@
 #          no-relief=quality_tier=3,surface_relief=0
 set -uo pipefail
 ROOT=${0:A:h:h}
+source "$ROOT/scripts/game.sh"   # GAME=m2|inf|m1
 OUT=${1:?out dir}; FILM=${2:?film}; END=${3:?end tick}; shift 3
-APP="$ROOT/.deps/DerivedData/Build/Products/Release/Durandal.app/Contents/MacOS/Durandal"
+APP="$(game_app)"
 mkdir -p "$OUT"
 printf "%-16s %8s %8s %8s %10s %10s  %s\n" variant avg-fps 1%-low worst-s gpu-frame gpu-world thermal-before | tee "$OUT/costs.txt"
 for variant in "$@"; do

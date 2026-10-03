@@ -11,10 +11,11 @@
 # with no new frame for 40 s. SPEED=n plays the film n times faster.
 set -uo pipefail
 ROOT=${0:A:h:h}
-OUT=${1:?out dir}; FILM=${2:-$ROOT/data/Scenarios/Marathon 2/Demos/L00.filA}
-[[ -z $FILM ]] && FILM="$ROOT/data/Scenarios/Marathon 2/Demos/L00.filA"
+source "$ROOT/scripts/game.sh"   # GAME=m2|inf|m1
+OUT=${1:?out dir}; FILM=${2:-$GAME_DEMO}
+[[ -z $FILM ]] && FILM="$GAME_DEMO"
 EVERY=${3:-300}; SIZE=${4:-1280x720}; shift 4
-APP="$ROOT/.deps/DerivedData/Build/Products/Release/Durandal.app/Contents/MacOS/Durandal"
+APP="$(game_app)"
 for variant in "$@"; do
   label=${variant%%=*}; settings=${variant#*=}
   dir="$OUT/$label"; rm -rf "$dir"; mkdir -p "$dir"

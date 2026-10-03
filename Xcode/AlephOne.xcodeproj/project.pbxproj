@@ -2017,10 +2017,10 @@
 		AE9975122661D85000DDD370 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		AEA85F5324DF26F800BB7827 /* AlephOne.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AlephOne.entitlements; sourceTree = "<group>"; };
 		AEA85F5424DF275300BB7827 /* AlephOneSteam.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AlephOneSteam.entitlements; sourceTree = "<group>"; };
-		AEB4A2AD14296CAE00537AE7 /* Classic Marathon Infinity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Classic Marathon Infinity.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AEB4A2AD14296CAE00537AE7 /* Durandal Infinity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Durandal Infinity.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AEBDC6DA2C4DF0780026DFF1 /* Classic Marathon Infinity Steam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Classic Marathon Infinity Steam.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AEC3C89609AD68AE003258E4 /* Aleph One.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Aleph One.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		AEFD87C313EB84CF00C1E687 /* Classic Marathon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Classic Marathon.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AEFD87C313EB84CF00C1E687 /* Durandal Marathon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Durandal Marathon.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F53AB44B01F3CB1D01EF2901 /* AlephOne.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AlephOne.icns; sourceTree = "<group>"; };
 		F56AEB6B01F8AA1201780311 /* ImagesIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = ImagesIcon.icns; sourceTree = "<group>"; };
 		F56AEB6C01F8AA1201780311 /* ShapesIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = ShapesIcon.icns; sourceTree = "<group>"; };
@@ -2248,9 +2248,9 @@
 			children = (
 				4FADF1C62F37EB8C00643799 /* libalephone.a */,
 				AEC3C89609AD68AE003258E4 /* Aleph One.app */,
-				AEFD87C313EB84CF00C1E687 /* Classic Marathon.app */,
+				AEFD87C313EB84CF00C1E687 /* Durandal Marathon.app */,
 				AE505D0B141D45E600915344 /* Durandal.app */,
-				AEB4A2AD14296CAE00537AE7 /* Classic Marathon Infinity.app */,
+				AEB4A2AD14296CAE00537AE7 /* Durandal Infinity.app */,
 				4F9CB1462F39442500F91C02 /* libalephonesteam.a */,
 				AE120D642BC77645001873DD /* Classic Marathon Steam.app */,
 				AE1321FD2C1CB4D2009D34AA /* Classic Marathon 2 Steam.app */,
@@ -3990,7 +3990,7 @@
 			);
 			name = "Marathon 3";
 			productName = "SDL Application";
-			productReference = AEB4A2AD14296CAE00537AE7 /* Classic Marathon Infinity.app */;
+			productReference = AEB4A2AD14296CAE00537AE7 /* Durandal Infinity.app */;
 			productType = "com.apple.product-type.application";
 		};
 		AEBDC50B2C4DF0780026DFF1 /* Marathon 3 Steam */ = {
@@ -4049,7 +4049,7 @@
 			);
 			name = "Marathon 1";
 			productName = "SDL Application";
-			productReference = AEFD87C313EB84CF00C1E687 /* Classic Marathon.app */;
+			productReference = AEFD87C313EB84CF00C1E687 /* Durandal Marathon.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -5823,9 +5823,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = App_Resources/AlephOne.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = 27XZ82KJ77;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					PREFER_APP_NAME_TO_BUNDLE_ID,
@@ -5840,8 +5841,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.bungie.source.MarathonInfinity;
-				PRODUCT_NAME = "Classic Marathon Infinity";
+				PRODUCT_BUNDLE_IDENTIFIER = local.durandal.Infinity;
+				PRODUCT_NAME = "Durandal Infinity";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -5850,9 +5851,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = App_Resources/AlephOne.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = 27XZ82KJ77;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					PREFER_APP_NAME_TO_BUNDLE_ID,
@@ -5867,8 +5869,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.bungie.source.MarathonInfinity;
-				PRODUCT_NAME = "Classic Marathon Infinity";
+				PRODUCT_BUNDLE_IDENTIFIER = local.durandal.Infinity;
+				PRODUCT_NAME = "Durandal Infinity";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -5929,9 +5931,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = App_Resources/AlephOne.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = 27XZ82KJ77;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					PREFER_APP_NAME_TO_BUNDLE_ID,
@@ -5946,8 +5949,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.bungie.source.Marathon;
-				PRODUCT_NAME = "Classic Marathon";
+				PRODUCT_BUNDLE_IDENTIFIER = local.durandal.Marathon;
+				PRODUCT_NAME = "Durandal Marathon";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -5956,9 +5959,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = App_Resources/AlephOne.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = 27XZ82KJ77;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					PREFER_APP_NAME_TO_BUNDLE_ID,
@@ -5973,8 +5977,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.bungie.source.Marathon;
-				PRODUCT_NAME = "Classic Marathon";
+				PRODUCT_BUNDLE_IDENTIFIER = local.durandal.Marathon;
+				PRODUCT_NAME = "Durandal Marathon";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;

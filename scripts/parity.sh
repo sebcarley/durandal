@@ -7,9 +7,10 @@
 #   scripts/parity.sh <out-dir> [film] [every-ticks] [speed] [WxH]
 set -uo pipefail
 ROOT=${0:A:h:h}
-OUT=${1:?out dir}; FILM=${2:-$ROOT/data/Scenarios/Marathon 2/Demos/L00.filA}
+source "$ROOT/scripts/game.sh"   # GAME=m2|inf|m1
+OUT=${1:?out dir}; FILM=${2:-$GAME_DEMO}
 EVERY=${3:-500}; SPEED=${4:-4}; SIZE=${5:-1280x720}
-APP="$ROOT/.deps/DerivedData/Build/Products/Release/Durandal.app/Contents/MacOS/Durandal"
+APP="$(game_app)"
 rm -rf "$OUT"; mkdir -p "$OUT"
 # Paths go in the environment, never on the command line (see shell_options.cpp)
 # Everything goes in the environment: only dash flags on the command line,

@@ -274,7 +274,7 @@
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
-	<string>Classic Marathon Infinity</string>
+	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIconFile</key>
 	<string>Marathon Infinity.icns</string>
 	<key>CFBundleIdentifier</key>
@@ -282,7 +282,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Classic Marathon Infinity</string>
+	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -299,7 +299,7 @@
 		<string>1</string>
 	</dict>
 	<key>LSMinimumSystemVersion</key>
-	<string>10.13</string>
+	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSMainNibFile</key>

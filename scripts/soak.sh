@@ -9,8 +9,9 @@
 # Summary: <out-dir>/soak.md. Nothing appears on screen.
 set -uo pipefail
 ROOT=${0:A:h:h}
+source "$ROOT/scripts/game.sh"   # GAME=m2|inf|m1
 OUT=${1:?out dir}; SETTINGS=${2:-quality_tier=3}; SPEED=${3:-4}
-APP="$ROOT/.deps/DerivedData/Build/Products/Release/Durandal.app/Contents/MacOS/Durandal"
+APP="$(game_app)"
 mkdir -p "$OUT"
 MD="$OUT/soak.md"
 start=$(date +%s)
@@ -23,7 +24,7 @@ start=$(date +%s)
   echo "|---|---|---|---|---|---|"
 } > "$MD"
 touch "$OUT/.start"
-find "$ROOT/tests/replays/Marathon 2" -name "*.filA" | sort | while read -r film; do
+find "$GAME_REPLAYS" -name "*.filA" | sort | while read -r film; do
   name=$(basename "$film" .filA)
   safe=${name//[^A-Za-z0-9._-]/_}
   t0=$(date +%s)
@@ -42,6 +43,6 @@ done
 {
   echo
   echo "- Total: $(( ($(date +%s) - start) / 60 )) min"
-  echo "- New crash reports: $(find ~/Library/Logs/DiagnosticReports -name 'Durandal*' -newer "$OUT/.start" 2>/dev/null | wc -l | tr -d ' ')"
+  echo "- New crash reports: $(find ~/Library/Logs/DiagnosticReports -name "$GAME_APP_NAME*" -newer "$OUT/.start" 2>/dev/null | wc -l | tr -d ' ')"
 } >> "$MD"
 echo "Done -> $MD"

@@ -5,6 +5,7 @@
 # to attach to a GitHub Release.
 #
 #   scripts/make-release.sh 0.1.0                       sign, notarise, staple, zip
+#   GAME=inf scripts/make-release.sh 0.1.0              Durandal Infinity (GAME=m1: Durandal Marathon)
 #   RELEASE_NOTARISE=0 scripts/make-release.sh 0.1.0    sign and zip, no Apple round trip
 #   RELEASE_SIGN=0 scripts/make-release.sh 0.1.0        ad-hoc signed only (a dry run)
 #
@@ -19,10 +20,12 @@
 # game's GET HD ART... button fetches it from its authors.
 set -euo pipefail
 ROOT=${0:A:h:h}
+source "$ROOT/scripts/game.sh"   # GAME=m2|inf|m1
 VERSION=${1:?usage: scripts/make-release.sh <version, e.g. 0.1.0>}
 OUT="$ROOT/.deps/release/$VERSION"
-APP="$OUT/Durandal.app"
-ZIP="$OUT/Durandal-$VERSION.zip"
+[[ $GAME == m2 ]] || OUT="$OUT/$GAME"
+APP="$OUT/$GAME_APP_NAME.app"
+ZIP="$OUT/${GAME_APP_NAME// /-}-$VERSION.zip"
 PROFILE=${RELEASE_NOTARY_PROFILE:-durandal}
 
 cd "$ROOT"
@@ -33,18 +36,18 @@ COMMIT=$(git rev-parse --short HEAD)
 
 scripts/build.sh Release
 rm -rf "$OUT" && mkdir -p "$OUT"
-ditto "$ROOT/.deps/DerivedData/Build/Products/Release/Durandal.app" "$APP"
+ditto "${$(game_app):h:h:h}" "$APP"
 
 # --- the bundle must run on a Mac without this folder ----------------------
 echo "== dependency check"
-LEAK=$(otool -L "$APP/Contents/MacOS/Durandal" | tail -n +2 | grep -v -E "^\s*(/System/|/usr/lib/)" || true)
+LEAK=$(otool -L "$APP/Contents/MacOS/$GAME_APP_NAME" | tail -n +2 | grep -v -E "^\s*(/System/|/usr/lib/)" || true)
 if [[ -n $LEAK ]]; then
   echo "$LEAK"; echo "FAIL: the binary links libraries outside macOS"; exit 1
 fi
-for f in Map.sceA Shapes.shpA Sounds.sndA Images.imgA "Physics Models"; do
+for f in $GAME_DATA_FILES; do
   [[ -e "$APP/Contents/Resources/DataFiles/$f" ]] || { echo "FAIL: game data missing: $f"; exit 1; }
 done
-echo "   clean: system frameworks only; the Marathon 2 data is bundled"
+echo "   clean: system frameworks only; the $GAME_TITLE data is bundled"
 
 # --- sign ---------------------------------------------------------------------
 # Inside out, never --deep (it re-signs nested code with the outer options);

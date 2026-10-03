@@ -65,7 +65,15 @@ The film test (below) is the gate. To keep it green:
   the game finds its data automatically.
 - `Xcode/AlephOne.xcodeproj` — the project (the old `PBProjects/` is gone).
   Target and scheme **Marathon 2** builds `Durandal.app` (renamed in Round
-  1; bundle id `local.durandal.Durandal`).
+  1; bundle id `local.durandal.Durandal`). Since 3 Oct 2026 (trilogy T0)
+  **Marathon 3** builds `Durandal Infinity.app` (`local.durandal.Infinity`)
+  and **Marathon 1** builds `Durandal Marathon.app`
+  (`local.durandal.Marathon`), signed to run locally like Marathon 2, their
+  shared schemes copied from Marathon 2's (Release, `DURANDAL_QA=1`). Their
+  data comes from `data/Scenarios/Marathon Infinity` and
+  `data/Scenarios/Marathon` (submodules); their folders are named
+  "Durandal Infinity" and "Durandal Marathon" (prefs, Application Support,
+  Plugins). The Steam targets are upstream's, untouched.
 - `.deps/` (git-ignored) — private vcpkg (`.deps/vcpkg`), CLI DerivedData,
   build/test logs. vcpkg fetched its own CMake; nothing system-wide.
 - `vcpkg/installed-arm64-osx/` (git-ignored) — installed dependencies; the
@@ -85,11 +93,18 @@ The film test (below) is the gate. To keep it green:
 - Dependencies (once, ~8 min): `scripts/install-deps.sh`
 - CLI build: `scripts/build.sh [Release|Debug] [tests]` — uses
   `.deps/DerivedData`, so it never collides with Xcode's Run.
+- Which game: every script reads `GAME` (`m2` default, `inf`, `m1`; build
+  and film tests also take `all`) through `scripts/game.sh`, which gives
+  the scheme, app name, data folder, test films and a default film
+  (Infinity's demo "LA COSA NOSTRA"; Marathon 1 has no demos, so its first
+  test film, L1 Arrival).
 - Film determinism test (run before finishing any session):
   `scripts/test-films.sh` — replays the 42 Marathon 2 films under
   `tests/replays/Marathon 2` headless and checks each final RNG seed. Must
   report `All tests passed (86 assertions in 1 test case)` (two per film, two
   for set-up; "43 films" in older notes and the guide was a miscount).
+  `GAME=inf` replays Infinity's 32 films, `GAME=m1` Marathon's 27,
+  `GAME=all` the three in turn (one tests app serves all three games).
 - Xcode: scheme **Marathon 2**, destination **My Mac**. Run uses **Release**
   (set in the shared scheme). Other schemes are hidden by the user's own
   `xcschememanagement.plist` under `xcuserdata` (local, git-ignored).
@@ -1351,13 +1366,25 @@ The folder name comes from the *localised* bundle name
   on macOS 27 only (deployment target 12.0).
 - Trilogy plan (3 Oct 2026, the owner's ask: "the same with Marathon 1 and
   Infinity, to complete the trilogy"): `docs/PLAN-trilogy.md` on
-  `durandal/trilogy`. Outline only, decisions open: three apps or one,
-  names, releases, M1's HD art, the guides. Rounds T0 baseline (targets,
+  `durandal/trilogy`. Decided: three apps, Durandal Marathon and Durandal
+  Infinity. Open: releases, M1's HD art, the guides. Rounds T0 baseline (targets,
   scripts, the 27 M1 and 32 Infinity films three ways, a first look), T1
   Infinity, T2 Marathon 1, T3 together. The plan's inventory lists every
   M2 assumption found (collection numbers, wall lamps, haze by environment,
   liquids, summon monster, HD packs, Lua HUD and widescreen, skies, app
   identity, scripts).
+- Trilogy T0 (3 Oct 2026, on `durandal/trilogy`; the owner chose three
+  apps, named Durandal Infinity and Durandal Marathon): the two targets
+  renamed and signed to run locally (see Layout), their Info.plists take
+  the build's name and minimum macOS as Marathon 2's does, and the scripts
+  take `GAME` (`scripts/game.sh`). Film tests green three ways for all three
+  games on the first try: Marathon 2 86 assertions, Infinity 66 (32
+  films), Marathon 56 (27 films), so Durandal's upstream edits leave
+  Marathon 1's converted films and Infinity's in sync. GET HD ART... shows
+  only in Marathon 2 (its pack list is Marathon 2's art) until T1/T2 give
+  the others theirs (`Scenario::instance()->GetID()`). `setup.sh` still
+  builds Marathon 2 alone (T3). Next: the first look on screen (the owner
+  plays each at Flagship and Rampant; frame shots of the demo films).
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

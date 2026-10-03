@@ -6,9 +6,10 @@
 # for 40 s.  scripts/frames.sh <out-dir> [film] [every] [WxH]
 set -uo pipefail
 ROOT=${0:A:h:h}
-OUT=${1:?out dir}; FILM=${2:-$ROOT/data/Scenarios/Marathon 2/Demos/L00.filA}
+source "$ROOT/scripts/game.sh"   # GAME=m2|inf|m1
+OUT=${1:?out dir}; FILM=${2:-$GAME_DEMO}
 EVERY=${3:-450}; SIZE=${4:-1280x720}
-APP="$ROOT/.deps/DerivedData/Build/Products/Release/Durandal.app/Contents/MacOS/Durandal"
+APP="$(game_app)"
 rm -rf "$OUT"; mkdir -p "$OUT"
 for mode in gl metal; do
   [[ $mode == metal ]] && display=1 || display=0

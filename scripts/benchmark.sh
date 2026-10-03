@@ -11,9 +11,10 @@
 # (skip with WARMUP=0).
 set -euo pipefail
 ROOT=${0:A:h:h}
+source "$ROOT/scripts/game.sh"   # GAME=m2|inf|m1
 LABEL=${1:?label}; shift
 SIZES=(${@:-1920x1080 native})
-APP="$ROOT/.deps/DerivedData/Build/Products/Release/Durandal.app/Contents/MacOS/Durandal"
+APP="$(game_app)"
 M2="$ROOT/data/Scenarios/Marathon 2"
 FILMS=(
   "$M2/Demos/L00.filA"
@@ -24,6 +25,13 @@ FILMS=(
   "$ROOT/tests/benchmark-films/260926-3.filA"
 )
 NAMES=(L00-demo L06-combat net-5D-space own-260926-1 own-260926-2 own-260926-3)
+if [[ $GAME != m2 ]]; then
+  # Other games: their demo films (Marathon 1 has none: its first test film)
+  # and any benchmark films recorded for them in tests/benchmark-films/<game>.
+  FILMS=("$GAME_DATA"/Demos/*.filA(N) "$ROOT/tests/benchmark-films/$GAME"/*.filA(N))
+  (( ${#FILMS} )) || FILMS=("$GAME_DEMO")
+  NAMES=(); for f in $FILMS; do NAMES+=("$GAME-${${f:t:r}//[^A-Za-z0-9]/-}"); done
+fi
 # FILMS_ONLY="1 4 5" limits a run to those films (indices into FILMS)
 OUT="$ROOT/.deps/bench/$LABEL"; mkdir -p "$OUT" "$ROOT/docs/benchmarks"
 MD="$ROOT/docs/benchmarks/$LABEL.md"

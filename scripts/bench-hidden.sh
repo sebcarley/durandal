@@ -8,8 +8,9 @@
 # never presented (a hidden window's drawables are throttled by macOS).
 set -uo pipefail
 ROOT=${0:A:h:h}
-OUT=${1:?out}; MODE=${2:?gl|bridge|metal}; FILM=${3:-$ROOT/data/Scenarios/Marathon 2/Demos/L00.filA}; SIZE=${4:-1920x1080}
-APP="$ROOT/.deps/DerivedData/Build/Products/Release/Durandal.app/Contents/MacOS/Durandal"
+source "$ROOT/scripts/game.sh"   # GAME=m2|inf|m1
+OUT=${1:?out}; MODE=${2:?gl|bridge|metal}; FILM=${3:-$GAME_DEMO}; SIZE=${4:-1920x1080}
+APP="$(game_app)"
 mkdir -p "${OUT:h}"
 SDL_MAC_BACKGROUND_APP=1 DURANDAL_BENCHMARK="$OUT.csv" DURANDAL_BENCHMARK_FILM="$FILM" DURANDAL_BENCHMARK_HIDDEN=1 \
   DURANDAL_BENCHMARK_SIZE="$SIZE" DURANDAL_BENCHMARK_RENDERER=$([[ $MODE == gl ]] && echo gl || echo metal) \

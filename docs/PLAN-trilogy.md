@@ -43,6 +43,10 @@ Each round gets its own detailed plan when it starts.
 
 ## Decisions for the owner
 
+Decided 3 Oct 2026: **three apps** (decision 1) named **Durandal Marathon**
+and **Durandal Infinity** (decision 2); Marathon 2 stays **Durandal**.
+Decisions 3 to 5 are still open.
+
 1. **Three apps or one.**
    - **Recommended: three apps sharing one engine**, as Aleph One ships.
      Each game keeps its own saves, films, settings and tier.
