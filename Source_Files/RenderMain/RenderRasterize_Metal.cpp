@@ -326,6 +326,9 @@ void RenderRasterize_Metal::render_tree()
 	// may fall only half as far (trilogy T2, judged on L16)
 	if (DurandalScenario::Marathon1())
 		u.gi_range.x *= 0.5f;
+	static const bool gi_view = getenv("DURANDAL_GI_VIEW") != nullptr;	// development: the factor as grey (walls)
+	if (gi_view)
+		u.gi_range.w = -1.0f;
 	// Bounced Light (R4, Rampant): the bake passes light on as it is drawn,
 	// and figures take the light of the floor and ceiling around them
 	light_bounce = redistribution && Durandal::Enabled(Durandal::kLightBounce);

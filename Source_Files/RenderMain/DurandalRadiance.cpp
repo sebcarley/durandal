@@ -24,6 +24,8 @@
 #include "shape_descriptors.h"
 #include "lightsource.h"
 #include "platforms.h"
+#include <cstdlib>
+#include <cstring>
 
 #include <algorithm>
 #include <cmath>
@@ -492,7 +494,6 @@ bool Frame(const view_data* view, const std::vector<sorted_node_data>& nodes, si
 		build_layout();
 	if (!state.ready || !DurandalMetal::RadianceReady())
 		return false;
-
 	// Moving platforms: what is around them changes
 	for (size_t i = 0; i < PlatformList.size(); ++i)
 	{

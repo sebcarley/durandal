@@ -723,16 +723,34 @@ static float4 patch_light(float4 range, device const Patch* patches, device cons
 	const float3 r = world - pa.origin.xyz;
 	const float2 l = clamp(float2(dot(r, pa.u.xyz), dot(r, pa.v.xyz)), float2(0.5), float2(pa.rect.zw) - 0.5);
 	constexpr sampler s(filter::linear, address::clamp_to_edge);
-	const float4 e = radiance.sample(s, (float2(pa.rect.xy) + l) / float2(radiance.get_width(), radiance.get_height()), level(0));
+	// Four bilinear taps a lumel apart (about a 3x3 tent): each lumel
+	// keeps a few per cent of noise from its rays, which a lumel read alone
+	// showed as blobs where the rays find small bright surfaces (a lift
+	// shaft in Marathon, 3 Oct 2026); averaged, it no longer shows
+	const float2 size = float2(radiance.get_width(), radiance.get_height());
+	const float2 lo = float2(0.5), hi = float2(pa.rect.zw) - 0.5;
+	float4 e = float4(0.0);
+	for (int k = 0; k < 4; ++k) {
+		const float2 o = float2((k & 1) ? 0.75 : -0.75, (k & 2) ? 0.75 : -0.75);
+		e += radiance.sample(s, (float2(pa.rect.xy) + clamp(l + o, lo, hi)) / size, level(0));
+	}
+	e *= 0.25;
 	if (e.a < 0.05)
 		return float4(1.0);
 	const float3 here = e.rgb / e.a;
 	const float3 luma = float3(0.2126, 0.7152, 0.0722);
 	const float lh = dot(here, luma), la = dot(average.rgb, luma);
+	// Both measured against a small floor: where a room gives off almost
+	// nothing (Marathon's unlit rooms, seen only by the player's own close
+	// light), what little arrives is stray light from far openings, and
+	// the bare ratio swung from lumel to lumel between the clamps: blobs
+	// (a lift, 3 Oct 2026). There it stays near 1; lit rooms are as before
+	constexpr float kFloor = 0.02;
+	const float ratio = clamp((lh + kFloor) / (la + kFloor), 1.0 - range.x, 1.0 + range.y);
 	if (la < 1e-4 || lh < 1e-5)
-		return float4(1.0, 1.0, 1.0, la < 1e-4 ? 1.0 : 1.0 - range.x);
-	const float ratio = clamp(lh / la, 1.0 - range.x, 1.0 + range.y);
-	const float3 tint = clamp(mix(float3(1.0), (here / lh) / (average.rgb / la), range.z),
+		return float4(1.0, 1.0, 1.0, ratio);
+	const float confidence = la / (la + kFloor);
+	const float3 tint = clamp(mix(float3(1.0), (here / lh) / (average.rgb / la), range.z * confidence),
 							  float3(1.0 - range.w), float3(1.0 + range.w));
 	return float4(tint, ratio);
 }
@@ -917,6 +935,8 @@ fragment WorldFrag wall_fragment(WorldIn in [[stage_in]], constant Uniforms& u [
 	const float mod = relief_factor(u, l.depth, rf);
 	const float3 intensity = add_light(classic_intensity(u, l.depth) * mod, classic_intensity(u, l.depth, dl.amount) * mod, dl)
 		* contact_shadow(u, casters, l) * gi.a * gi.rgb;
+	if (u.gi_range.w < 0.0)	// development: DURANDAL_GI_VIEW=1 shows the redistribution's factor (1 = mid grey)
+		return world_frag(in, float4(float3(gi.a * 0.5), 1.0), float3(0.0), u.distance_mode);
 	const float f = fog_factor(u, l.fog_distance);
 	const float4 out = float4(mix(u.fog_color.rgb, color.rgb * intensity, f), u.color.a * color.a);
 	// Glow: a pack's bloom share of this image (HD art)
@@ -2069,7 +2089,15 @@ static float3 trace_radiance(device const float4* map, device const float4* surf
 		else if (d.z > 1e-5) { t_plane = (h.z - o.z) / d.z; plane = 1; }
 		if (plane >= 0 && t_plane <= leave) {
 			t = t_plane;
-			return t > far ? float3(-1.0) : bounced(bounce, surfaces[poly * 10 + plane], poly, plane, o + d * t);
+			// A floor or ceiling beyond reach gives the room's own light, as a
+			// ray that runs out of reach sideways does (it read as black and
+			// still counted: in a tall lift shaft most rays did, and the
+			// lumels' few remaining hits swung between the clamps as blobs)
+			if (t > far) {
+				t = far;
+				break;
+			}
+			return bounced(bounce, surfaces[poly * 10 + plane], poly, plane, o + d * t);
 		}
 		if (leave > far || edge < 0)
 			break;

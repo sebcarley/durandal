@@ -400,7 +400,17 @@ int BuildMap(std::vector<simd_float4>& out)
 		for (int i = 0; i < n; ++i)
 		{
 			const endpoint_data* e = get_endpoint_data(polygon->endpoint_indexes[i]);
-			o[1 + i] = simd_make_float4(e->vertex.x, e->vertex.y, polygon->adjacent_polygon_indexes[i], 0);
+			// A line Marathon does not see through is drawn as a wall even
+			// with a polygon beyond (Marathon's maps use them for lift
+			// shafts and doors): light, shadows, fog and reflections stop
+			// there too, as the picture does. Walking through it left the
+			// redistribution taking such walls for openings (blobs in a
+			// lift, 3 Oct 2026)
+			short beyond = polygon->adjacent_polygon_indexes[i];
+			if (beyond != NONE)
+				if (const line_data* line = get_line_data(polygon->line_indexes[i]); line && !LINE_IS_TRANSPARENT(line))
+					beyond = NONE;
+			o[1 + i] = simd_make_float4(e->vertex.x, e->vertex.y, beyond, 0);
 		}
 		o[1].w = get_light_intensity(polygon->ceiling_lightsource_index) * light;
 		o[2].w = -1e9f;
