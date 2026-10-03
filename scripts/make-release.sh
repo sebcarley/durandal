@@ -73,7 +73,7 @@ if [[ ${RELEASE_SIGN:-1} == 1 ]]; then
     if ! grep -q "status: Accepted" "$NZ/log"; then
       SUB=$(awk '/^ *id:/{print $2; exit}' "$NZ/log")
       [[ -n $SUB ]] && xcrun notarytool log "$SUB" --keychain-profile "$PROFILE" 2>&1 | tail -40
-      echo "FAIL: Apple did not accept the app (no keychain profile? xcrun notarytool store-credentials $PROFILE)"; exit 1
+      echo "FAIL: Apple did not accept the app (its answer is above; HTTP 403 \"agreement\": the account holder must accept Apple's updated agreement at developer.apple.com/account; no profile: xcrun notarytool store-credentials $PROFILE)"; exit 1
     fi
     rm -rf "$NZ"
     xcrun stapler staple "$APP" || { echo "FAIL: could not staple the ticket"; exit 1; }
