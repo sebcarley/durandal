@@ -217,8 +217,9 @@ The folder name comes from the *localised* bundle name
   and full screen on that display instead of the main one (screen.cpp,
   `durandal_display`); `builtin` is the MacBook's own screen, found through
   CoreGraphics (this SDL names displays "0", "1"). Set but matching nothing:
-  the game quits rather than open on the wrong screen. The owner asked on
-  3 Oct 2026 for on-screen work on the laptop screen, not the MSI.
+  the game quits rather than open on the wrong screen. For my runs when
+  the owner says the main display is in use (3 Oct 2026, the first look);
+  he plays on the main display.
 - `DURANDAL_BENCHMARK_SHOW_FPS=1` turns the in-game fps counter on for a
   benchmark run (in-game text in frame comparisons: `SHOW_FPS=1
   scripts/frames.sh ...`).
