@@ -6,7 +6,7 @@
 #
 #   scripts/get-hd-art.sh              Marathon 2's five packs (about 1.0 GB)
 #   scripts/get-hd-art.sh scenery 3d   only the named ones
-#                                      (walls monsters scenery weapons 3d)
+#                                      (walls monsters scenery weapons 3d; Marathon: sky, no 3d)
 #   GAME=inf scripts/get-hd-art.sh     Marathon Infinity's set (about 1.0 GB)
 #   GAME=m1 scripts/get-hd-art.sh      Marathon's set (about 0.2 GB)
 #
@@ -33,21 +33,21 @@ case $GAME in
   "3d|3D Items|3d-items-plugin|3|b4673ac3d6b43f4beb4bb629772f50e64e02d3ad97859a77e5bc9386684b3f99"
   ) ;;
   inf) PACKS=(
-  "walls|CFP - Walls MInf|communityfreeverse-walls-minf|425|"
+  "walls|CFP - Walls MInf|communityfreeverse-walls-minf|425|48c052ee390cfc8a5c38bc9affaf119a372c2256539c76df3f074de1c40688fa"
   "monsters|CFP Monsters|community-freeverse-plugin-monsters|516|94bf18219cb9132428da60f85cbfd64b56ad72bdde3dcad04741ee1cc12d4ece"
   "scenery|CFP Scenery|community-freeverse-plugin-scenery|24|aea1b1106c94b3d1462900d99fcecac07cc93593197a13766d5f65e8910ff770"
-  "weapons|CFP Weapons MInf|community-freeverse-plugin-weapons|73|"
+  "weapons|CFP Weapons MInf|community-freeverse-plugin-weapons|73|0f42088c8f9010f7a8fadc5a43cc7a692618f08e30d79c09ad903f63fd71b12f"
   "3d|3D Items|3d-items-plugin|3|b4673ac3d6b43f4beb4bb629772f50e64e02d3ad97859a77e5bc9386684b3f99"
   ) ;;
-  # Marathon: the item may be a direct link (Aleph One's own release); both
-  # monster sets stay listed until the owner has chosen one
+  # Marathon: the item may be a direct link (Aleph One's own release); the
+  # starfield loads after the walls it overrides; Texture Renewal monsters
+  # were chosen over xBR after a side-by-side (3 Oct 2026)
   m1) PACKS=(
-  "walls|TTEP 1024|ttep-updated-plugin-m1-1024x1024|60|"
-  "sky|Updated Starscape|https://github.com/Aleph-One-Marathon/data-marathon/releases/download/plugin-removal/Updated.Starscape.zip|1|"
-  "monsters|xBR Monsters|xbr-monsters-for-m1|47|"
-  "monsters-trp|Texture Renewal Monsters|marathon-texture-renewal-project-monsters-module|44|"
-  "weapons|M1 Weapons Redux|tacticus-m1-weapons-redux-2|14|"
-  "scenery|3D Scenery M1|3d-scenery-for-m1|4|"
+  "walls|TTEP 1024|ttep-updated-plugin-m1-1024x1024|60|31364eb067965fe66b2a9a0363b318c44c930986d3eeabc0838665e35426eee0"
+  "sky|Updated Starscape|https://github.com/Aleph-One-Marathon/data-marathon/releases/download/plugin-removal/Updated.Starscape.zip|1|61ae76698b5b3afbfaa22b85630169c3250be07647a58ed37b829dfe7a116a0e"
+  "monsters|Texture Renewal Monsters|marathon-texture-renewal-project-monsters-module|44|91d3c291044a95b7788155138a1d7b5d39518e35be43a3f28a743b9f90f1663f"
+  "weapons|M1 Weapons Redux|tacticus-m1-weapons-redux-2|14|7cb9af92cbae90b38ac1d347011a7a584367cacadcec47a8a1f5eab879b2dcee"
+  "scenery|3D Scenery M1|3d-scenery-for-m1|4|3fc490d5cd73be06fd0169adedbcc00bfd0255c0efe4c4c983425ae7eae38b33"
   ) ;;
   *) echo "No HD art list for $GAME_TITLE yet."; exit 1 ;;
 esac

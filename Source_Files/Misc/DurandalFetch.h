@@ -34,9 +34,9 @@ namespace DurandalFetch {
 
 // The packs: the four Community/Freeverse packs and the 3D Items plugin
 struct PackInfo {
-	const char* key;		// walls, monsters, scenery, weapons, 3d
+	const char* key;		// walls, monsters, scenery, weapons, 3d, sky
 	const char* folder;		// its folder in the Plugins folder
-	const char* item;		// its Simplici7y item
+	const char* item;		// its Simplici7y item, or a direct https link (Aleph One's own release)
 	int megabytes;			// the download, roughly
 	const char* sha256;		// the version tested
 };

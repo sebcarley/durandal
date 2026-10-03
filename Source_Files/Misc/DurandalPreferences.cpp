@@ -493,7 +493,7 @@ static void GetHDArtDialog()
 	static char intro[96];
 	snprintf(intro, sizeof(intro), "The community's HD art for %s: walls and sky, monsters,", DurandalScenario::Name(DurandalScenario::Current()));
 	placer->dual_add(new w_static_text(intro), d);
-	placer->dual_add(new w_static_text("scenery, weapons and 3D pickups, from its authors' own pages on"), d);
+	placer->dual_add(new w_static_text("scenery, weapons and 3D models, from its authors' own pages on"), d);
 	placer->dual_add(new w_static_text("Simplici7y. It is theirs: Durandal fetches it but never ships it."), d);
 	placer->add(new w_spacer(), true);
 	// Each line starts as wide as it will get (a static text keeps its first width)

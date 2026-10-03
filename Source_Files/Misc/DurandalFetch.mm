@@ -28,6 +28,7 @@ extern DirectorySpecifier local_data_dir;
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <mutex>
 #include <thread>
 
@@ -118,19 +119,36 @@ const std::vector<PackInfo> kPacksInfinity = {
 	{ "3d", "3D Items", "3d-items-plugin", 3,
 	  "b4673ac3d6b43f4beb4bb629772f50e64e02d3ad97859a77e5bc9386684b3f99" },
 };
-const std::vector<PackInfo> kPacksNone;
+// Marathon: Tim Vogel's TTEP walls at 1024, Hopper's starfield (after the
+// walls, which it overrides; Aleph One's own release), Rock's Texture
+// Renewal monsters (a 7z archive; the owner chose them over xBR after a
+// side-by-side, 3 Oct 2026), General Tacticus's weapons and 3D scenery
+const std::vector<PackInfo> kPacksMarathon = {
+	{ "walls", "TTEP 1024", "ttep-updated-plugin-m1-1024x1024", 60,
+	  "31364eb067965fe66b2a9a0363b318c44c930986d3eeabc0838665e35426eee0" },
+	{ "sky", "Updated Starscape", "https://github.com/Aleph-One-Marathon/data-marathon/releases/download/plugin-removal/Updated.Starscape.zip", 1,
+	  "61ae76698b5b3afbfaa22b85630169c3250be07647a58ed37b829dfe7a116a0e" },
+	{ "monsters", "Texture Renewal Monsters", "marathon-texture-renewal-project-monsters-module", 44,
+	  "91d3c291044a95b7788155138a1d7b5d39518e35be43a3f28a743b9f90f1663f" },
+	{ "weapons", "M1 Weapons Redux", "tacticus-m1-weapons-redux-2", 14,
+	  "7cb9af92cbae90b38ac1d347011a7a584367cacadcec47a8a1f5eab879b2dcee" },
+	{ "scenery", "3D Scenery M1", "3d-scenery-for-m1", 4,
+	  "3fc490d5cd73be06fd0169adedbcc00bfd0255c0efe4c4c983425ae7eae38b33" },
+};
 
 // The game's list (the scenario is known by the time anything asks)
 const std::vector<PackInfo>& game_packs()
 {
 #ifdef DURANDAL_FETCH_HARNESS
-	return kPacksM2;
+	// DURANDAL_FETCH_GAME=inf|m1 picks another game's list
+	const char* g = getenv("DURANDAL_FETCH_GAME");
+	return !g ? kPacksM2 : strcmp(g, "inf") == 0 ? kPacksInfinity : strcmp(g, "m1") == 0 ? kPacksMarathon : kPacksM2;
 #else
 	switch (DurandalScenario::Current())
 	{
 		case DurandalScenario::kMarathon2: return kPacksM2;
 		case DurandalScenario::kInfinity: return kPacksInfinity;
-		default: return kPacksNone;
+		default: return kPacksMarathon;
 	}
 #endif
 }
@@ -184,6 +202,8 @@ void run(NSURLSession* session, NSURLSessionTask* task, DurandalFetchDelegate* d
 // page turned into the file behind it
 NSURL* find(const PackInfo& pack, size_t i, std::string& why)
 {
+	if (strncmp(pack.item, "https://", 8) == 0)
+		return [NSURL URLWithString:@(pack.item)];
 	DurandalFetchDelegate* delegate = [DurandalFetchDelegate new];
 	delegate.done = dispatch_semaphore_create(0);
 	NSURLSessionConfiguration* config = [NSURLSessionConfiguration ephemeralSessionConfiguration];
@@ -328,19 +348,30 @@ void fetch()
 				continue;
 			}
 			set(i, State::kChecking);
-			if (tool(@"/usr/bin/unzip", @[ @"-tq", zip ]) != 0) {
-				set(i, State::kFailed, "what arrived is not a zip archive (the host may want a browser)");
+			// A zip, or a 7z archive (Rock's packs), which macOS's own tar reads
+			bool seven = false;
+			if (FILE* f = fopen(zip.fileSystemRepresentation, "rb")) {
+				unsigned char head[6] = {};
+				seven = fread(head, 1, 6, f) == 6 && memcmp(head, "7z\xBC\xAF\x27\x1C", 6) == 0;
+				fclose(f);
+			}
+			if (seven ? tool(@"/usr/bin/tar", @[ @"-tf", zip ]) != 0 : tool(@"/usr/bin/unzip", @[ @"-tq", zip ]) != 0) {
+				set(i, State::kFailed, "what arrived is not an archive (the host may want a browser)");
 				[files removeItemAtPath:zip error:nil];
 				continue;
 			}
-			if (sha256(zip) != pack.sha256) {
+			if (*pack.sha256 && sha256(zip) != pack.sha256) {
 				std::lock_guard<std::mutex> g(lock);
 				status.packs[i].updated = true;	// its authors have updated it: installed all the same
 			}
 			set(i, State::kUnpacking);
 			NSString* out = [work stringByAppendingPathComponent:@(pack.key)];
 			[files removeItemAtPath:out error:nil];
-			const bool unpacked = tool(@"/usr/bin/ditto", @[ @"-x", @"-k", zip, out ]) == 0;
+			[files createDirectoryAtPath:out withIntermediateDirectories:YES attributes:nil error:nil];
+			const bool unpacked = seven ? tool(@"/usr/bin/tar", @[ @"-xf", zip, @"-C", out ]) == 0
+										: tool(@"/usr/bin/ditto", @[ @"-x", @"-k", zip, out ]) == 0;
+			// Some archives carry read-only folders, which cannot be moved
+			tool(@"/bin/chmod", @[ @"-R", @"u+w", out ]);
 			[files removeItemAtPath:zip error:nil];
 			if (!unpacked) {
 				set(i, State::kFailed, "could not unpack it");
