@@ -73,6 +73,18 @@ float durandal_calc_wobble_for(const view_data* view, short transferMode);
 extern GLdouble Screen_2_Clip[16];
 extern void position_sprite_axis(short *x0, short *x1, short scale_width, short screen_width, short positioning_mode, _fixed position, bool flip, world_distance world_left, world_distance world_right);
 
+// Glow (E1): how emissive a sprite frame is, from its minimum light.
+// Marathon draws its monsters' bodies half to fully self-lit (Hunters,
+// Fighters, Compilers, Wasps: 0.2-1.0, read on L1, L8, L16), so that there
+// only the frames near full light (shots, flashes) glow
+static float sprite_emissive(short collection, _fixed minimum_light)
+{
+	float e = PIN(minimum_light, 0, FIXED_ONE) / float(FIXED_ONE);
+	if (DurandalScenario::Marathon1() && DurandalScenario::CollectionHolds(collection) == DurandalScenario::kMonster)
+		e = std::max(0.0f, (e - 0.5f) * 2.0f);
+	return e;
+}
+
 // Liquids (W1): each kind's look. Murk: distance (world units) over which
 // the view under the surface fades, scaled per channel by absorb; opacity
 // of the surface texture; wave strength; caustics on what is below; glow.
@@ -639,7 +651,7 @@ RenderRasterize_Metal::Material RenderRasterize_Metal::setupSpriteTexture(const 
 	if (m.uniforms.write_glow && TMgr->TransferMode == _textured_transfer && !current_player->infravision_duration) {
 		shape_information_data* info = extended_get_shape_information(GET_DESCRIPTOR_COLLECTION(rect.ShapeDesc), rect.LowLevelShape);
 		if (info)
-			m.uniforms.emissive = PIN(info->minimum_light_intensity, 0, FIXED_ONE) / float(FIXED_ONE);
+			m.uniforms.emissive = sprite_emissive(GET_COLLECTION(GET_DESCRIPTOR_COLLECTION(rect.ShapeDesc)), info->minimum_light_intensity);
 	}
 	m.ok = true;
 	return m;
@@ -1361,7 +1373,7 @@ void RenderRasterize_Metal::render_model(render_object_data *object)
 	if (m.uniforms.write_glow && textured) {
 		shape_information_data* info = extended_get_shape_information(coll_colour, rect.LowLevelShape);
 		if (info)
-			m.uniforms.emissive = PIN(info->minimum_light_intensity, 0, FIXED_ONE) / float(FIXED_ONE);
+			m.uniforms.emissive = sprite_emissive(GET_COLLECTION(coll_colour), info->minimum_light_intensity);
 	}
 
 	// Placement (GL: translate, rotate by the azimuth, scale)

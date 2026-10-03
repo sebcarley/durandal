@@ -57,6 +57,46 @@ const Entry kEntries[] = {
 	{21, 2, C, 0xea73fd70}, {21, 3, C, 0x6db54f44}, {21, 4, C, 0xd67121d6},	// ring switches, screens
 	{21, 11, W, 0x7b29844a}, {21, 12, W, 0x5a948f33},			// light pods and cones
 	{21, 19, H, 0x757ab5f0}, {21, 23, H, 0xe5276498},			// green light discs
+	// Infinity and Marathon (trilogy, 3 Oct 2026): reviewed by eye from
+	// contact sheets of each game's own bitmaps (DURANDAL_DUMP_BITMAPS over
+	// every test film's level); lights, screens, switches, lava
+	// Infinity water (17)
+	{17, 0, C | R, 0x92215822}, {17, 1, C | R, 0x2df9383a}, {17, 2, W | C, 0x3ddda058}, {17, 3, C, 0xe7fc6ff6},
+	{17, 4, C, 0xe488074c}, {17, 8, W, 0xfaafa78b}, {17, 9, W, 0x7f335962}, {17, 10, W, 0x11e85630},
+	{17, 15, W, 0x396fcc62}, {17, 16, W, 0xebf74f65}, {17, 25, W, 0xea143138}, {17, 27, W, 0x859bbaab},
+	{17, 29, C, 0xb8d342c3},
+	// Infinity lava (18)
+	{18, 0, W | C, 0x737532ee}, {18, 1, C, 0x22f626bd}, {18, 2, W | C, 0x3ddda058}, {18, 3, C, 0xe7fc6ff6},
+	{18, 4, C, 0xfed71a1d}, {18, 9, W, 0x9fa8878e}, {18, 10, W, 0x896d66a4}, {18, 12, C, 0x03d04cb9},
+	{18, 17, W, 0xb36c94fc}, {18, 21, W, 0xf4345953}, {18, 25, W, 0x8acbdc6e},
+	// Infinity sewage (19)
+	{19, 0, W | C, 0xafab180d}, {19, 1, C, 0x63ec72c3}, {19, 2, W | C, 0x85e4ea10}, {19, 3, C, 0x4284c203},
+	{19, 4, C, 0x0a76cc72}, {19, 9, W, 0x5134f24c}, {19, 20, W, 0xf6601b05}, {19, 22, W, 0x2b811a03},
+	{19, 29, W, 0x304f3781},
+	// Infinity Jjaro (20), reviewed for the first time
+	{20, 0, C, 0xaad4cdf9}, {20, 1, C, 0x00b6c728}, {20, 2, C, 0xf1e5b7a6}, {20, 3, C, 0x033376f0},
+	{20, 4, C, 0x146c162a}, {20, 17, W, 0x59d0451b}, {20, 20, W, 0x1179d626}, {20, 22, W, 0x03f77da4},
+	{20, 32, W, 0x7135879b},
+	// Infinity Pfhor (21)
+	{21, 0, H, 0x761f89a0}, {21, 1, H, 0xb5d5ad96}, {21, 2, C, 0xeeab00d6}, {21, 3, C, 0x9d089fc6},
+	{21, 4, C, 0x0a8cf3e7}, {21, 12, W, 0xa20245e3}, {21, 15, H, 0x371fb6ad}, {21, 19, H, 0xa1ab6df9},
+	{21, 23, H, 0x20f91417}, {21, 24, H, 0x453b7b9e}, {21, 26, H, 0xa140a128},
+	// Marathon alien (2)
+	{2, 0, W, 0xa8507de6}, {2, 10, W, 0xabcc30e1}, {2, 15, W, 0x9ed8a5fc}, {2, 19, W, 0x1d9e68d9},
+	{2, 22, C, 0x46046812}, {2, 23, C, 0xb878019e},
+	// Marathon computers (8)
+	{8, 0, C, 0x283ee4d7}, {8, 1, C, 0x7f8b4855}, {8, 2, C, 0x75253e8d}, {8, 3, C, 0xc37d471e},
+	{8, 4, C, 0x97b762ba}, {8, 5, C, 0xf459ec17}, {8, 6, C, 0xb9b5e92a}, {8, 7, C, 0x5ada47a0},
+	// Marathon ship (17)
+	{17, 6, W, 0xf133dd2f}, {17, 12, W | C, 0x207828b7}, {17, 21, W, 0x226deeff}, {17, 27, C, 0x535e7e58},
+	// Marathon ship (18)
+	{18, 6, W, 0x8470f57a}, {18, 8, C, 0x27686796}, {18, 9, C, 0x089dfb2c}, {18, 14, W, 0xa683cc05},
+	// Marathon ship (19)
+	{19, 4, C, 0x40b53f02}, {19, 9, W, 0xa09cd7fd}, {19, 15, C, 0x691c5a84}, {19, 16, C, 0xfd0aec43},
+	{19, 19, C, 0x6bd458eb}, {19, 24, C, 0x01972ad4}, {19, 26, W | C, 0x16541ecf}, {19, 29, C, 0x4f5bef00},
+	// Marathon alien panels (24)
+	{24, 0, C, 0x8bf41b26}, {24, 1, C, 0x611b127e}, {24, 2, C, 0x0f9c0b92}, {24, 3, C, 0x2d25ba4c},
+	{24, 5, C, 0x47b88da3},
 };
 
 // The fingerprint picks the game: the three games' wall sets share
