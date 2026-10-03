@@ -10,12 +10,14 @@
 */
 
 #include "DurandalArt.h"
+#include "DurandalScenario.h"
 
 #include "cseries.h"
 #include "FileHandler.h"
 #include "Logging.h"
 #include "Plugins.h"
 
+#include <algorithm>
 #include <cstdlib>
 
 namespace DurandalArt {
@@ -40,24 +42,17 @@ std::string read_plugin_file(const Plugin& plugin, const std::string& path)
 	return text;
 }
 
-// Marathon 2's collections by what they hold (the interface, 0, is left
-// out: HUD packs are not art in this sense)
+// The collections by what they hold, in the game being played (the
+// interface is left out: HUD packs are not art in this sense)
 int category_of(int collection)
 {
-	switch (collection)
+	switch (DurandalScenario::CollectionHolds(collection))
 	{
-		case 1: case 4: case 7:
-			return kWeapons;
-		case 2: case 3: case 5: case 6: case 8: case 9: case 10: case 11:
-		case 12: case 13: case 14: case 15: case 16: case 31:
-			return kMonsters;
-		case 17: case 18: case 19: case 20: case 21:
-		case 27: case 28: case 29: case 30:
-			return kWalls;
-		case 22: case 23: case 24: case 25: case 26:
-			return kScenery;
-		default:
-			return -1;
+		case DurandalScenario::kWeaponsItems: return kWeapons;
+		case DurandalScenario::kMonster: return kMonsters;
+		case DurandalScenario::kWallSet: return kWalls;
+		case DurandalScenario::kScenery: return kScenery;
+		default: return -1;
 	}
 }
 
@@ -247,6 +242,30 @@ bool Apply()
 				plugin.enabled = want;
 				changed = true;
 				logNote("Durandal art: soundtrack %s %s", st.name.c_str(), want ? "on" : "off");
+			}
+		}
+	}
+	// Marathon's HUD (in QA): exactly one of the scenario's three HUD
+	// plugins, as the Look tab says; Stock leaves them as upstream has them
+	if (DurandalScenario::Marathon1() && Durandal::QA() && Durandal::Prefs().quality_tier != Durandal::kTierStock)
+	{
+		static const char* const kHUDs[3] = { "Default HUD", "Basic M1 HUD", "Enhanced HUD" };
+		const std::string chosen = kHUDs[std::clamp(Durandal::Prefs().hud_style, 0, 2)];
+		for (Plugin& plugin : *Plugins::instance())
+		{
+			if (plugin.hud_lua.empty())
+				continue;
+			bool ours = false;
+			for (const char* name : kHUDs)
+				ours = ours || plugin.name == name;
+			if (!ours)
+				continue;
+			const bool want = plugin.name == chosen;
+			if (plugin.enabled != want)
+			{
+				plugin.enabled = want;
+				changed = true;
+				logNote("Durandal: HUD %s %s", plugin.name.c_str(), want ? "on" : "off");
 			}
 		}
 	}

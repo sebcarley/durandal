@@ -114,6 +114,12 @@ struct Preferences {
 	// soundtrack plugin that plays, empty for none. Not part of any tier
 	// (Stock clears it); exactly one soundtrack plugin is enabled at a time
 	std::string soundtrack;
+	// Marathon's HUD (Look tab, Marathon only; in QA): which of the
+	// scenario's three HUD plugins runs. 0 Classic (the framed original,
+	// upstream's default), 1 Basic (the same HUD without the frame, the
+	// view filling the screen), 2 Enhanced (the Xbox-style overlay). Not
+	// part of any tier; Stock and a closed gate leave the plugins alone
+	int hud_style;
 };
 
 // True when enhancements may run at all: always, unless DURANDAL_STOCK=1

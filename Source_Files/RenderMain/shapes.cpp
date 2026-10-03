@@ -1607,6 +1607,8 @@ static void durandal_dump_wall_bitmaps(short collection_index, const rgb_color_v
 {
 	static const char *dir = getenv("DURANDAL_DUMP_BITMAPS");
 	struct collection_definition *collection = get_collection_definition(collection_index);
+	if (dir && collection)
+		fprintf(stderr, "Durandal collections: %d type %d bitmaps %d\n", collection_index, collection->type, collection->bitmap_count);
 	if (!dir || !collection || collection->type != _wall_collection) return;
 	for (short b = 0; b < collection->bitmap_count; ++b)
 	{

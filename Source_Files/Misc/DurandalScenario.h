@@ -32,6 +32,19 @@ inline bool Infinity() { return Current() == kInfinity; }
 
 const char* Name(Game game);
 
+// What a shapes collection holds in the game being played. The games
+// number them differently: Marathon's walls are 2, 8, 17-19 and 24, its
+// Juggernaut 21, Wasp 27 and Cyborg 29, where Marathon 2 and Infinity
+// have walls 17-21, landscapes 27-30 and scenery 22-26.
+enum Holds {
+	kOther = -1,		// interface, unused, or not known
+	kWallSet = 0,		// a wall set or landscape
+	kMonster,		// a monster or the player
+	kWeaponsItems,		// weapons in hand (1), projectiles and explosions (4), items (7)
+	kScenery,
+};
+Holds CollectionHolds(int collection);
+
 }
 
 #endif

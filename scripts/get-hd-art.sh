@@ -8,9 +8,10 @@
 #   scripts/get-hd-art.sh scenery 3d   only the named ones
 #                                      (walls monsters scenery weapons 3d)
 #   GAME=inf scripts/get-hd-art.sh     Marathon Infinity's set (about 1.0 GB)
+#   GAME=m1 scripts/get-hd-art.sh      Marathon's set (about 0.2 GB)
 #
 # Installs into the game's own Plugins folder (~/Library/Application
-# Support/Durandal/Plugins, or "Durandal Infinity"), or $DURANDAL_PLUGINS_DIR.
+# Support/Durandal/Plugins, "Durandal Infinity" or "Durandal Marathon"), or $DURANDAL_PLUGINS_DIR.
 # A pack that is already there is left alone: nothing is ever overwritten.
 # Safe to run again after a failed download.
 set -uo pipefail
@@ -38,6 +39,16 @@ case $GAME in
   "weapons|CFP Weapons MInf|community-freeverse-plugin-weapons|73|"
   "3d|3D Items|3d-items-plugin|3|b4673ac3d6b43f4beb4bb629772f50e64e02d3ad97859a77e5bc9386684b3f99"
   ) ;;
+  # Marathon: the item may be a direct link (Aleph One's own release); both
+  # monster sets stay listed until the owner has chosen one
+  m1) PACKS=(
+  "walls|TTEP 1024|ttep-updated-plugin-m1-1024x1024|60|"
+  "sky|Updated Starscape|https://github.com/Aleph-One-Marathon/data-marathon/releases/download/plugin-removal/Updated.Starscape.zip|1|"
+  "monsters|xBR Monsters|xbr-monsters-for-m1|47|"
+  "monsters-trp|Texture Renewal Monsters|marathon-texture-renewal-project-monsters-module|44|"
+  "weapons|M1 Weapons Redux|tacticus-m1-weapons-redux-2|14|"
+  "scenery|3D Scenery M1|3d-scenery-for-m1|4|"
+  ) ;;
   *) echo "No HD art list for $GAME_TITLE yet."; exit 1 ;;
 esac
 
@@ -57,8 +68,12 @@ for pack in $PACKS; do
     skipped=$((skipped + 1)); continue
   fi
 
+  if [[ "$item" == https://* ]]; then
+    link=$item
+  else
   echo "$name: finding the authors' download (simplici7y.com/items/$item)"
   link=$(curl -sI -m 30 "https://simplici7y.com/items/$item/downloads/new" | tr -d '\r' | awk 'tolower($1) == "location:" { print $2 }' | tail -1)
+  fi
   if [[ -z "$link" ]]; then
     echo "$name: no download link came back; get it by hand from https://simplici7y.com/items/$item/"
     failed=$((failed + 1)); continue
@@ -75,7 +90,9 @@ for pack in $PACKS; do
     echo "$name: the download failed; get it by hand from https://simplici7y.com/items/$item/"
     failed=$((failed + 1)); continue
   fi
-  if ! unzip -tq "$zip" > /dev/null 2>&1; then
+  # A zip, or a 7z archive (macOS's own tar reads those)
+  seven=0; [[ $(head -c 2 "$zip") == "7z" ]] && seven=1
+  if (( seven )) && ! tar -tf "$zip" > /dev/null 2>&1 || (( ! seven )) && ! unzip -tq "$zip" > /dev/null 2>&1; then
     echo "$name: what arrived is not a zip archive (the host may want a browser); get it by hand from https://simplici7y.com/items/$item/"
     failed=$((failed + 1)); continue
   fi
@@ -87,7 +104,8 @@ for pack in $PACKS; do
 
   out="$WORK/$key"
   mkdir -p "$out"
-  unzip -q "$zip" -d "$out" 2> /dev/null || { echo "$name: could not unpack"; failed=$((failed + 1)); continue; }
+  if (( seven )); then tar -xf "$zip" -C "$out" 2> /dev/null; else unzip -q "$zip" -d "$out" 2> /dev/null; fi || { echo "$name: could not unpack"; failed=$((failed + 1)); continue; }
+  chmod -R u+w "$out"	# some archives carry read-only folders, which cannot be moved
   rm -rf "$out/__MACOSX"
   # The plugin is the folder holding Plugin.xml: the archive's root, or a folder inside it
   manifest=$(find "$out" -name Plugin.xml -not -path '*/__MACOSX/*' | awk '{ print length($0), $0 }' | sort -n | head -1 | cut -d' ' -f2-)

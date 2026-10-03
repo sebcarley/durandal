@@ -16,6 +16,7 @@
 #include "OGL_Headers.h"
 
 #include "RenderRasterize_Metal.h"
+#include "DurandalScenario.h"
 
 #include "lightsource.h"
 #include "media.h"
@@ -1175,7 +1176,8 @@ void RenderRasterize_Metal::draw_sprite_shadow(render_object_data *object, Mater
 	if (TMgr->TransferMode != _textured_transfer || m.uniforms.emissive > 0 || (m.state.program != kSprite && m.state.program != kSpriteRamp))
 		return;
 	const short collection = GET_COLLECTION(GET_DESCRIPTOR_COLLECTION(object->rectangle.ShapeDesc));
-	const bool figure = (collection >= 2 && collection <= 16 && collection != 4) || collection == 31 || (collection >= 22 && collection <= 26) || collection == 7;
+	const DurandalScenario::Holds holds = DurandalScenario::CollectionHolds(collection);
+	const bool figure = holds == DurandalScenario::kMonster || holds == DurandalScenario::kScenery || collection == 7;
 	if (!figure)
 		return;
 	static float strength = 0.6f, elevation = 40, azimuth = 135;

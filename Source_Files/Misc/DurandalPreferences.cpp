@@ -231,6 +231,7 @@ void SetDefaults()
 	prefs.cheat_noclip_key = SDL_SCANCODE_N;
 	prefs.cheat_summon_key = SDL_SCANCODE_C;	// unbound by default and in the owner's keys
 	prefs.soundtrack.clear();
+	prefs.hud_style = 0;
 	read_durandal_element = false;
 }
 
@@ -287,6 +288,9 @@ void Parse(const InfoTree& root)
 	if (root.read_attr("cheat_summon_key", key) && key >= 0 && key < SDL_NUM_SCANCODES)
 		prefs.cheat_summon_key = key;
 	root.read_attr("soundtrack", prefs.soundtrack);
+	int hud = prefs.hud_style;
+	if (root.read_attr("hud_style", hud) && hud >= 0 && hud <= 2)
+		prefs.hud_style = hud;
 }
 
 InfoTree Tree()
@@ -311,6 +315,7 @@ InfoTree Tree()
 	root.put_attr("cheat_noclip_key", prefs.cheat_noclip_key);
 	root.put_attr("cheat_summon_key", prefs.cheat_summon_key);
 	root.put_attr("soundtrack", prefs.soundtrack);
+	root.put_attr("hud_style", prefs.hud_style);
 	return root;
 }
 
@@ -369,6 +374,8 @@ void AfterRead()
 					prefs.cheat_noclip = value != 0;
 				if (name == "soundtrack")
 					prefs.soundtrack = item.substr(eq + 1);
+				if (name == "hud_style")
+					prefs.hud_style = std::clamp(value, 0, 2);
 				for (int i = 0; i < kNumberOfFeatures; ++i)
 					if (name == kFeatureAttr[i])
 						prefs.features[i] = value != 0;
@@ -730,6 +737,15 @@ void Dialog(void* parent_dialog)
 	w_grade_slider* shade_w = new w_grade_slider(11, prefs.distance_shade / 10, 0, 10, true);
 	tables[kTabLook]->dual_add(shade_w->label("Distance Shade"), d);
 	tables[kTabLook]->dual_add(shade_w, d);
+	// Marathon's HUD (in QA): with or without the frame round the view
+	w_select* hud_w = nullptr;
+	if (DurandalScenario::Marathon1() && QA())
+	{
+		static const char* hud_labels[] = { "Classic", "Basic (no frame)", "Enhanced", nullptr };
+		hud_w = new w_select(prefs.hud_style, hud_labels);
+		tables[kTabLook]->dual_add(hud_w->label("HUD"), d);
+		tables[kTabLook]->dual_add(hud_w, d);
+	}
 	tables[kTabLook]->add_row(new w_spacer(), true);
 	tables[kTabLook]->dual_add_row(new w_static_text("Everything here but Crisp Terminals needs"), d);
 	tables[kTabLook]->dual_add_row(new w_static_text("the Metal renderer; relaunch after switching it."), d);
@@ -890,6 +906,8 @@ void Dialog(void* parent_dialog)
 		if (gi_w)
 			prefs.gi_strength = gi_w->get_selection();
 		prefs.distance_shade = shade_w->value();
+		if (hud_w)
+			prefs.hud_style = hud_w->get_selection();
 		prefs.scene_brightness = brightness_w->value();
 		prefs.scene_contrast = contrast_w->value();
 		prefs.scene_gamma = gamma_w->value();
