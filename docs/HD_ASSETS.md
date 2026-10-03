@@ -702,3 +702,182 @@ macOS provides (NSURLSession, CommonCrypto, `ditto`, `unzip`).
 Code: `Source_Files/Misc/DurandalFetch.*`, the dialog in
 `DurandalPreferences.cpp` (`GetHDArtDialog`), `Plugins::add_directory`.
 QA passed 3 October 2026 (`baseline-11`).
+
+## 10. Marathon 1 packs (catalogue, 3 Oct 2026)
+
+Research for the trilogy plan (T2). No pack was downloaded or unpacked. The
+sources were each Simplici7y item page, a HEAD request on its
+`/items/<slug>/downloads/new` redirect (which shows where the file is hosted
+and how big it is), the Aleph One `data-marathon` repository on GitHub
+(its git history still holds the MML of the plugins Aleph One used to
+bundle), the Aleph One wiki, lochnits.com, and the Steam Workshop pages and
+treellama's Steam guide for Classic Marathon. "Target" says which M1 data a
+pack was made for:
+
+- **A1 M1**: the original Marathon data that Aleph One has shipped since
+  2011, the data Durandal uses.
+- **M1A1**: the older community conversion of M1 to M2 format. It numbers
+  its bitmaps differently, so its packs mismatch textures on the original
+  data.
+
+Sizes are the download archives, from Content-Length. The upload dates come
+from the item pages; the S3 file dates are all 3 June 2023, which is when
+Simplici7y moved its storage.
+
+Marathon 1's wall collections are 2, 8, 17, 18, 19 and 24. The bundled TTEP's
+MML confirms this, with 32, 8, 30, 30, 30 and 6 entries (136 textures). M1
+has no landscape collections. Its starfield is wall bitmaps turned into
+landscapes by MML `<landscape>` entries: coll 2 bitmap 4, coll 17 bitmap 24
+and coll 18 bitmap 21. A sky pack therefore overrides three of a wall pack's
+entries. M2 and Infinity landscape packs (Goran's, Tim Vogel's High-res
+Landscapes) do not apply to M1.
+
+Licence background: Bungie's M1 content has no formal licence. The
+`data-marathon` Readme calls it a "non-license", and every pack below
+derives from Bungie's art, whether redrawn or upscaled. Apart from the two
+repacks marked "with permission", no item page states a licence.
+
+### Marathon 1 packs
+
+| # | Pack | Author(s) | Version, date | Target | Replaces | Format, resolution | Size | Where; download kind | Licence / permissions | Reception |
+|---|---|---|---|---|---|---|---|---|---|---|
+| M1-1 | TTEP v7 (Aleph One's bundled copy; plugin "TTEP", "v7.0 by Tim Vogel") | Tim Vogel (Jay Faircloth credited in treellama's guide); adapted by Aleph One | v7.0; bundled 2011-21, release 28 Dec 2021 | A1 M1 ("adapted to work with Marathon's original data files") | all walls: coll 2, 8, 17, 18, 19, 24, 136 entries, including the three starfield bitmaps (type 1, `landscape_bloom="0"`) | DDS 512x512 with mips (about 175 KB each, so DXT1); starfield 369 KB | 17.1 MB | [data-marathon release `plugin-removal`](https://github.com/Aleph-One-Marathon/data-marathon/releases/tag/plugin-removal); direct GitHub file `TTEP.v7.zip` | none stated in the plugin; the readme is Tim Vogel's 2007 install notes | the Aleph One maintainer's Steam guide lists it first; hand-remade, faithful art |
+| M1-2 | Updated Starscape | Hopper; nebula pattern from webtreats | 1.0; release 28 Dec 2021 | A1 M1 | the starfield: coll 2/4, 17/24, 18/21, as landscapes (`horiz_exp 1`, `vert_repeat false`) | one `star.dds`, described as 2048x1080 | 0.26 MB | same release; direct GitHub file `Updated.Starscape.zip` | the readme points to the mysitemyway pattern licence | listed in treellama's guide |
+| M1-3 | TTEP Updated Plugin (M1) @ 1024x1024 | Zetren (art by Tim Vogel) | v7.0, 18 Dec 2016 | A1 M1 ("identical content wise" to the bundled TTEP folder; Aleph One 1.2.1 and later) | as M1-1 | the TTEP originals at 1024x1024 (DDS per TTEP 7) | 60.1 MB | [simplici7y.com/items/ttep-updated-plugin-m1-1024x1024](https://simplici7y.com/items/ttep-updated-plugin-m1-1024x1024/); `downloads/new` goes to an S3 zip | none stated | 5,296 downloads, no reviews; the readme says to disable the 512 copy |
+| M1-4 | TTEP 7 Marathon 1 (original) | Tim Vogel | 7.0, 6 Dec 2007 | M1A1 (installed through the Scripts folder; not a plugin) | walls (and the old backdrops) | DDS up to 1024x1024 | 81.6 MB | [simplici7y.com/items/ttep-7-marathon-1](https://simplici7y.com/items/ttep-7-marathon-1/); S3 zip | none stated | 5.0 from 5 reviews: "Phenomenal"; lava #31 and the backdrops are weak |
+| M1-5 | TTEP Plugin (M1) | tim4i (repack of M1-4) | v7.0, 20 Nov 2010 | M1A1 era (made before Aleph One moved to the original data) | as M1-4 | as M1-4 | 81.6 MB | [simplici7y.com/items/ttep-plugin-m1](https://simplici7y.com/items/ttep-plugin-m1/); S3 zip | "Released under permission" | 4.0 from 1 review |
+| M1-6 | Marathon Texture Renewal Project: Surfaces Module | Rock (Rockmih) | 0.5, 2 Aug 2024 | A1 M1 (made on Steam's Classic Marathon) | walls, and probably the starfield (not stated) | 4x AI upscale; format not stated (188.8 MB unpacked on the Workshop) | 46.6 MB **.7z** | [simplici7y.com/items/marathon-texture-renewal-project-surfaces-module](https://simplici7y.com/items/marathon-texture-renewal-project-surfaces-module/); S3 `.7z`; also on the Steam Workshop | none stated | no Simplici7y reviews; Workshop: "very nice and faithful", but players report missing textures; author: "some textures still need some work" |
+| M1-7 | Marathon Texture Renewal Project: Monsters Module | Rock | 0.5, 2 Aug 2024 | A1 M1 | monster sprites (the BoBs reworked by hand); coverage not stated | 4x AI upscale ("pixel art models"); 265.4 MB unpacked on the Workshop | 43.5 MB **.7z** | [simplici7y.com/items/marathon-texture-renewal-project-monsters-module](https://simplici7y.com/items/marathon-texture-renewal-project-monsters-module/); S3 `.7z` | none stated | 5.0 from 1 review (herecomethej2000, the CFP maintainer): cleaner than W'rkncacnter's upscale, but stray PNGs were left in folder 9/3; Workshop: "much better than the XBR upscale", or "very colourful … childish" |
+| M1-8 | Marathon Texture Renewal Project: Weapons Module | Rock | 0.5, 2 Aug 2024 | A1 M1 | weapons in hand | 4x AI upscale; 8.4 MB unpacked | 1.8 MB **.7z** | [simplici7y.com/items/marathon-texture-renewal-project-weapons-module](https://simplici7y.com/items/marathon-texture-renewal-project-weapons-module/); S3 `.7z` | none stated | Workshop: "cartoon-y"; the author agrees and points players to a more faithful weapons pack |
+| M1-9 | xBR Monsters for M1 | Flippant Sol (help from General Tacticus, treellama) | 1.3, 20 Nov 2017 | A1 M1 (indexed from M1's original shapes) | every monster and the marines, every colour table: 2,602 textures | xBR 4x per axis ("16x the original resolution"); format not stated | 47.1 MB | [simplici7y.com/items/xbr-monsters-for-m1](https://simplici7y.com/items/xbr-monsters-for-m1/); S3 zip | none stated | 5.0 from 2 reviews: "Excellent quality"; sprites "no longer stick out" beside HD walls |
+| M1-10 | Tacticus' M1 Weapons Redux | General Tacticus | 1.1, 13 Jul 2017 | A1 M1 (thedoctor45: does not work with M1A1, hence M1-14) | weapons in hand, projectiles, most items, detonations, bullet impacts | HD sprites, 3D-rendered style; format not stated | 14.1 MB | [simplici7y.com/items/tacticus-m1-weapons-redux-2](https://simplici7y.com/items/tacticus-m1-weapons-redux-2/); S3 zip; also on the Workshop (10.6 MB) | none stated | 5.0 from 2 reviews ("6 stars actually"); in treellama's guide; Workshop note: OpenGL renderer only |
+| M1-11 | Upscaled Weapons for M1 | Flippant Sol | 1.0, 5 Jul 2018 | A1 M1 | weapons in hand | xBR-style upscale (author suggests linear filtering) | 1.4 MB | [simplici7y.com/items/upscaled-weapons-for-m1-2](https://simplici7y.com/items/upscaled-weapons-for-m1-2/); S3 zip | none stated | no reviews |
+| M1-12 | 3D scenery for M1 | General Tacticus | 1.2, 16 Nov 2017 (first 2016) | A1 M1 | the scenery sprites, as 3D models (escape pod, Pfhor egg and others) | models (OBJ presumably) plus skins | 4.1 MB | [simplici7y.com/items/3d-scenery-for-m1](https://simplici7y.com/items/3d-scenery-for-m1/); S3 zip | none stated | 5.0 from 4 reviews; author: "make sure bloom is turned off", and some errors can't be avoided |
+| M1-13 | HD M1A1 Weapons in Hand (beta) | General Tacticus | 1.2, 2013 | M1A1 | weapons in hand, 3D weapon items | rendered sprites | 9.4 MB | [simplici7y.com/items/hd-m1a1-weapons-in-hand-alpha-version](https://simplici7y.com/items/hd-m1a1-weapons-in-hand-alpha-version/); S3 zip | none stated | 3.4 from 7 reviews: an assertion failure in shapes.cpp, wrong sizes, multiplayer desync; replaced by M1-10 |
+| M1-14 | M1A1 Compatible HD Weapon Pack | General Tacticus, port by thedoctor45 | 1.0, 15 Jul 2017 | M1A1 only ("will not work with current versions of aleph one, using the original files") | as M1-10 | as M1-10 | 15.2 MB | [simplici7y.com/items/m1a1-compatible-hd-weapon-pack](https://simplici7y.com/items/m1a1-compatible-hd-weapon-pack/); S3 zip | none stated | not for Durandal |
+| M1-15 | Marathon Trilogy Upscaled (M1 part: Textures 1.1, Monsters 1.1, Scenery 1.1, Weapons 1.1) | W'rkncacnter | Textures 25 Sep 2022, others 6 Aug 2022 | A1 M1 (in treellama's guide) | walls; monsters; scenery; weapons in hand | Gigapixel AI upscales (the M2 set was DDS) | **.7z**: Textures 12.8 MB, Monsters 46.1 MB, Scenery 0.8 MB, Weapons 1.8 MB | [simplici7y.com/items/marathon-1-upscaled-textures](https://simplici7y.com/items/marathon-1-upscaled-textures/) (`downloads/new` goes to the [lochnits.com/marathon/upscales](https://lochnits.com/marathon/upscales/) page, not a file); files at `lochnits.com/marathon/upscales/M1_Upscaled_<Part>_v1.1.7z` | none stated | 3.5 from 2 reviews: the sprite cropping is "terrible"; Rock's packs were made to improve on these |
+| M1-16 | M1A1 Animated Textures for M1 | President People; animation by the M1A1 team | 1.0, 20 Feb 2025 | A1 M1 ("back full circle to classic M1") | animated wall textures (from M1A1), recoloured to M1's palette; the originals are included | not stated | 0.5 MB | [simplici7y.com/items/m1a1-animated-textures-for-m1](https://simplici7y.com/items/m1a1-animated-textures-for-m1/); **Dropbox** (`dl=0`: change to `dl=1` for the file) | credits Bungie and the M1A1 team; no licence | 3,202 downloads, no reviews |
+| M1-17 | M1A1: StarScape DDS | M1 Map Dude (from Phil Demkeston's) | 1.0, 17 Aug 2010 | M1A1 (works on A1 M1 if renamed by hand into TTEP) | starfield | DDS 2048x1080 | 0.2 MB | [simplici7y.com/items/m1a1-starscape-dds](https://simplici7y.com/items/m1a1-starscape-dds/); S3 zip | none stated | 4.0 from 2 reviews; a bare file, not a plugin |
+| M1-18 | Marathon over Tau Ceti E-I Landscape Texture (4096x1536 and 8192x3072 editions) | liacrow | 3.0, 17 Sep 2017 | A1 M1 | starfield, rebuilt as a Celestia render of the Tau Ceti sky; the Pfhor ship scenery becomes the unused slave transport sprite; Marathon sprite touched up | 4096x1536 or 8192x3072 | 2.5 MB / 7.7 MB | [4096 edition](https://simplici7y.com/items/marathon-over-tau-ceti-e-i-landscape-texture-2048/), [8192 edition](https://simplici7y.com/items/marathon-over-tau-ceti-e-i-landscape-texture/); S3 zips | none stated | 4.0 and 4.5: you see two Pfhor ships at once; an artistic reinterpretation, not a faithful sky |
+| M1-19 | HD Scenery for M1A1 / HDscenery plugin | Visciom; repack by tim4i ("released under permission") | 1.0, 2007 / 2010 | M1A1 | a few scenery objects (barrels, torn paper) | not stated | 0.6 MB | [hd-scenery-for-m1a1](https://simplici7y.com/items/hd-scenery-for-m1a1/), [hdscenery-v1-0-m1-2](https://simplici7y.com/items/hdscenery-v1-0-m1-2/); S3 zips | as stated | 3.5: on official M1 the drones cycle through scenery textures |
+| M1-20 | m1redux Plugin / Alpha's Redux | tim4i (sprites partly Visciom's); patch by 3371-Alpha | 1.1, 2010 / 2.2, 2016 | m1redux: M1A1; Alpha's Redux: A1 M1 | weapons in hand, ammo and item pickups, rockets, grenades | touched-up sprites | 2.1 MB / 0.8 MB | [m1redux-v1-0](https://simplici7y.com/items/m1redux-v1-0/), [alpha-s-redux-4](https://simplici7y.com/items/alpha-s-redux-4/); S3 zips | Alpha's Redux: "I did NOT get permission from tim4i" | m1redux mismatches ammo textures on official M1; **avoid Alpha's Redux** (no permission) |
+
+Searched and not relevant to M1: treellama's ML Super Res plugins
+(Infinity only; he has no M1 set), Goran's and Tim Vogel's landscape packs
+(M2 and Infinity), PerseusSpartacus's HD Scenery (M2), the Weapon
+Enhancement Pack (M2-era monsters), Yuge Definition Textures (a joke pack
+for Mararthon: Yuge) and James Webb Telescope (listed under Marathon, but
+the archive is named `Marathon_Infinity_James_Webb.zip`; not checked). The
+3D Items plugin is Infinity's item collections and does not fit M1. There
+are no hi-res M1 packs on GitHub beyond the Aleph One release (M1-1, M1-2).
+Steam Workshop copies (Rock's three modules, Tacticus's weapons, the
+"Classic Marathon Remix" collection) need Steam to download, so the button
+cannot use them.
+
+### Overlaps and conflicts
+
+Use one pack from each group:
+
+- **Walls:** M1-1, M1-3, M1-4, M1-5, M1-6 and the M1-15 Textures. M1-3
+  supersedes M1-1, which its readme says to disable.
+- **Starfield:** M1-2, M1-17 and M1-18. Each overrides three of the wall
+  pack's entries, so it has to load after the wall pack. Aleph One loads
+  plugins alphabetically, and "Updated Starscape" sorts after "TTEP".
+  Durandal's own category switching must preserve that order.
+- **Monsters:** M1-7, M1-9 and the M1-15 Monsters.
+- **Weapons in hand:** M1-8, M1-10, M1-11, M1-13, M1-20 and the M1-15
+  Weapons. M1-10 also replaces items and projectiles, so it overlaps the
+  item half of M1-20.
+- **Scenery:** M1-12 (models), the M1-15 Scenery and M1-19. M1-18 also
+  swaps one scenery sprite.
+- **Animated textures:** M1-16 works on the same wall bitmaps as the wall
+  packs. Whether its frames show with TTEP on, or are replaced by TTEP's
+  still image, needs a look in game.
+
+### Recommendation
+
+| Category | Pick | Why | Size |
+|---|---|---|---|
+| Walls | **TTEP 1024 (M1-3)**; fallback the GitHub TTEP 512 (M1-1) | Hand-remade, faithful, well reviewed for nearly 20 years. The 512 copy is what Aleph One shipped and what its maintainer recommends today, from a stable GitHub URL. The 1024 copy is the same set at the size Durandal deserves. Rock's upscale (M1-6) is v0.5, has reported missing textures, and is unfinished by its author's own account. | 60.1 MB (or 17.1) |
+| Starfield | **Updated Starscape (M1-2)** | Official release, tiny, loads over TTEP's sky. Tau Ceti (M1-18) is an optional "lore" sky, not faithful. | 0.26 MB |
+| Monsters | **MTRP Monsters (M1-7)**, or xBR Monsters (M1-9) after a side-by-side look | Rock's set is the newest and the CFP maintainer rates it cleaner, but it is v0.5 and some find it cartoonish. xBR is complete (every colour table and the marines) and well liked. The trilogy plan already says "pick after a look". | 43.5 MB (or 47.1) |
+| Weapons in hand, items, projectiles | **Tacticus' M1 Weapons Redux (M1-10)** | The only complete, faithful set made for A1 M1 data. In the maintainer's guide; Rock himself points players to it. | 14.1 MB |
+| Scenery | **3D scenery for M1 (M1-12)** | The only real HD scenery for A1 M1. Durandal's Metal model path (static OBJ) should draw it, but DurandalArt classes `<model>` plugins as "3D Pickups" and would need an M1 scenery class. Fallback: W'rkncacnter's M1 Scenery (0.8 MB .7z). | 4.1 MB |
+| Optional | M1A1 Animated Textures (M1-16) | Small, current, made for classic M1. Check how it combines with TTEP first. | 0.5 MB |
+
+**The recommended set totals about 122 MB:** TTEP 1024, Updated Starscape,
+MTRP Monsters, Tacticus weapons and 3D scenery. It is about 126 MB with
+xBR Monsters instead, or about 79 MB with the 512 TTEP. That is far
+smaller than M2's 1.0 GB, because M1's packs carry no normal maps, no glow
+maps and no 4K landscapes.
+
+### What the in-game fetch needs for M1 (compare section 9)
+
+- **Hosts.** Six of the seven packs above are direct files:
+  - Simplici7y's `downloads/new` redirects straight to a file on
+    `simplici7y.s3.amazonaws.com` (no Google Drive step).
+  - The two Aleph One packs are GitHub release assets, which can be used
+    directly:
+    - `https://github.com/Aleph-One-Marathon/data-marathon/releases/download/plugin-removal/TTEP.v7.zip`
+    - `https://github.com/Aleph-One-Marathon/data-marathon/releases/download/plugin-removal/Updated.Starscape.zip`
+
+  The exceptions:
+  - M1-16 is on Dropbox: rewrite `dl=0` to `dl=1`. The file comes with
+    `filename=unspecified`.
+  - The M1-15 Simplici7y item redirects to an HTML page; take the lochnits
+    file URLs directly.
+- **7z.** Rock's three modules and all of W'rkncacnter's files are `.7z`,
+  which `unzip` and `ditto` cannot open. macOS's own `/usr/bin/tar`
+  (bsdtar 3.5.3, libarchive 3.7.4 with liblzma) reads 7z: checked here on
+  an LZMA2 test archive with `tar -xf` and `tar -tf`. So `unzip -tq` and
+  `ditto -x -k` would become `tar -tf` and `tar -xf` for those packs,
+  still using only what macOS provides. Not yet tried on Rock's actual
+  archives: their compression method is unknown until one is fetched.
+- **Folder names.** None of the M1 archives has been unpacked here, so the
+  folder holding `Plugin.xml`, the MML, the collections targeted and the
+  image formats (beyond TTEP and Starscape, read from git) all need the
+  same inspection the M2 packs had before the list is fixed. In particular:
+  - whether MTRP and xBR use shapes patches;
+  - whether Tacticus's pack includes a shapes patch (its sprites are larger,
+    so it probably does);
+  - which collections 3D scenery's models replace.
+
+### What was chosen and built (3 Oct 2026)
+
+- **Fetched and inspected.** TTEP 1024, Updated Starscape, both monster
+  sets, M1 Weapons Redux and 3D scenery for M1 were fetched and unpacked
+  (in `Assets/cfp-m1`). What they replace, from their MML: TTEP all six
+  wall sets and the starfield landscapes; the starfield three bitmaps as
+  landscapes (`vert_repeat` false); xBR and Texture Renewal the same 2,495
+  textures over collections 3, 4, 5, 6, 9, 12, 14, 15, 16, 21, 22, 26, 27
+  and 29 (no shapes patches); the weapons pack collections 1, 4, 7 and the
+  monsters' projectiles, with a shapes patch; 3D scenery 13 models on 7, 23
+  and 25. xBR's archive carries read-only folders (the fetch now makes
+  unpacked folders writable); Texture Renewal is a 7z archive that macOS's
+  `tar` reads.
+- **Monsters.** The owner chose Texture Renewal over xBR after a
+  side-by-side in Rampant (L16 Hunters, L1 Fighters).
+- **Marathon's list** in Get HD Art and `GAME=m1 scripts/get-hd-art.sh`:
+  TTEP 1024, Updated Starscape (direct GitHub link), Texture Renewal
+  Monsters, M1 Weapons Redux, 3D Scenery M1, about 123 MB. The in-game
+  path was checked with the harness (`DURANDAL_FETCH_GAME=m1`): all five
+  installed, checksums matching.
+- **Classing.** `DurandalScenario::CollectionHolds` gives Marathon's
+  collections (walls 2, 8, 17-19, 24; monsters 3, 5, 6, 9, 12, 14-16, 21,
+  22, 26, 27, 29; scenery 23, 25, held as objects). 3D scenery's models are
+  classed with the 3D Pickups switch, as model packs are.
+
+## 11. Infinity's packs (3 Oct 2026)
+
+- **The set:** CFP Walls MInf 1.1 (`communityfreeverse-walls-minf`, 425 MB,
+  Google Drive; 155 textures over collections 17-21 and the four 4K
+  landscapes 27-30), CFP Weapons Minf 2.4 (`community-freeverse-plugin-weapons`,
+  the item's page title says "Weapons Minf"; 73 MB, Google Drive), and the
+  CFP Monsters, CFP Scenery and 3D Items packs Marathon 2 uses (none
+  restricts itself to one scenario). Checksums of the versions tested are
+  in `DurandalFetch.mm` and `get-hd-art.sh`. Fetched into `Assets/cfp-inf`
+  and linked, with the shared packs from `Assets/cfp`, into
+  `~/Library/Application Support/Durandal Infinity/Plugins`.
+- **Checked** in Rampant on the four demo films: walls, landscapes,
+  weapons and monsters replaced; level entry builds the texture cache on
+  the first visit (frames of 1.3-1.9 s), as for Marathon 2.

@@ -140,6 +140,48 @@ four or more, each plus the owner's QA.
 - **Still to do:** the owner's own play of each game at Flagship and
   Rampant (on the laptop screen).
 
+### T1 and T2 so far (3 Oct 2026, same day)
+
+The owner asked to proceed with HD and Rampant on both games, and for
+Marathon without its HUD surround.
+
+- **Which game:** `Misc/DurandalScenario.*` (from the scenario the data
+  declares), with `CollectionHolds` for each game's collection numbering;
+  the art classing and the character-shadow figure list use it. The
+  plan's "add 13, 20, 25" for Infinity was not needed: Marathon 2's table
+  already held them.
+- **HD art:** each game has its own pack list in Get HD Art and
+  `get-hd-art.sh` (`docs/HD_ASSETS.md` sections 10 and 11). Infinity:
+  CFP Walls MInf and Weapons Minf with the shared CFP Monsters, Scenery and
+  3D Items. Marathon: TTEP 1024, Updated Starscape, Texture Renewal
+  monsters (the owner's pick over xBR), M1 Weapons Redux, 3D scenery. The
+  fetch reads 7z, takes direct links and fixes read-only folders. Checked
+  on screen in Rampant in both games.
+- **Lamps:** DurandalGlow has entries for all of Infinity's wall sets
+  (Jjaro reviewed for the first time) and Marathon's six, from contact
+  sheets of every test film's level.
+- **Marathon's HUD:** Look tab, Marathon only, in QA: Classic, Basic (no
+  frame, the view fills the screen; this is also Marathon's widescreen)
+  or Enhanced (`hud_style`).
+- **Marathon in Rampant:** monsters are not dynamic lights there (its
+  Hunters are self-lit on every frame: the green flood); redistribution
+  may darken half as far (the black corridors; L16 ceiling 4 -> 14.5 of
+  255, stock 38.5); ship air everywhere (no environment haze table);
+  its monsters' half-lit bodies no longer glow (only frames near full
+  light). Still darker than stock in dim rooms, with some blotchy light on
+  dim walls: to judge on the display.
+- **Summon BOBs** is left out of Marathon: its BOBs (types 6-9) are
+  unarmed and its 14 is a S'pht.
+- **Skies:** Marathon's own sky is a starfield tiled both ways, so looking
+  up shows more stars (nothing to fix); the Starscape pack does not tile
+  vertically and gets the existing fade.
+- **Not yet:** the owner's play of both at Flagship and Rampant;
+  benchmark films for each game; Infinity's Jjaro liquid and environment
+  3 haze seen in play; reverb in Jjaro liquid; the largest levels against
+  the radiance atlas; Marathon's music packs (it plays its bundled
+  `Music` folder already); the 3D scenery pack switched by the 3D Pickups
+  switch (its own class later if wanted).
+
 ### T1 — Infinity (M)
 
 - **Which game is this:** a small `DurandalScenario` module (from the
