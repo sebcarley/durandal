@@ -16,7 +16,7 @@
 #include "DurandalFetch.h"
 #include "DurandalTextureCache.h"
 #include "Plugins.h"
-#include "Scenario.h"
+#include "DurandalScenario.h"
 #include "shell.h"
 #include "XML_ParseTreeRoot.h"
 #include "XML_LevelScript.h"
@@ -483,7 +483,9 @@ static void GetHDArtDialog()
 	vertical_placer* placer = new vertical_placer;
 	placer->dual_add(new w_title("GET HD ART"), d);
 	placer->add(new w_spacer(), true);
-	placer->dual_add(new w_static_text("The community's HD art for Marathon 2: walls and sky, monsters,"), d);
+	static char intro[96];
+	snprintf(intro, sizeof(intro), "The community's HD art for %s: walls and sky, monsters,", DurandalScenario::Name(DurandalScenario::Current()));
+	placer->dual_add(new w_static_text(intro), d);
 	placer->dual_add(new w_static_text("scenery, weapons and 3D pickups, from its authors' own pages on"), d);
 	placer->dual_add(new w_static_text("Simplici7y. It is theirs: Durandal fetches it but never ships it."), d);
 	placer->add(new w_spacer(), true);
@@ -777,11 +779,13 @@ void Dialog(void* parent_dialog)
 	tables[kTabArt]->add_row(new w_spacer(), true);
 	tables[kTabArt]->dual_add_row(new w_static_text("Art needs the Metal renderer; art and soundtrack apply"), d);
 	tables[kTabArt]->dual_add_row(new w_static_text("at the next level (a Lua soundtrack at the next new game)."), d);
-	tables[kTabArt]->dual_add_row(new w_static_text("Packs go in Application Support/Durandal/Plugins."), d);
+	static char packs_line[96];
+	snprintf(packs_line, sizeof(packs_line), "Packs go in Application Support/%s/Plugins.", get_application_name().c_str());
+	tables[kTabArt]->dual_add_row(new w_static_text(packs_line), d);
 	// Get HD Art (QA passed 3 Oct 2026): the community's packs fetched and installed
-	// The pack list is Marathon 2's: until Infinity and Marathon have their own
-	// (trilogy rounds T1 and T2), the other games do not offer it.
-	if (Available() && Scenario::instance()->GetID() == "Marathon 2")
+	// Each game has its own pack list; a game without one (Marathon, until
+	// its packs are chosen) does not offer the button
+	if (Available() && !DurandalFetch::Packs().empty())
 		tables[kTabArt]->dual_add_row(new w_button("GET HD ART...", [](void*) { GetHDArtDialog(); }, nullptr), d);
 	// Texture cache: what the first loads have built so far
 	static char cache_line[96];

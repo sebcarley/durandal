@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		258D080BA0C30D562683C9FD /* DurandalScenario.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2C2606A944E958E58A4744BB /* DurandalScenario.cpp */; };
+		D6C00E42BEA8C7FDB2656A24 /* DurandalScenario.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2C2606A944E958E58A4744BB /* DurandalScenario.cpp */; };
 		2FA8D56D9ED66A3623911EC8 /* DurandalFetch.mm in Sources */ = {isa = PBXBuildFile; fileRef = BDCA9D9786365C4836A2ADA8 /* DurandalFetch.mm */; };
 		A72F9014BD13268816E58336 /* DurandalFetch.mm in Sources */ = {isa = PBXBuildFile; fileRef = BDCA9D9786365C4836A2ADA8 /* DurandalFetch.mm */; };
 		416D701694F3360FCE8CD0E0 /* DurandalAir.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 836BFB583D71056179184EE9 /* DurandalAir.cpp */; };
@@ -1299,6 +1301,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2C2606A944E958E58A4744BB /* DurandalScenario.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalScenario.cpp; sourceTree = "<group>"; };
+		06555BE430E4E89253FE908F /* DurandalScenario.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalScenario.h; sourceTree = "<group>"; };
 		BDCA9D9786365C4836A2ADA8 /* DurandalFetch.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = DurandalFetch.mm; sourceTree = "<group>"; };
 		362CE339E1CC67A3597321F4 /* DurandalFetch.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DurandalFetch.h; sourceTree = "<group>"; };
 		836BFB583D71056179184EE9 /* DurandalAir.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DurandalAir.cpp; sourceTree = "<group>"; };
@@ -2619,6 +2623,8 @@
 		4F5567F22F3940D400C9207C /* Misc */ = {
 			isa = PBXGroup;
 			children = (
+				2C2606A944E958E58A4744BB /* DurandalScenario.cpp */,
+				06555BE430E4E89253FE908F /* DurandalScenario.h */,
 				BDCA9D9786365C4836A2ADA8 /* DurandalFetch.mm */,
 				362CE339E1CC67A3597321F4 /* DurandalFetch.h */,
 				563C5F7E0353B3013E416CF0 /* DurandalCrash.h */,
@@ -4621,6 +4627,7 @@
 				4F556B702F3940D400C9207C /* crc.cpp in Sources */,
 				4F556B712F3940D400C9207C /* lua_objects.cpp in Sources */,
 				4F556B722F3940D400C9207C /* shell_options.cpp in Sources */,
+				D6C00E42BEA8C7FDB2656A24 /* DurandalScenario.cpp in Sources */,
 				A72F9014BD13268816E58336 /* DurandalFetch.mm in Sources */,
 				F355415876604B0FA773C3E3 /* DurandalAir.cpp in Sources */,
 				6536BA15D87D86E2B88AB248 /* DurandalSurfaces.cpp in Sources */,
@@ -4886,6 +4893,7 @@
 				4F9CB0F82F39442500F91C02 /* crc.cpp in Sources */,
 				4F9CB0F92F39442500F91C02 /* lua_objects.cpp in Sources */,
 				4F9CB0FA2F39442500F91C02 /* shell_options.cpp in Sources */,
+				258D080BA0C30D562683C9FD /* DurandalScenario.cpp in Sources */,
 				2FA8D56D9ED66A3623911EC8 /* DurandalFetch.mm in Sources */,
 				416D701694F3360FCE8CD0E0 /* DurandalAir.cpp in Sources */,
 				3D3066974891FE3B28EF0508 /* DurandalSurfaces.cpp in Sources */,

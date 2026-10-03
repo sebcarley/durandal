@@ -16,6 +16,9 @@
 
 #include "DurandalFetch.h"
 #ifndef DURANDAL_FETCH_HARNESS
+#include "DurandalScenario.h"
+#endif
+#ifndef DURANDAL_FETCH_HARNESS
 #include "cseries.h"
 #include "FileHandler.h"
 #include "Logging.h"
@@ -88,7 +91,10 @@ namespace DurandalFetch {
 
 namespace {
 
-const std::vector<PackInfo> kPacks = {
+// Each game's packs (keep in step with scripts/get-hd-art.sh). CFP Monsters,
+// CFP Scenery and 3D Items serve Marathon 2 and Infinity alike; the walls
+// and weapons packs are made for one game each.
+const std::vector<PackInfo> kPacksM2 = {
 	{ "walls", "CFP - Walls M2", "community-freeverse-plugin-walls-m2", 373,
 	  "3848f883e92d5fd27c616f5f85df5dbe6efdbbfac4be81d296062cf2d69094b3" },
 	{ "monsters", "CFP Monsters", "community-freeverse-plugin-monsters", 516,
@@ -100,6 +106,35 @@ const std::vector<PackInfo> kPacks = {
 	{ "3d", "3D Items", "3d-items-plugin", 3,
 	  "b4673ac3d6b43f4beb4bb629772f50e64e02d3ad97859a77e5bc9386684b3f99" },
 };
+const std::vector<PackInfo> kPacksInfinity = {
+	{ "walls", "CFP - Walls MInf", "communityfreeverse-walls-minf", 425,
+	  "48c052ee390cfc8a5c38bc9affaf119a372c2256539c76df3f074de1c40688fa" },
+	{ "monsters", "CFP Monsters", "community-freeverse-plugin-monsters", 516,
+	  "94bf18219cb9132428da60f85cbfd64b56ad72bdde3dcad04741ee1cc12d4ece" },
+	{ "scenery", "CFP Scenery", "community-freeverse-plugin-scenery", 24,
+	  "aea1b1106c94b3d1462900d99fcecac07cc93593197a13766d5f65e8910ff770" },
+	{ "weapons", "CFP Weapons MInf", "community-freeverse-plugin-weapons", 73,
+	  "0f42088c8f9010f7a8fadc5a43cc7a692618f08e30d79c09ad903f63fd71b12f" },
+	{ "3d", "3D Items", "3d-items-plugin", 3,
+	  "b4673ac3d6b43f4beb4bb629772f50e64e02d3ad97859a77e5bc9386684b3f99" },
+};
+const std::vector<PackInfo> kPacksNone;
+
+// The game's list (the scenario is known by the time anything asks)
+const std::vector<PackInfo>& game_packs()
+{
+#ifdef DURANDAL_FETCH_HARNESS
+	return kPacksM2;
+#else
+	switch (DurandalScenario::Current())
+	{
+		case DurandalScenario::kMarathon2: return kPacksM2;
+		case DurandalScenario::kInfinity: return kPacksInfinity;
+		default: return kPacksNone;
+	}
+#endif
+}
+#define kPacks game_packs()
 
 std::mutex lock;
 Status status;

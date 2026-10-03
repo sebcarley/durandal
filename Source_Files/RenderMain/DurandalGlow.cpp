@@ -59,10 +59,13 @@ const Entry kEntries[] = {
 	{21, 19, H, 0x757ab5f0}, {21, 23, H, 0xe5276498},			// green light discs
 };
 
-const Entry* find(short collection, short bitmap)
+// The fingerprint picks the game: the three games' wall sets share
+// collection numbers (Infinity's 17-21) or reuse them for other things
+// (Marathon 1's), but never the same pixels
+const Entry* find(short collection, short bitmap, uint32_t fingerprint)
 {
 	for (const Entry& e : kEntries)
-		if (e.collection == collection && e.bitmap == bitmap)
+		if (e.collection == collection && e.bitmap == bitmap && e.fingerprint == fingerprint)
 			return &e;
 	return nullptr;
 }
@@ -85,8 +88,8 @@ uint32_t Fingerprint(const bitmap_definition* bitmap)
 
 int ModeFor(short collection, short bitmap, uint32_t fingerprint)
 {
-	const Entry* e = find(collection, bitmap);
-	return (e && e->fingerprint == fingerprint) ? e->mode : kNone;
+	const Entry* e = find(collection, bitmap, fingerprint);
+	return e ? e->mode : kNone;
 }
 
 uint8_t Mask(int mode, const uint8_t* rgb)
