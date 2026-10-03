@@ -1270,6 +1270,10 @@ The folder name comes from the *localised* bundle name
   still spikes, the next lever is capping each polygon's figure list.
   `scripts/diff-shots.swift` compares two directories of frame shots
   (compile with `xcrun swiftc -O ... -o .deps/diff-shots`).
+- Tag `baseline-10` (3 Oct 2026, the owner's word; film tests green three
+  ways): `durandal/rebench-fixes` fast-forwarded into `durandal/main`:
+  the full-light skip and the rebench write-up. Next: the in-game HD art
+  button.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
