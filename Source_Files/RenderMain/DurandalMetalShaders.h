@@ -2164,11 +2164,14 @@ kernel void radiance_bake(uint2 tid [[thread_position_in_threadgroup]], uint2 gr
 	const float3 t1 = normalize(abs(n.z) < 0.9 ? cross(n, float3(0, 0, 1)) : cross(n, float3(1, 0, 0)));
 	const float3 t2 = cross(n, t1);
 	const float3 o = p + n * 4.0;
-	// A lumel with nothing baked yet (new, or just uncovered by a moving
-	// door) starts from four times the rays, so it does not flicker in
+	// A lumel with nothing baked yet starts from more rays, so it does not
+	// flicker in: four times on a patch's first bake; sixteen when it is
+	// uncovered on a patch already baked (a door or platform moved), where
+	// it stands beside settled neighbours and is blended in only gently
+	// after (32 rays left speckles and blobs round moving doors)
 	const half4 old = atlas.read(at);
 	const bool fresh = job.blend.x >= 1.0 || old.a < 0.5h;
-	const uint rays = fresh ? bp.rays * 4u : bp.rays;
+	const uint rays = !fresh ? bp.rays : job.blend.x >= 1.0 ? bp.rays * 4u : bp.rays * 16u;
 	float3 sum = float3(0.0);
 	for (uint k = 0; k < rays; ++k) {
 		// Cosine-weighted directions over the hemisphere

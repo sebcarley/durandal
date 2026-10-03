@@ -439,9 +439,11 @@ void build_surfaces(std::vector<simd_float4>& out)
 }
 
 // Bounced Light: the surfaces of polygon p and its neighbours settle again
-// from a few samples (their room's light has changed: a switch, a light
-// going out), as briskly as a patch seen for the first time
-const int kResettle = 32;
+// from fewer samples (their room's light has changed: a switch, a light
+// going out, a door opening). From 32 each bake moved a lumel by a fifth,
+// and the noise showed as blobs round doors (Marathon, 3 Oct 2026); from
+// 96 it follows within a second or two without them
+const int kResettle = 96;
 void resettle_around(int p)
 {
 	auto resettle = [&](int patch) {
