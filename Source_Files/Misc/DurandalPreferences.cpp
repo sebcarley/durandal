@@ -13,6 +13,7 @@
 
 #include "cseries.h"
 #include "DurandalArt.h"
+#include "DurandalFetch.h"
 #include "DurandalTextureCache.h"
 #include "Plugins.h"
 #include "shell.h"
@@ -465,6 +466,110 @@ static Tab FeatureTab(Feature feature)
 	}
 }
 
+// Get HD Art (ART tab; DurandalFetch.h): the community's packs fetched
+// from their authors' pages and installed, with a line per pack. New packs
+// are added to the plugin list and switched as the HD Art switches say;
+// their art loads from the next level
+static void GetHDArtDialog()
+{
+	const std::vector<DurandalFetch::PackInfo>& packs = DurandalFetch::Packs();
+	int megabytes = 0;
+	const int missing = DurandalFetch::Missing(&megabytes);
+	const int64_t free_mb = DurandalFetch::FreeMegabytes();
+	const bool room = free_mb < 0 || free_mb > int64_t(megabytes) * 3 + 500;	// archive, unpacked copy, margin
+
+	dialog d;
+	vertical_placer* placer = new vertical_placer;
+	placer->dual_add(new w_title("GET HD ART"), d);
+	placer->add(new w_spacer(), true);
+	placer->dual_add(new w_static_text("The community's HD art for Marathon 2: walls and sky, monsters,"), d);
+	placer->dual_add(new w_static_text("scenery, weapons and 3D pickups, from its authors' own pages on"), d);
+	placer->dual_add(new w_static_text("Simplici7y. It is theirs: Durandal fetches it but never ships it."), d);
+	placer->add(new w_spacer(), true);
+	// Each line starts as wide as it will get (a static text keeps its first width)
+	std::vector<w_static_text*> lines;
+	for (const DurandalFetch::PackInfo& pack : packs)
+	{
+		DurandalFetch::PackStatus s;
+		s.state = DurandalFetch::IsInstalled(pack) ? DurandalFetch::State::kInstalledAlready : DurandalFetch::State::kWaiting;
+		std::string text = DurandalFetch::Describe(pack, s);
+		text.resize(std::max<size_t>(text.size(), 68), ' ');
+		w_static_text* line = new w_static_text(text.c_str());
+		lines.push_back(line);
+		placer->dual_add(line, d);
+	}
+	placer->add(new w_spacer(), true);
+	char summary_text[160];
+	if (missing == 0)
+		snprintf(summary_text, sizeof(summary_text), "All five packs are installed.");
+	else if (!room)
+		snprintf(summary_text, sizeof(summary_text), "Not enough free space: about %d GB is needed.", (megabytes * 3 + 500 + 1023) / 1024);
+	else
+		snprintf(summary_text, sizeof(summary_text), "%d to fetch, about %d MB. They go in Application Support/Durandal/Plugins.",
+				 missing, megabytes);
+	std::string padded(summary_text);
+	padded.resize(std::max<size_t>(padded.size(), 72), ' ');
+	w_static_text* summary = new w_static_text(padded.c_str());
+	placer->dual_add(summary, d);
+	placer->add(new w_spacer(), true);
+
+	bool started = false, applied = false, close_when_done = false;
+	horizontal_placer* buttons = new horizontal_placer;
+	w_button* download = new w_button("DOWNLOAD", [&](void*) {
+		if (started || missing == 0 || !room)
+			return;
+		started = true;
+		DurandalFetch::Start();
+		summary->set_text("Fetching. Close cancels; packs already installed stay.");
+	}, nullptr);
+	download->set_enabled(missing > 0 && room);
+	buttons->dual_add(download, d);
+	buttons->dual_add(new w_button("CLOSE", [&](void*) {
+		if (started && !applied)
+		{
+			close_when_done = true;
+			DurandalFetch::Cancel();
+			summary->set_text("Cancelling...");
+			return;
+		}
+		d.quit(0);
+	}, nullptr), d);
+	placer->add(buttons, true);
+	d.set_widget_placer(placer);
+
+	d.set_processing_function([&](dialog*) {
+		if (!started || applied)
+			return;
+		const DurandalFetch::Status status = DurandalFetch::Snapshot();
+		for (size_t i = 0; i < packs.size() && i < status.packs.size(); ++i)
+			lines[i]->set_text(DurandalFetch::Describe(packs[i], status.packs[i]).c_str());
+		if (!status.finished)
+			return;
+		applied = true;
+		download->set_enabled(false);
+		// The new packs join the plugin list and follow the HD Art switches
+		for (const std::string& folder : status.new_folders)
+			Plugins::instance()->add_directory(folder);
+		DurandalArt::Rescan();
+		DurandalArt::Apply();
+		int installed = 0, failed = 0;
+		for (const DurandalFetch::PackStatus& s : status.packs)
+		{
+			installed += s.state == DurandalFetch::State::kInstalled ? 1 : 0;
+			failed += s.state == DurandalFetch::State::kFailed ? 1 : 0;
+		}
+		char done_text[160];
+		if (failed)
+			snprintf(done_text, sizeof(done_text), "%d installed, %d not (see above; scripts/get-hd-art.sh or by hand).", installed, failed);
+		else
+			snprintf(done_text, sizeof(done_text), "%d installed. The HD art applies from the next level.", installed);
+		summary->set_text(done_text);
+		if (close_when_done)
+			d.quit(0);
+	});
+	d.run();
+}
+
 void Dialog(void* parent_dialog)
 {
 	dialog d;
@@ -672,6 +777,9 @@ void Dialog(void* parent_dialog)
 	tables[kTabArt]->dual_add_row(new w_static_text("Art needs the Metal renderer; art and soundtrack apply"), d);
 	tables[kTabArt]->dual_add_row(new w_static_text("at the next level (a Lua soundtrack at the next new game)."), d);
 	tables[kTabArt]->dual_add_row(new w_static_text("Packs go in Application Support/Durandal/Plugins."), d);
+	// Get HD Art (in QA): the community's packs fetched and installed
+	if (QA())
+		tables[kTabArt]->dual_add_row(new w_button("GET HD ART...", [](void*) { GetHDArtDialog(); }, nullptr), d);
 	// Texture cache: what the first loads have built so far
 	static char cache_line[96];
 	{

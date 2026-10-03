@@ -974,8 +974,8 @@ The folder name comes from the *localised* bundle name
   folder (`DURANDAL_PLUGINS_DIR` to install elsewhere). It never
   overwrites. The art is not ours to re-host (the CFP art derives from
   Freeverse's; only the scripts repository is GPL), so it is fetched,
-  never shipped. Not done: a signed, notarised release to download, and
-  fetching the art from inside the game.
+  never shipped. Not done: a signed, notarised release to download.
+  Fetching the art from inside the game: Get HD Art (below).
 - The field guide (29 Sep 2026): `docs/GUIDE.html` is the owner's
   illustrated edition ("Durandal, by Durandal": the guide annotated by
   the AI, with diagrams), self-contained but for Google Fonts;
@@ -1274,6 +1274,27 @@ The folder name comes from the *localised* bundle name
   ways): `durandal/rebench-fixes` fast-forwarded into `durandal/main`:
   the full-light skip and the rebench write-up. Next: the in-game HD art
   button.
+- Get HD Art (3 Oct 2026, on `durandal/hd-button`, in QA: the button shows
+  only with `Durandal::QA()`). ART tab "GET HD ART..." opens a dialog (one
+  line per pack, DOWNLOAD and CLOSE, which cancels a running fetch and
+  closes once it has stopped). `Misc/DurandalFetch.*` does in the game what
+  `scripts/get-hd-art.sh` does: per pack, skip if its folder is in the
+  Plugins folder (never overwrite), the Simplici7y `downloads/new`
+  redirect (Google Drive pages become the direct download), NSURLSession
+  download with progress, `unzip -tq`, SHA-256 against the version tested
+  (a newer one installs all the same, and the line says so), `ditto -x
+  -k`, the shallowest folder holding Plugin.xml moved in under the pack's
+  name. Only what macOS provides (Foundation, CommonCrypto, ditto, unzip);
+  needs about three times the download free. New packs join the plugin
+  list without a restart (`Plugins::add_directory`, a small upstream
+  addition: a full re-enumeration would forget the Environment dialog's
+  disabled plugins, applied once at launch), `DurandalArt::Rescan` and
+  `Apply` switch them; their art loads from the next level.
+  `DURANDAL_PLUGINS_DIR` overrides the folder for tests; a command-line
+  harness (compile `DurandalFetch.mm` with `-DDURANDAL_FETCH_HARNESS`)
+  fetched CFP Scenery and 3D Items into a scratch folder and installed
+  both (3 Oct 2026). The owner's packs are symlinks into `Assets/`, so the
+  button can be tried by moving one link out of the Plugins folder.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

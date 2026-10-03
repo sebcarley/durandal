@@ -206,6 +206,14 @@ std::string Installed(Category category)
 	return result;
 }
 
+void Rescan()
+{
+	packs.clear();
+	soundtracks.clear();
+	scanned = false;
+	scan();
+}
+
 bool Apply()
 {
 	if (!Durandal::Available())

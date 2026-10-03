@@ -120,6 +120,9 @@ public:
 	enum GameMode { kMode_Menu, kMode_Solo, kMode_Net };
 	
 	void enumerate();
+	// Durandal (Get HD Art): adds the plugins in one newly installed folder,
+	// leaving the rest (and the Environment dialog's choices) as they are
+	void add_directory(const std::string& path);
 	void invalidate() { m_validated = false; }
 	void set_mode(GameMode mode) { m_mode = mode; }
 	GameMode mode() { return m_mode; }

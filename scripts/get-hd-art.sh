@@ -23,7 +23,7 @@ PACKS=(
   "monsters|CFP Monsters|community-freeverse-plugin-monsters|516|94bf18219cb9132428da60f85cbfd64b56ad72bdde3dcad04741ee1cc12d4ece"
   "scenery|CFP Scenery|community-freeverse-plugin-scenery|24|aea1b1106c94b3d1462900d99fcecac07cc93593197a13766d5f65e8910ff770"
   "weapons|CFP Weapons M2|community-freeverse-plugin-weapons-m2|66|3354fc30f21892aef33c9f0f5a6fa8fd8b718e1b46553c5b59824a654633a7a0"
-  "3d|3D Items|3d-items-plugin|1|b4673ac3d6b43f4beb4bb629772f50e64e02d3ad97859a77e5bc9386684b3f99"
+  "3d|3D Items|3d-items-plugin|3|b4673ac3d6b43f4beb4bb629772f50e64e02d3ad97859a77e5bc9386684b3f99"
 )
 
 want=("$@")

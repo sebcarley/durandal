@@ -646,6 +646,15 @@ void Plugins::enumerate() {
 	m_validated = false;
 }
 
+// Durandal (Get HD Art): a folder installed while the game runs
+void Plugins::add_directory(const std::string& path) {
+	PluginLoader loader;
+	FileSpecifier dir(path);
+	loader.ParseDirectory(dir);
+	std::sort(m_plugins.begin(), m_plugins.end());
+	m_validated = false;
+}
+
 bool Plugins::get_resource(uint32_t type, int id, LoadedResource& rsrc)
 {
 	for (auto it = m_plugins.rbegin(); it != m_plugins.rend(); ++it)

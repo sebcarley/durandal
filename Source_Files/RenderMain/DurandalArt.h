@@ -70,6 +70,9 @@ struct Soundtrack {
 };
 const std::vector<Soundtrack>& Soundtracks();
 
+// Scans the plugins again (after Get HD Art installed new ones)
+void Rescan();
+
 // Enables or disables each pack from the HD Art switches, and each
 // soundtrack plugin from the Soundtrack choice (none in Stock). Returns
 // true when a plugin's state changed, so the caller reloads the MML.
