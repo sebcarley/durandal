@@ -40,8 +40,15 @@ set cost 4.7 GB without it.
 
 ## Playing it
 
-You need an Apple Silicon Mac, macOS 12 or later, and Xcode from the App
-Store (open it once so that it finishes installing). Then, in Terminal:
+The quickest way: download the app from
+[Releases](https://github.com/sebcarley/durandal/releases/latest), unzip
+it, move **Durandal.app** to Applications and open it. It is signed and
+notarised, and carries Marathon 2's data; GET HD ART... on the ART tab
+fetches the community's HD art. Built and tested on macOS 27.
+
+To build it yourself you need an Apple Silicon Mac, macOS 12 or later, and
+Xcode from the App Store (open it once so that it finishes installing).
+Then, in Terminal:
 
     git clone https://github.com/sebcarley/durandal.git
     cd durandal

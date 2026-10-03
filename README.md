@@ -5,7 +5,12 @@ Aleph One with a Metal renderer, modern lighting, liquids, fog and sound,
 and support for the community's HD art, all switchable and all without
 changing the game. Films still replay tick for tick.
 
-**To play it**, on an Apple Silicon Mac with Xcode installed:
+**To play it**, on an Apple Silicon Mac: download the signed app from
+**[Releases](https://github.com/sebcarley/durandal/releases/latest)**, unzip
+it and open it. Its GET HD ART... button (Preferences > DURANDAL > ART)
+fetches the community's HD art.
+
+**To build it yourself**, with Xcode installed:
 
     git clone https://github.com/sebcarley/durandal.git && cd durandal && scripts/setup.sh
 
