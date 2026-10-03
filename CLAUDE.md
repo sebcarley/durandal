@@ -1406,7 +1406,14 @@ The folder name comes from the *localised* bundle name
   Rampant: no monster lights, half the redistribution darkening, ship air,
   monsters' half-lit bodies not glowing; no Summon BOBs in Marathon (its
   BOBs are unarmed). Test installs: `Assets/cfp-inf`, `Assets/cfp-m1`,
-  linked into each game's Plugins folder. Logs are per app
+  linked into each game's Plugins folder. Redistribution fixes from the
+  owner's Marathon films (lift film `tests/benchmark-films/m1/20261003-01`):
+  the lumel/average ratio is taken against a floor of 0.02 (unlit rooms,
+  light 0, swung between the clamps: blobs); lines that are not
+  transparent are walls in BuildMap (the map walked through them);
+  uncovered lumels start from 16x rays; Bounced Light re-settles from 96;
+  four taps when reading the cache. `DURANDAL_GI_VIEW=1` (dev) draws the
+  redistribution factor on walls as grey (1 = mid grey). Logs are per app
   (`~/Library/Logs/Durandal Infinity Log.txt`, `Durandal Marathon Log.txt`).
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
