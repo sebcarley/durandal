@@ -1431,6 +1431,19 @@ The folder name comes from the *localised* bundle name
   game guides: `docs/GROUND-TRUTH-marathon.md`,
   `docs/GROUND-TRUTH-infinity.md`. The trilogy stays unpushed until the
   guides are written (the owner's call).
+- Guides for the other two games placed (4 Oct 2026): `docs/GUIDE-marathon.html`
+  (Leela's telling) and `docs/GUIDE-infinity.html` (several timelines), with
+  plain editions `.md`; corrections made on placing, reported to the owner
+  (Marathon's HD walls have no normal maps; Rampant aboard the Marathon is
+  three, a half and two idle; memory ranges per game; no BOB impostors in
+  Marathon; Infinity's walls have normal maps on all five sets; reflections
+  all but lava; Infinity opens under Durandal, not "aboard a Pfhor ship").
+  The Pages front page (`docs/index.html`) now offers the three guides;
+  README and DURANDAL.md name the trilogy; `setup.sh` takes `GAME`.
+- Tag `baseline-13` (4 Oct 2026, the owner's word: push and make public):
+  `durandal/trilogy` fast-forwarded into `durandal/main`, pushed with
+  `baseline-12` and `baseline-13` to the public `github` remote. The new
+  apps have no signed release yet.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
