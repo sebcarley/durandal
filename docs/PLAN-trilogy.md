@@ -175,6 +175,9 @@ Marathon without its HUD surround.
 - **Skies:** Marathon's own sky is a starfield tiled both ways, so looking
   up shows more stars (nothing to fix); the Starscape pack does not tile
   vertically and gets the existing fade.
+- **Redistribution in Marathon's unlit rooms** (blobs by a lift, film
+  `tests/benchmark-films/m1/20261003-01`): fixed and confirmed by the
+  owner on 4 Oct 2026 ("blobs gone, lift looks clean now").
 - **Not yet:** the owner's play of both at Flagship and Rampant;
   benchmark films for each game; Infinity's Jjaro liquid and environment
   3 haze seen in play; reverb in Jjaro liquid; the largest levels against
