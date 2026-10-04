@@ -138,8 +138,8 @@ is under it first. Sewage takes nearly everything. Lava shows you nothing and
 lights the ceiling instead.
 
 Infinity has five liquids: water, lava, sewage, goo, and one of its own, the
-Jjaro liquid. Real liquids, their caustics and their reflections cover all
-five. The Jjaro liquid's look was defined with the others, and it is still to
+Jjaro liquid. Real liquids and their caustics cover all five, and their
+reflections all but lava. The Jjaro liquid's look was defined with the others, and it is still to
 be seen in play.
 
 The surface moves and catches the light: a sheen at a low angle, a glint under
@@ -221,7 +221,7 @@ folder. Choose, by kind, what to take.
 
 | Line in the dialog | What it is | Download |
 |---|---|---|
-| CFP - Walls MInf | Community/Freeverse Walls MInf 1.1 (herecomethej2000): Infinity's walls at 1024 by 1024 (Goran Svensson's sets with TheMan's and kaosof's work), the 4K landscapes, normal maps on the Pfhor and Jjaro walls | about 425 MB |
+| CFP - Walls MInf | Community/Freeverse Walls MInf 1.1 (herecomethej2000): Infinity's walls at 1024 by 1024 (Goran Svensson's sets with TheMan's and kaosof's work), the 4K landscapes, normal maps on all five wall sets | about 425 MB |
 | CFP Monsters | The same pack as Marathon 2's; it covers Infinity, VacBobs included | about 516 MB |
 | CFP Scenery | The same pack as Marathon 2's | about 24 MB |
 | CFP Weapons MInf | Community/Freeverse Plugin, Weapons MInf 2.4 (herecomethej2000): Infinity's weapons and items | about 73 MB |
@@ -230,7 +230,7 @@ folder. Choose, by kind, what to take.
 
 The walls are the Community/Freeverse Walls for Infinity, at 1024 by 1024:
 Goran Svensson's sets with TheMan's and kaosof's work, landscapes at 4K, and
-normal maps on the Pfhor and Jjaro walls. The weapons and items are the
+normal maps on all five wall sets. The weapons and items are the
 matching Infinity pack. The monsters and the scenery are the same packs
 Marathon 2 uses, which cover Infinity down to the Bobs in vacuum suits, and
 the 3D pickups are thedoctor45's, made for this game.
@@ -354,7 +354,7 @@ Measured on an Apple M5 with 16 GB, full screen at 1080p on a 240 Hz display,
 uncapped, with the five HD packs installed, on the four demo films that ship
 with the game: Flagship averaged 267 to 278 frames a second with a 1% low of
 131 to 134, and Rampant 219 to 241 with a 1% low of 113 to 122. The worst
-single second was 143 frames. Memory at the end of a run was about 0.4 to 1.0
+single second was 143 frames. Memory at the end of a run was about 0.6 to 1.0
 GB. These figures are indicative: they come from the first two minutes of each
 film, taken while other apps were busy on the same Mac, and are not a settled
 baseline.

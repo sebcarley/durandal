@@ -86,7 +86,8 @@ and the surfaces a moving door uncovers start clean.
 passes close, and flares with its own fire.
 
 **Relief.** Under your own light the old wall art stands up a little, seams
-and rivets catching the light on one side; HD walls bring their own.
+and rivets catching the light on one side. The HD walls carry no normal
+maps, so with them in place the walls stay flat.
 
 | Switch | Stored as | Tab |
 |---|---|---|
@@ -98,7 +99,7 @@ and rivets catching the light on one side; HD walls bring their own.
 | Weapon Takes the Light | `weapon_lighting` | Light |
 | HDR Output | `hdr_output` | Light |
 | Surface Relief | `surface_relief` | Look |
-| Normal Maps (HD walls) | `normal_maps` | Art |
+| Normal Maps (HD walls) — idle in Marathon: its HD walls carry none | `normal_maps` | Art |
 
 ---
 
@@ -144,6 +145,7 @@ The tiers keep them as they are; they are simply idle.
 | Real Liquids, caustics, ripples | Idle: there are no liquids |
 | Reflecting Liquids (Rampant) | Idle: nothing to reflect in |
 | Embers (of Dust and Embers), Heat Shimmer (Rampant) | Idle: there is no lava |
+| Normal Maps (HD walls) | Idle: Marathon's HD walls (TTEP) carry no normal maps |
 | Widescreen | No effect (part VII) |
 | Summon BOBs | Left out (part XII) |
 
@@ -391,7 +393,7 @@ Measured on an Apple M5 with 16 GB, full screen at 1080p on a 240 Hz display,
 uncapped, with the five HD packs installed: Flagship averaged 268 to 338
 frames a second and Rampant 241 to 348, and the 1% low sat between 128 and 150
 on every film. The worst single second was 162 frames. Memory at the end of a
-run was about 0.4 to 1.0 GB. These figures are indicative: they come from the
+run was about 0.4 to 0.7 GB. These figures are indicative: they come from the
 first two minutes of each film, taken while other apps were busy on the same
 Mac, and are not a settled baseline.
 
@@ -440,8 +442,8 @@ recording.
 
 Rampant is the fifth tier, above Flagship, with its own tab. Six switches, all
 Metal only, all read-only on the game world: films, saves and the rules are
-untouched. Aboard the Marathon four of them have work to do, one has half its
-work, and one has none.
+untouched. Aboard the Marathon three of them have all their work to do, one has
+half of it, and two have none.
 
 **Bounced light** (needs Light Redistribution). Light that reaches a surface
 passes on to the next, frame after frame, so a lit room fills in its corners

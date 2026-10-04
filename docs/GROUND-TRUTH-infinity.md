@@ -84,7 +84,7 @@ say so).
 
 | Line in the dialog | What it is | Download |
 |---|---|---|
-| CFP - Walls MInf | Community/Freeverse Walls MInf 1.1 (herecomethej2000): Infinity's walls at 1024x1024 (Goran Svensson's sets with TheMan's and kaosof's work), the 4K landscapes, normal maps on the Pfhor and Jjaro walls | about 425 MB |
+| CFP - Walls MInf | Community/Freeverse Walls MInf 1.1 (herecomethej2000): Infinity's walls at 1024x1024 (Goran Svensson's sets with TheMan's and kaosof's work), the 4K landscapes, normal maps on all five wall sets (153; version 1.1 added the Pfhor and Jjaro ones) | about 425 MB |
 | CFP Monsters | the same pack as Marathon 2's (it covers Infinity, VacBobs included) | about 516 MB |
 | CFP Scenery | the same pack as Marathon 2's | about 24 MB |
 | CFP Weapons MInf | Community/Freeverse Plugin - Weapons Minf 2.4 (herecomethej2000): Infinity's weapons and items | about 73 MB |
