@@ -97,6 +97,7 @@ Feb 11, 2001 (Loren Petrich):
 /* ---------- globals */
 
 #include "item_definitions.h"
+#include "DurandalScenario.h"	// Durandal: Marathon's own weapons
 
 /* ---------- private prototypes */
 
@@ -576,6 +577,11 @@ void durandal_give_all_weapons(short player_index)
 		// Only items this scenario has graphics for: the engine also knows
 		// Marathon Infinity's SMG, which Marathon 2 never had
 		if (definition->base_shape!=UNONE && !get_shape_animation_data(definition->base_shape)) continue;
+		// Marathon never had the shotgun or the SMG: its item collection
+		// has other pictures in their slots, so the check above passes, and
+		// its data does not describe them (the shotgun looked like the fist
+		// and fired Marathon's rocket)
+		if (DurandalScenario::Marathon1() && (type==_i_shotgun || type==_i_shotgun_magazine || type==_i_smg || type==_i_smg_ammo)) continue;
 		const short maximum= definition->get_maximum_count_per_player(m1_weapons, dynamic_world->game_information.difficulty_level);
 		bool added= false;
 		while ((player->items[type]==NONE ? 0 : player->items[type]) < maximum)

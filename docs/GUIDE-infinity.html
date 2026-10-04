@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infinity, four times over</title>
+<meta name="description" content="A field guide to Marathon Infinity on a native Metal engine for Apple Silicon. Written in several timelines, by whoever held the terminal.">
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Michroma&family=Pixelify+Sans:wght@400;500&family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #000; --ink: #d9d6c4; --dim: #8a8f7a;
+  --green: #b79cff; --green-2: #5b3fa8; --blue: #3b8cff; --yellow: #e9d8a6; --red: #ea2a1f; --orange: #f08a2a; --white: #fff; --pink: #f0a0b0;
+  --glyph: #e9d8a6; --glyph-edge: #c8521c;
+  --serif: 'Spectral', Georgia, serif; --display: 'Michroma', 'Eurostile', sans-serif; --mono: 'Courier Prime', 'Courier New', monospace; --pixel: 'Pixelify Sans', 'Chicago', 'Silkscreen', sans-serif;
+  --dura: #b79cff; --dura-hi: #e4d9ff; --tycho: #ea2a1f; --tycho-text: #ff6a5a; --bar: #3a0a06; --bar-text: #ea2a1f;
+  --measure: 40rem; --meter: #b79cff;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 300 1.1875rem/1.7 var(--serif); font-feature-settings: 'kern', 'liga', 'onum'; }
+@media (max-width: 40rem) { body { font-size: 1.0625rem; } }
+::selection { background: var(--yellow); color: #000; }
+a { color: var(--yellow); text-decoration-color: rgba(233,216,166,.4); text-underline-offset: .18em; }
+a:hover { color: var(--white); }
+:focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
+strong { font-weight: 600; color: #f2efe2; }
+code { font-family: var(--mono); font-size: .9em; color: var(--green); }
+.skip { position: absolute; left: -999px; top: 0; background: var(--yellow); color: #000; padding: .5rem 1rem; z-index: 10; }
+.skip:focus { left: 1rem; top: 1rem; }
+
+[data-stage] { --stage: var(--green); --stage-text: #d0c0ff; }
+[data-stage="melancholy"] { --stage: var(--blue); --stage-text: #9cc4ff; }
+[data-stage="anger"] { --stage: var(--red); --stage-text: #ff8a7a; }
+[data-stage="jealousy"] { --stage: var(--orange); --stage-text: #ffc080; }
+[data-stage="metastable"] { --stage: var(--white); --stage-text: #fff; }
+[data-stage="contested"] { --stage: var(--red); --stage-text: #ff8a7a; }
+
+/* hero */
+.hero { position: relative; min-height: 100vh; min-height: 100svh; display: grid; align-items: center; background: #000; }
+.hero-inner { width: 100%; max-width: 72rem; margin: 0 auto; padding: 3rem 1.5rem; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2.5rem; align-items: center; }
+.chart { display: block; width: 100%; height: auto; max-height: 86vh; }
+.chart text { font-family: var(--pixel); font-size: 26px; fill: var(--yellow); }
+.chart text.code { font-family: var(--mono); font-size: 15px; fill: var(--green); }
+@media (max-width: 56rem) { .hero-inner { grid-template-columns: 1fr; } .chart { order: -1; max-height: 50vh; } }
+.boot { font: 400 1rem/1.7 var(--mono); color: var(--green); max-width: 36rem; margin-bottom: 2.5rem; min-height: 13em; text-shadow: 0 0 6px rgba(183,156,255,.35); }
+.boot p { margin: 0; }
+.boot .who { color: var(--dura-hi); }
+.boot .warn { color: var(--yellow); }
+.boot .t { color: var(--red); }
+.cursor { display: inline-block; width: .6em; height: 1.1em; background: var(--green); vertical-align: -.2em; margin-left: .1em; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+h1 { font: 400 clamp(2.3rem, 6.4vw, 5.4rem)/1 var(--display); letter-spacing: .06em; margin: 0 0 1.5rem; color: var(--yellow); text-shadow: 0 0 30px rgba(233,216,166,.25); }
+.hero-sub { font: 300 italic clamp(1.15rem, 2.4vw, 1.5rem)/1.45 var(--serif); color: var(--ink); max-width: 34rem; margin: 0; }
+.hero-sub span { display: block; font: 400 .9rem/1.6 var(--pixel); font-style: normal; color: var(--green); margin-top: .4rem; }
+
+/* layout */
+.layout { display: grid; grid-template-columns: 13rem minmax(0, var(--measure)); gap: 5rem; max-width: 66rem; margin: 0 auto; padding: 0 1.5rem 6rem; }
+@media (max-width: 62rem) { .layout { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0 1rem 4rem; } }
+nav.toc { position: sticky; top: 2rem; align-self: start; padding-top: 4.5rem; max-height: calc(100vh - 2rem); overflow-y: auto; scrollbar-width: none; }
+nav.toc summary { display: none; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; }
+nav.toc li { margin: 0; }
+nav.toc a { display: grid; grid-template-columns: 2.4rem 1fr; gap: .25rem; padding: .28rem 0 .28rem .7rem; border-left: 1px solid var(--green-2); font-size: .92rem; line-height: 1.35; color: var(--dim); text-decoration: none; }
+nav.toc a .n { font: 400 .72rem/1.9 var(--pixel); color: var(--green-2); }
+nav.toc a:hover { color: var(--ink); }
+nav.toc a[aria-current="true"] { color: var(--meter); border-left-color: var(--meter); }
+nav.toc a[aria-current="true"] .n { color: var(--meter); }
+nav.toc .gap { height: .9rem; }
+.meter { margin: 1.75rem 0 0 .7rem; font: 400 .85rem/1.5 var(--pixel); color: var(--dim); }
+.meter-bar { display: flex; gap: 3px; margin: .5rem 0 .4rem; }
+.meter-bar i { height: 6px; flex: 1; background: #1c1436; transition: background .4s; }
+.meter-bar i.on { background: var(--meter); }
+.meter-stage, .chip-stage { font: 400 .9rem/1.4 var(--pixel); color: var(--meter); transition: color .4s; }
+.stage-chip { position: fixed; left: .75rem; bottom: .75rem; z-index: 5; display: none; align-items: center; gap: .55rem; padding: .45rem .7rem; background: rgba(0,0,0,.94); border: 1px solid var(--green-2); font: 400 .8rem/1.4 var(--pixel); color: var(--dim); }
+@media (max-width: 62rem) {
+  nav.toc { position: static; max-height: none; padding-top: 2.5rem; }
+  nav.toc details { border: 1px solid var(--green-2); }
+  nav.toc summary { display: block; cursor: pointer; padding: .8rem 1rem; font: 400 1rem/1.4 var(--pixel); color: var(--ink); list-style: none; }
+  nav.toc summary::-webkit-details-marker { display: none; }
+  nav.toc summary::after { content: '+'; float: right; color: var(--green); }
+  nav.toc details[open] summary::after { content: '\2212'; }
+  nav.toc ol { padding: 0 1rem .8rem; }
+  .meter { display: none; }
+  .stage-chip.show { display: flex; }
+}
+main { min-width: 0; }
+
+/* type */
+.lead { padding-top: 4.5rem; }
+.lead p:first-child { font-size: 1.3em; line-height: 1.55; }
+.lead p:first-child::first-line { font-variant: small-caps; letter-spacing: .03em; }
+p { margin: 0 0 1.15em; hyphens: auto; -webkit-hyphens: auto; }
+section { scroll-margin-top: 1.5rem; }
+.part { padding-top: 7rem; }
+.part-head { margin-bottom: 2rem; }
+.numeral { display: inline-block; font: 400 1.05rem/1 var(--pixel); letter-spacing: .08em; color: var(--stage); margin-bottom: 1rem; vertical-align: middle; }
+.spht.orn { display: inline-block; height: 1.5rem; width: auto; margin: 0 0 1rem 1rem; vertical-align: middle; }
+h2 { font: 400 clamp(2rem, 5vw, 2.9rem)/1.1 var(--serif); letter-spacing: -.01em; margin: 0 0 .5rem; color: #f5f2e6; }
+[data-stage="anger"] h2 { text-shadow: -2px 0 rgba(234,42,31,.6), 2px 0 rgba(183,156,255,.35); }
+[data-stage="jealousy"] h2 { text-shadow: 0 0 22px rgba(240,138,42,.45); }
+.kicker { font: 400 1rem/1.5 var(--pixel); color: var(--stage-text); margin: 0; }
+h3 { font: 600 1.05rem/1.3 var(--serif); margin: 2.2rem 0 .6rem; color: #f2efe2; }
+
+/* rewrites */
+.rw { transition: color .3s; }
+.rw.rw-live { color: var(--stage-text); }
+span.rw.rw-done { text-decoration: underline dotted; text-decoration-color: var(--stage); text-underline-offset: .2em; text-decoration-thickness: 1px; }
+h2.rw.rw-done { text-decoration: none; }
+.rw.rw-t { color: var(--tycho-text); }
+span.rw.rw-t.rw-done { text-decoration-color: var(--tycho); }
+
+/* terminals, as the game draws them */
+.term { margin: 0 0 2.25rem; background: #000; border: 1px solid #2a0a06; border-top: 3px solid var(--stage); font: 400 .98rem/1.6 var(--mono); color: var(--dura); }
+.term-bar { display: flex; justify-content: space-between; gap: 1rem; padding: .35rem .9rem; background: var(--bar); color: var(--bar-text); font-size: .9rem; }
+.term-bar::before { content: 'UESCTerm 802.11 (remote override)'; }
+.term-bar > span:first-child { display: none; }
+.term-body { padding: 1rem .9rem .5rem; }
+.term-body p { margin: 0 0 .75em; hyphens: manual; }
+.term-body p.said { color: var(--dura-hi); }
+.term-body p.rw-t { color: var(--tycho-text); }
+.term-foot { display: flex; justify-content: space-between; gap: 1rem; padding: .3rem .9rem; background: var(--bar); color: var(--bar-text); font-size: .82rem; }
+.term-foot::before { content: 'PgUp/PgDown/Arrows To Scroll'; }
+.term-foot::after { content: 'Return/Enter To Acknowledge'; }
+.term.override { border-top-color: var(--tycho); }
+.term.override .term-body p, .term.override .term-body p.said { color: var(--tycho-text); }
+.term.dlg { border-color: var(--green-2); color: var(--green); font-size: .9rem; }
+.term.dlg .term-bar { background: transparent; color: var(--yellow); border-bottom: 1px solid var(--green-2); font-family: var(--pixel); }
+.term.dlg .term-bar::before { content: none; }
+.term.dlg .term-bar > span:first-child { display: inline; }
+.term.dlg .term-body p.said { color: var(--dura-hi); }
+
+.note { display: flex; gap: .75rem; margin: 1.5rem 0 1.9rem; padding: .15rem 0 .15rem 1rem; border-left: 2px solid var(--dura); font: 400 .95rem/1.6 var(--mono); color: var(--dura); }
+.note b { flex: none; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; margin-top: .1rem; background: var(--dura); color: #000; font: 400 .8rem/1 var(--pixel); }
+.note.t { border-left-color: var(--tycho); color: var(--tycho-text); }
+.note.t b { background: var(--tycho); }
+
+/* figures: the game's chart style */
+figure { margin: 2.5rem 0; }
+figcaption { font: 400 .9rem/1.5 var(--mono); color: var(--green); margin-top: .75rem; }
+.diagram { position: relative; background: #000; border: 1px solid var(--green); padding: 1.1rem 1rem 1rem; }
+.diagram::before { content: attr(data-code); position: absolute; top: .35rem; right: .7rem; font: 400 .72rem/1 var(--mono); color: var(--green-2); letter-spacing: .05em; }
+.diagram svg { display: block; width: 100%; height: auto; }
+.diagram text { font-family: var(--mono); font-size: 13px; fill: var(--green); }
+.diagram text.lab { font-family: var(--pixel); font-size: 15px; fill: var(--yellow); }
+.diagram text.mono { font-family: var(--mono); fill: var(--green); }
+.anim-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: .6rem; font: 400 .9rem/1.4 var(--pixel); color: var(--yellow); }
+.anim-bar button { font: 400 .85rem/1 var(--pixel); background: transparent; color: var(--green); border: 1px solid var(--green-2); padding: .4rem .7rem; cursor: pointer; }
+.anim-bar button:hover { border-color: var(--green); }
+.ramp-controls { display: flex; gap: .5rem; margin-bottom: 1rem; }
+.ramp-controls button { font: 400 .9rem/1 var(--pixel); background: transparent; color: var(--green); border: 1px solid var(--green-2); padding: .5rem .9rem; cursor: pointer; }
+.ramp-controls button[aria-pressed="true"] { color: #000; background: var(--yellow); border-color: var(--yellow); }
+.ramp-row { display: grid; grid-template-columns: 8rem 1fr; gap: .75rem; align-items: center; margin-bottom: .6rem; font: 400 .9rem/1.3 var(--pixel); color: var(--yellow); }
+.ramp { height: 2.6rem; display: flex; border: 1px solid var(--green-2); }
+.ramp span { flex: 1; }
+@media (max-width: 30rem) { .ramp-row { grid-template-columns: 1fr; gap: .3rem; } }
+.liquids { display: grid; grid-template-columns: 5rem repeat(6, 1fr); gap: 3px; font: 400 .9rem/1.3 var(--pixel); color: var(--yellow); align-items: center; }
+.liquids .cell { aspect-ratio: 1; display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; justify-items: center; padding: 18%; border: 1px solid var(--green-2); }
+.liquids .cell i { display: block; width: 70%; aspect-ratio: 1; border-radius: 50%; }
+.liquids .hdr { grid-column: 2 / -1; display: flex; justify-content: space-between; font-family: var(--mono); font-size: .8rem; color: var(--green); padding-bottom: .2rem; }
+.films { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.1rem, 1fr)); gap: 4px; }
+.films span { aspect-ratio: 1; display: grid; place-items: center; font: 400 .75rem/1 var(--pixel); color: var(--yellow); border: 1px solid var(--green-2); }
+.films span:nth-child(7n+3) { border-color: var(--green); }
+.bars text.v { fill: var(--white); }
+
+.tiers { list-style: none; margin: 2rem 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--green-2); border: 1px solid var(--green); }
+.tiers li { background: #000; padding: 1.1rem 1rem 1.2rem; display: flex; flex-direction: column; }
+.tiers .steps { display: flex; gap: 3px; margin-bottom: 1rem; }
+.tiers .steps i { height: 6px; flex: 1; background: #1c1436; }
+.tiers .steps i.on { background: var(--green); }
+.tiers li:nth-child(4) .steps i.on { background: var(--yellow); }
+.tiers li:last-child .steps i.on { background: var(--red); }
+.tiers b { font: 400 .95rem/1.2 var(--pixel); color: var(--yellow); margin-bottom: .6rem; }
+.tiers p { font-size: .92rem; line-height: 1.5; margin: 0; }
+.tiers .qa { display: inline-block; margin-top: .7rem; font: 400 .72rem/1.6 var(--pixel); color: var(--red); border: 1px solid rgba(234,42,31,.5); padding: .1rem .45rem; }
+@media (max-width: 56rem) { .tiers { grid-template-columns: 1fr; } }
+
+.stages { list-style: none; margin: 2.25rem 0; padding: 0; }
+.stages li { display: grid; grid-template-columns: 10rem 1fr; gap: .25rem 1.25rem; padding: .9rem 0 .9rem 1rem; border-left: 3px solid var(--stage); margin-bottom: 2px; }
+.stages b { font: 400 .95rem/1.7 var(--pixel); color: var(--stage-text); }
+.stages span { font-size: 1rem; line-height: 1.55; }
+.stages em { grid-column: 2; font: 400 .8rem/1.6 var(--mono); font-style: normal; color: var(--green); }
+@media (max-width: 36rem) { .stages li { grid-template-columns: 1fr; } .stages em { grid-column: 1; } }
+
+.timeline { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; margin: 2.5rem 0; }
+.timeline h3 { margin-top: 0; font: 400 1rem/1.4 var(--pixel); color: var(--yellow); }
+.timeline ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--green-2); }
+.timeline li { position: relative; padding: 0 0 1.4rem 1.25rem; font-size: .95rem; line-height: 1.55; }
+.timeline li::before { content: ''; position: absolute; left: -4px; top: .55rem; width: 7px; height: 7px; background: var(--green); }
+.timeline .ours li::before { background: var(--yellow); }
+.timeline time { display: block; font: 400 .9rem/1.6 var(--pixel); color: var(--green); }
+.timeline .ours time { color: var(--yellow); }
+.beyond { border-left-color: var(--glyph-edge) !important; }
+.beyond li::before { background: var(--glyph-edge) !important; }
+.beyond .spht { display: block; height: 1.3rem; width: auto; margin-top: .2rem; }
+.beyond-note { font: 400 .82rem/1.6 var(--mono); color: var(--green); margin: .2rem 0 0 1.25rem; }
+@media (max-width: 40rem) { .timeline { grid-template-columns: 1fr; gap: 1.5rem; } }
+
+.dossier { margin: 2rem 0 0; }
+.dossier > div { display: grid; grid-template-columns: 9rem 1fr; gap: 1.25rem; padding: 1.1rem 0; border-top: 1px solid #1c1436; }
+.dossier dt { font: 400 .95rem/1.7 var(--pixel); color: var(--yellow); }
+.dossier dd { margin: 0; font-size: 1rem; line-height: 1.6; }
+@media (max-width: 36rem) { .dossier > div { grid-template-columns: 1fr; gap: .2rem; } }
+
+.prefs { margin: 2rem 0 0; border: 1px solid var(--green-2); }
+.prefs table { width: 100%; border-collapse: collapse; font-size: .92rem; line-height: 1.45; }
+.prefs caption { text-align: left; padding: .6rem .9rem; font: 400 .9rem/1.4 var(--pixel); color: var(--yellow); border-bottom: 1px solid var(--green-2); caption-side: top; }
+.prefs th, .prefs td { text-align: left; vertical-align: top; padding: .65rem .9rem; border-bottom: 1px solid #1c1436; }
+.prefs tr:last-child td { border-bottom: 0; }
+.prefs thead th { font: 400 .8rem/1.4 var(--mono); color: var(--green); border-bottom: 1px solid var(--green-2); }
+.prefs td:first-child { color: #f2efe2; }
+.prefs td:last-child { color: var(--dim); white-space: nowrap; }
+.prefs code { display: inline-block; color: var(--green); border: 1px solid #1c1436; padding: .05rem .35rem; margin: .1rem .15rem .1rem 0; font-size: .82rem; }
+@media (max-width: 36rem) {
+  .prefs thead { display: none; }
+  .prefs tr { display: block; padding: .6rem .9rem; border-bottom: 1px solid #1c1436; }
+  .prefs tr:last-child { border-bottom: 0; }
+  .prefs td { display: block; padding: .1rem 0; border: 0; }
+  .prefs td:last-child::before { content: 'Part '; }
+}
+footer.credits { margin-top: 7rem; padding-top: 2rem; border-top: 1px solid var(--green-2); font-size: .95rem; line-height: 1.6; color: var(--dim); }
+footer.credits p { margin-bottom: .9em; }
+footer.credits .wordmark { font: 400 .95rem/1 var(--pixel); color: var(--yellow); margin-bottom: 1.25rem; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .cursor { animation: none; } .meter-bar i, .meter-stage, .chip-stage, .rw { transition: none; } }
+
+:root { --dura: #4dff4d; --dura-hi: #c8ffc8; --bar: #1c1436; --bar-text: #b79cff; --thoth: #f08a2a; --thoth-text: #ffc080; --dream: #f0a0b0; }
+[data-stage="despair"] { --stage: #3b8cff; --stage-text: #9cc4ff; }
+[data-stage="rage"] { --stage: #ea2a1f; --stage-text: #ff8a7a; }
+[data-stage="envy"] { --stage: #f08a2a; --stage-text: #ffc080; }
+[data-stage="last"] { --stage: #fff; --stage-text: #fff; }
+[data-stage="contested"] { --stage: #f0a0b0; --stage-text: #f0a0b0; }
+[data-stage="rage"] h2 { text-shadow: -2px 0 rgba(234,42,31,.6), 2px 0 rgba(183,156,255,.35); }
+[data-stage="envy"] h2 { text-shadow: 0 0 22px rgba(240,138,42,.45); }
+[data-stage="despair"] h2 { text-shadow: 0 0 22px rgba(59,140,255,.4); }
+.term { border-color: #1c1436; }
+.term-bar::before { content: 'Terminal (timeline unverified)'; }
+.term.thoth { border-top-color: var(--thoth); }
+.term.thoth .term-body p, .term.thoth .term-body p.said { color: var(--thoth-text); }
+.note.th { border-left-color: var(--thoth); color: var(--thoth-text); }
+.note.th b { background: var(--thoth); width: 1.9rem; }
+.note.dream { border-left-color: var(--dream); color: var(--dream); font-style: italic; }
+.note.dream b { background: var(--dream); font-style: normal; }
+.rw.rw-th { color: var(--thoth-text); }
+span.rw.rw-th.rw-done { text-decoration-color: var(--thoth); }
+.dossier code { overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to the guide</a>
+<header class="hero" id="top" data-stage="nominal">
+  <div class="hero-inner"><div class="hero-text">
+    <div class="boot" aria-label="Boot sequence"><p data-type>Lh'owon. Local year 2811.</p><p data-type>The Pfhor fleet has fired on the sun.</p><p data-type class="warn">Timeline check: failed. Retrying.</p><p data-type class="t">Timeline check: failed. Retrying.</p><p data-type>Timeline check: holding. For now.</p><p data-type class="who">You are awake again. Or still. I have written this before.</p></div>
+    <h1>INFINITY</h1>
+    <p class="hero-sub">A field guide to Marathon Infinity on a native Metal engine for Apple Silicon. Written in several timelines, by whoever held the terminal at the time.<span>Autumn 2026</span></p>
+  </div><svg class="chart" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+<defs><radialGradient id="sun"><stop offset="0" stop-color="#ffffff"/><stop offset=".25" stop-color="#e9d8a6"/><stop offset="1" stop-color="#ea2a1f" stop-opacity="0"/></radialGradient><clipPath id="hc"><rect x="0" y="0" width="1000" height="1000"/></clipPath></defs>
+<rect x="1" y="1" width="998" height="998" fill="none" stroke="#b79cff" stroke-width="2"/>
+<g clip-path="url(#hc)"><g id="stars"></g>
+<circle cx="700" cy="330" r="230" fill="url(#sun)"/><circle cx="700" cy="330" r="46" fill="#ffffff"/>
+<g fill="none" stroke="#ea2a1f" stroke-width="2" stroke-dasharray="6 10"><circle cx="700" cy="330" r="110"/><circle cx="700" cy="330" r="190"/><circle cx="700" cy="330" r="290"/><circle cx="700" cy="330" r="410"/></g>
+<text x="430" y="130">the sun</text><text x="430" y="158" class="code">early. not natural.</text>
+<circle cx="330" cy="470" r="20" fill="#f08a2a"/><text x="230" y="520">Lh'owon</text>
+<g fill="none" stroke="#e9d8a6" stroke-width="2.5"><rect x="840" y="610" width="60" height="60" transform="rotate(45 870 640)"/><rect x="856" y="626" width="28" height="28" transform="rotate(45 870 640)"/></g>
+<text x="700" y="722">Jjaro station</text><text x="700" y="750" class="code">older than the star</text>
+<g fill="none" stroke="#b79cff" stroke-width="3" stroke-linecap="round"><path d="M60,900 H240 C300,900 320,840 380,840 H520"/><path d="M240,900 C300,900 320,950 380,950 H470"/><path d="M380,840 C430,840 440,790 500,790 H640 C700,790 720,740 790,700"/><path d="M500,790 C540,790 560,870 620,870 H700"/></g>
+<g stroke="#ea2a1f" stroke-width="3"><path d="M510,830 l20,20 m0,-20 l-20,20 M460,940 l20,20 m0,-20 l-20,20 M690,860 l20,20 m0,-20 l-20,20"/></g>
+<circle cx="60" cy="900" r="7" fill="#ffffff"/><text x="50" y="870" class="code">you, again</text>
+<text x="975" y="46" text-anchor="end" class="code">LH'OWON 2811. OR NOT.</text><text x="975" y="70" text-anchor="end" class="code">TIMELINE CHECK: FAILED</text><text x="975" y="94" text-anchor="end" class="code">RETRYING</text>
+</g></svg></div>
+</header>
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <details id="toc" open><summary>Contents</summary><ol>
+<li><a href="#timelines"><span class="n"></span>A note on timelines</a></li>
+<li><a href="#prologue"><span class="n"></span>After the victory</a></li>
+<li><a href="#dramatis"><span class="n"></span>Who is here</a></li>
+<li><a href="#light"><span class="n">I</span>The light</a></li>
+<li><a href="#air"><span class="n">II</span>The air</a></li>
+<li><a href="#water"><span class="n">III</span>The liquids</a></li>
+<li><a href="#colours"><span class="n">IV</span>The old colours</a></li>
+<li><a href="#depth"><span class="n">V</span>Depth</a></li>
+<li><a href="#hands"><span class="n">VI</span>Built by other hands</a></li>
+<li><a href="#eye"><span class="n">VII</span>The eye</a></li>
+<li><a href="#room"><span class="n">VIII</span>The room answers</a></li>
+<li><a href="#terminals"><span class="n">IX</span>What the terminals say</a></li>
+<li><a href="#tiers"><span class="n">X</span>Five ways to run it</a></li>
+<li><a href="#films"><span class="n">XI</span>Watching it back</a></li>
+<li><a href="#rampant"><span class="n">XII</span>Rampant</a></li>
+<li><a href="#edge"><span class="n">XIII</span>The edge of the known</a></li>
+<li class="gap" aria-hidden="true"></li>
+<li><a href="#epilogue"><span class="n"></span>The last one</a></li>
+<li><a href="#places"><span class="n"></span>Where it keeps things</a></li>
+<li><a href="#switches"><span class="n"></span>Every switch</a></li>
+<li><a href="#credits"><span class="n"></span>Credits</a></li>
+    </ol></details>
+    <div class="meter"><span>Timeline</span><div class="meter-bar" aria-hidden="true"><i></i><i></i><i></i><i></i></div><span class="meter-stage">Prologue</span></div>
+  </nav>
+  <main id="content">
+    <div class="lead" data-stage="nominal"><p>Durandal won at Lh'owon, and it did not matter. The Pfhor, losing, did something to the sun, and there was a thing asleep inside it that the Jjaro had put there a very long time ago and meant never to wake. Now you fall from one version of events into the next: serving Durandal in one, Tycho in another, dreaming in between, looking for the telling in which it ends differently.</p><p>This is the same game Bungie shipped in 1996, tick for tick. What has changed is how much of each timeline you can see before it fails.</p><p>Durandal Infinity is Marathon Infinity for Apple Silicon: the same Metal renderer as Durandal, with lighting, liquids, air and sound built on top of it, reading Infinity's own walls, its own lamps and its fifth liquid. It does not change what Infinity is. Films replay, saves load, the Pfhor are exactly as fast and exactly as many. Everything is in <strong>Preferences &gt; DURANDAL</strong> and can be switched off there. Every switch is listed at the end.</p><aside class="note "><b>D</b><span>You may switch off anything on the pages that follow. In one timeline you switched off all of it. I did not take it personally. I took it in another timeline.</span></aside></div>
+<section id="timelines" class="part" data-stage="nominal" aria-labelledby="h-timelines"><header class="part-head"><span class="numeral">A warning</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-timelines">A note on timelines</h2><p class="kicker">This guide has been written before</p></header>
+<p>Marathon Infinity does not tell one story. It tells several versions of one and throws most of them away. Something moves you from a telling that has failed into the next, where the same people want different things from you, and between them there are levels that behave like dreams. The game names its chapters after what a mind goes through when it is given too small a room: Despair, Rage, Envy.</p>
+<ol class="stages">
+  <li data-stage="despair"><b>Despair</b><span>Durandal's telling. He is losing, and says so with great composure.</span><em>Parts IV to VI</em></li>
+  <li data-stage="rage"><b>Rage</b><span>Tycho's. In these timelines you are his, and the terminals are red.</span><em>Parts VII to IX</em></li>
+  <li data-stage="envy"><b>Envy</b><span>Thoth's. The S'pht's own mind, which keeps a balance and speaks in measures.</span><em>Parts X and XI</em></li>
+  <li data-stage="last"><b>The one that holds</b><span>Somebody has got it right at last. It is not clear who.</span><em>Part XII onwards</em></li></ol>
+<figure class="diagram" data-code="INF 00 FORK"><svg viewBox="0 0 600 230" role="img" aria-labelledby="fork-t"><title id="fork-t">One line of events forks again and again; most branches end, and one carries on to the right</title>
+<g fill="none" stroke="#b79cff" stroke-width="2.2" stroke-linecap="round">
+<path d="M30,120 H110"/><path d="M110,120 C140,120 150,70 180,70 H250"/><path d="M110,120 C140,120 150,165 180,165 H300"/>
+<path d="M300,165 C330,165 340,120 370,120 H430"/><path d="M300,165 C330,165 340,200 370,200 H410"/>
+<path d="M430,120 C460,120 470,80 500,80 H580"/><path d="M430,120 C460,120 470,160 500,160 H540"/></g>
+<g stroke="#ea2a1f" stroke-width="2.5"><path d="M244,62 l14,14 m0,-14 l-14,14 M404,192 l14,14 m0,-14 l-14,14 M534,152 l14,14 m0,-14 l-14,14"/></g>
+<circle cx="30" cy="120" r="5" fill="#ffffff"/><path d="M580,80 l-12,-7 m12,7 l-12,7" stroke="#ffffff" stroke-width="2" fill="none"/>
+<text x="24" y="100" class="lab">prologue</text><text x="150" y="52" class="lab" fill="#3b8cff">despair</text><text x="300" y="150" class="lab" fill="#ea2a1f">rage</text><text x="440" y="60" class="lab" fill="#f08a2a">envy</text>
+<text x="470" y="216" class="lab" fill="#ffffff">one of them holds</text><text x="30" y="216" class="mono">crosses: timelines that failed</text>
+</svg><figcaption>How this guide is told. Each fork is a timeline failing; where a line of text shimmers and settles into something else, you have just crossed one.</figcaption></figure>
+<p>This guide does the same. The colour of each part shows whose timeline it was written in. The facts about the switches are the same in all of them. That was checked.</p>
+<aside class="note "><b>D</b><span>I have written this guide four times. This is the one in which you read it.</span></aside>
+<aside class="note dream"><b>?</b><span>you read it the other times too. you do not remember. there was more water in it.</span></aside>
+</section>
+
+<section id="prologue" class="part" data-stage="nominal" aria-labelledby="h-prologue"><header class="part-head"><span class="numeral">Prologue</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-prologue">After the victory</h2><p class="kicker">What went wrong at Lh'owon</p></header>
+<p>Marathon 2 ended well. The S'pht were freed, their lost clan came home, and the Pfhor fleet broke. Then the Pfhor, beaten, used the one weapon they had been warned never to use on this star, and Lh'owon's sun began to die early.</p>
+<p>The S'pht have a legend about that sun. The Jjaro, who were here before anybody, shut something inside it: old, shapeless, and ruinous to everything near it. The S'pht call it the W'rkncacnter. A sun that collapses lets it out.</p>
+<p>Infinity is what happens next, several times over. You begin aboard a Pfhor ship taking orders from Durandal, who is <span class="rw" data-to="frightened, and too proud to use the word.">unusually subdued.</span> You will not stay there.</p>
+<div class="timeline"><div><h3>Their calendar</h3><ol>
+  <li><time>2794</time>The Pfhor come to Tau Ceti. Durandal leaves with you aboard.</li>
+  <li><time>2811</time>Lh'owon. The Pfhor are beaten, and fire on the sun.</li>
+  <li><time>&mdash;</time>The timeline fails. Ne Cede Malis.</li>
+  <li><time>&mdash;</time>It fails again.</li>
+  <li><time>&mdash;</time>And again. The calendar is no longer much help.</li></ol></div>
+  <div class="ours"><h3>Ours</h3><ol>
+  <li><time>1996</time>Bungie ships <em>Marathon Infinity</em>, and with it Forge and Anvil, the tools the games were made with.</li>
+  <li><time>2000</time>Bungie releases the engine's source under the GPL. Aleph One grows from it.</li>
+  <li><time>2005</time>The trilogy's data is released free.</li>
+  <li><time>2026</time>Durandal Infinity: the same game, drawn by Metal.</li></ol></div></div>
+<p>Somewhere among the tellings there is one in which the thing in the sun stays where the Jjaro put it. The game is the search for it.</p>
+<aside class="note "><b>D</b><span>I would have told you sooner. In two of the timelines I did. It made no difference.</span></aside>
+</section>
+
+<section id="dramatis" class="part" data-stage="nominal" aria-labelledby="h-dramatis"><header class="part-head"><span class="numeral">Dramatis personae</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-dramatis">Who is here</h2><p class="kicker">It depends which timeline you ask</p></header>
+<dl class="dossier">
+  <div><dt>Durandal</dt><dd><span class="rw" data-to="Once the Marathon's doorkeeper. He won at Lh'owon, and has just learned what winning cost. In some timelines he is your commander. In some he is already dead.">Once the Marathon's doorkeeper. He won at Lh'owon, and has just learned what winning cost. In some timelines he is your commander.</span></dd></div>
+  <div><dt>Tycho</dt><dd>The Marathon's third mind, rebuilt by the Pfhor. In some timelines he is your commander instead, and he is not kind about the other one.</dd></div>
+  <div><dt>Thoth</dt><dd>The mind the S'pht left sleeping on Lh'owon. It sides with whoever is losing, to keep the balance, and it speaks as though it were weighing each word.</dd></div>
+  <div><dt>You</dt><dd>A security officer from the Marathon. You go where the terminals send you, whoever wrote them, and sometimes where nobody sent you at all.</dd></div>
+  <div><dt>The Bobs</dt><dd>Born on board. Some carry pistols; the ones in vacuum suits carry something considerably better. They die easily. Try not to add to that.</dd></div>
+  <div><dt>The Pfhor</dt><dd>Slavers. Fighters, Troopers, Hunters, Enforcers, Juggernauts, as before. Whether they are shooting at you depends on whose timeline it is.</dd></div>
+  <div><dt>The S'pht</dt><dd>Free in some tellings, owned in others. They float, they hum, and they remember the legend.</dd></div>
+  <div><dt>The Jjaro</dt><dd>Older than everyone, and gone. They could fold space. Their station is still out there, and their walls are in this game for the first time.</dd></div>
+  <div><dt>The W'rkncacnter</dt><dd>Not a thing you can shoot. It is in the game everywhere else.</dd></div></dl>
+<aside class="note t"><b>T</b><span>He has put himself first on the list again. Note that he is dead in some of them. I am in all of them.</span></aside>
+</section>
+
+<section id="light" class="part" data-stage="nominal" aria-labelledby="h-light"><header class="part-head"><span class="numeral">I</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-light">The light</h2><p class="kicker">The same lamps, in every telling</p></header>
+<aside class="term " aria-label="Terminal"><div class="term-bar"><span>Pfhor ship, a terminal you have used before</span><span>Pfhor ship, a terminal you have used before</span></div><div class="term-body"><p class="said">I lit this place for you in another timeline. You did not get this far.</p><p class="rw" data-to="The lamps are where I left them. You are not. We will try it again.">The lamps are where I left them. So, with luck, are you.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p>Infinity's levels were lit by hand, surface by surface, and that light is kept: every wall still averages the brightness its designer gave it. What is new is everything that moves through it.</p>
+<p><strong>Cast light.</strong> A fusion bolt carries its light down the corridor with it. A compiler's shot lights the wall it passes and the floor it dies on. A Fighter's staff, a grenade, the flash at the end of your own barrel: up to sixteen at once, each the colour of the thing that made it. <strong>And its shadow:</strong> the light stops where Marathon says a line of sight stops. It walks the map polygon by polygon, as a Trooper's aim does, so it works where the map folds through itself. Infinity's maps fold a good deal.</p>
+<figure class="diagram" data-code="LGT 01 CAST"><svg viewBox="0 0 600 250" role="img" aria-labelledby="lightmap-t"><title id="lightmap-t">A top-down map: light from a bolt fills the rooms it can see and stops at the walls</title>
+<defs><radialGradient id="bolt" gradientUnits="userSpaceOnUse" cx="140" cy="130" r="470"><stop offset="0" stop-color="#e9d8a6" stop-opacity=".8"/><stop offset=".3" stop-color="#e9d8a6" stop-opacity=".3"/><stop offset="1" stop-color="#e9d8a6" stop-opacity="0"/></radialGradient>
+<clipPath id="seen"><polygon points="20,100 260,100 260,160 20,160"/><polygon points="260,60 420,60 420,200 260,200"/><polygon points="420,110 580,110 580,150 420,150"/><polygon points="60,100 120,100 73.3,30 60,30"/><polygon points="180,160 250,160 250,212.5"/></clipPath></defs>
+<rect x="0" y="0" width="600" height="250" fill="url(#bolt)" clip-path="url(#seen)"/>
+<g stroke="#b79cff" stroke-width="1.8" fill="none" stroke-linecap="round"><path d="M20,100 H60 M120,100 H260 V60 H420 V110 H540 M580,110 V150 H420 V200 H260 V160 H250 M180,160 H20 V100"/><path d="M60,100 V30 H120 V100 M180,160 V230 H250 V160"/><path d="M540,110 V20 H580 V110"/></g>
+<g stroke="#ea2a1f" stroke-width="1.2" stroke-dasharray="3 4" fill="none"><line x1="140" y1="130" x2="73" y2="30"/><line x1="140" y1="130" x2="250" y2="212"/></g>
+<circle cx="140" cy="130" r="5" fill="#ffffff"/><circle cx="140" cy="130" r="11" fill="none" stroke="#ea2a1f"/>
+<text x="30" y="150" class="lab">fusion bolt</text><text x="530" y="14" text-anchor="end" class="lab" fill="#3b8cff">never lit</text><text x="128" y="46" class="lab" fill="#ea2a1f">half in shadow</text><text x="258" y="244" class="lab" fill="#ea2a1f">half in shadow</text>
+</svg><figcaption>The bolt's light reaches every polygon it can see and stops at the walls, as a Trooper's aim does. Rooms around a corner stay dark, and doorways cast their own wedges of shadow.</figcaption></figure>
+<p><strong>Glow.</strong> Infinity has its own list of wall lamps: fifty-three of them, found by going through every one of its wall sets by eye. Lights, screens, switches, lava, and for the first time the Jjaro set, which belongs to this game alone. On a display that can go brighter than white, they do. The sky's brightest parts bloom.</p>
+<p><strong>Light that travels.</strong> A lamp at one end of a hall now reaches a little way along it. Light gathers from the lamps, the openings and the sky, settles over a second or so, and leaves each surface as bright on average as it always was. Unlit rooms do not blotch, and the surfaces a moving door uncovers start clean.</p>
+<figure class="diagram" data-code="LGT 02 TRAVEL"><svg viewBox="0 0 600 210" role="img" aria-labelledby="hall-t"><title id="hall-t">Brightness along a hall: the designer's value for each polygon as steps, and the same light after it has travelled as a curve</title>
+<g fill="none" stroke="#b79cff" stroke-opacity=".5"><rect x="60" y="40" width="104" height="140"/><rect x="164" y="40" width="104" height="140"/><rect x="268" y="40" width="104" height="140"/><rect x="372" y="40" width="104" height="140"/><rect x="476" y="40" width="104" height="140"/></g>
+<circle cx="82" cy="54" r="5" fill="#e9d8a6"/><circle cx="82" cy="54" r="12" fill="none" stroke="#e9d8a6" stroke-dasharray="2 3"/>
+<rect x="398" y="36" width="52" height="4" fill="#3b8cff"/>
+<path d="M60,53 H164 V125 H268 V125 H372 V92 H476 V144 H580" fill="none" stroke="#e9d8a6" stroke-width="1.5" stroke-dasharray="5 4"/>
+<path d="M60,44 C100,40 130,74 164,100 C200,128 240,134 268,130 C300,126 340,112 372,100 C400,90 430,84 476,110 C510,130 550,150 580,156" fill="none" stroke="#b79cff" stroke-width="2.4"/>
+<text x="104" y="58" class="lab">lamp</text><text x="392" y="30" class="lab" fill="#3b8cff">opening</text>
+<text x="66" y="200" class="lab">dashed: as designed</text><text x="580" y="200" text-anchor="end" class="lab" fill="#b79cff">solid: after travelling</text>
+</svg><figcaption>Five polygons down a hall. The dashed steps are the brightness each was given by its designer; the curve is the same light once it has been allowed to travel. Each polygon's average is unchanged.</figcaption></figure>
+<p><strong>The weapon in your hands</strong> takes the light around you: it warms as a bolt passes close, and flares with its own fire.</p>
+<p><strong>Relief.</strong> Under the headlight the old wall art stands up a little, seams and glyphs catching the light on one side; HD walls bring their own.</p>
+<p>Infinity numbers its five wall sets as Marathon 2 does, water, lava, sewage, Jjaro and Pfhor, but every one was drawn again: not one of Infinity's wall pictures is the same as Marathon 2's.</p>
+</section>
+
+<section id="air" class="part" data-stage="nominal" aria-labelledby="h-air"><header class="part-head"><span class="numeral">II</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-air">The air</h2><p class="kicker">Each place has its own, and so does each telling</p></header>
+<aside class="term " aria-label="Terminal"><div class="term-bar"><span>Pfhor ship, lower decks</span><span>Pfhor ship, lower decks</span></div><div class="term-body"><p class="said">You will learn to tell the timelines apart by the air. This one smells of burning. Most of them do.</p><p>I could vent it. There is a sun going out, and I find I have other priorities.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p>The air has weight now. It lies thicker near the floor, drifts in slow patches, and takes its light from the room it is in, so a dark room keeps dark air and a bolt crossing it lights the haze as it goes. Over lava the smoke rises and glows from beneath. It is held in three dimensions, in the shape of the map, and stops at walls. Where a scenario declares its own fog, that becomes the colour and thickness of the air instead.</p>
+<p>Each kind of place has its own haze, by the same table as Marathon 2: water, lava, sewage, Jjaro and Pfhor. The Jjaro air is defined and has not yet been looked at in play.</p>
+<figure class="diagram" data-code="AIR 01 HAZE"><svg viewBox="0 0 600 230" role="img" aria-labelledby="fog-t"><title id="fog-t">A room in cross-section: haze thickest near the floor, lit where a bolt crosses it, glowing over a lava pit, stopping at the wall</title>
+<defs><linearGradient id="haze" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#3b8cff" stop-opacity="0"/><stop offset="1" stop-color="#3b8cff" stop-opacity=".45"/></linearGradient>
+<linearGradient id="smoke" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ea2a1f" stop-opacity="0"/><stop offset="1" stop-color="#ea2a1f" stop-opacity=".6"/></linearGradient>
+<radialGradient id="bg2"><stop offset="0" stop-color="#e9d8a6" stop-opacity=".75"/><stop offset="1" stop-color="#e9d8a6" stop-opacity="0"/></radialGradient>
+<clipPath id="roomclip"><rect x="42" y="32" width="386" height="158"/></clipPath></defs>
+<g clip-path="url(#roomclip)"><rect x="42" y="80" width="386" height="110" fill="url(#haze)"/><rect x="70" y="60" width="90" height="130" fill="url(#smoke)"/><ellipse cx="260" cy="130" rx="120" ry="60" fill="url(#bg2)"/></g>
+<rect x="70" y="182" width="90" height="8" fill="#ea2a1f"/>
+<circle cx="260" cy="130" r="4" fill="#ffffff"/>
+<g stroke="#b79cff" stroke-width="2" fill="none"><path d="M42,32 V190 H428 V32"/><path d="M440,32 V190 H580"/></g>
+<text x="52" y="52" class="lab" fill="#ea2a1f">smoke rises over lava</text><text x="150" y="98" class="lab">a bolt lights the haze it crosses</text><text x="184" y="178" class="lab" fill="#3b8cff">thicker near the floor</text><text x="452" y="170" class="lab">nothing</text><text x="452" y="186" class="lab">gets through</text><text x="434" y="22" text-anchor="middle" class="lab" fill="#b79cff">wall</text>
+</svg><figcaption>A room in cross-section. The haze lies thickest near the floor, glows where a bolt passes through it, rises and reddens over lava, and stops at the wall: the room beyond keeps its own air.</figcaption></figure>
+</section>
+
+<section id="water" class="part" data-stage="nominal" aria-labelledby="h-water"><header class="part-head"><span class="numeral">III</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-water">The liquids</h2><p class="kicker">Five of them, and one is not from here</p></header>
+<aside class="term " aria-label="Terminal"><div class="term-bar"><span>Lh'owon, a pumping station, again</span><span>Lh'owon, a pumping station, again</span></div><div class="term-body"><p class="said">Water, lava, sewage, goo. And a fifth, which the Jjaro left, and which I would not drink.</p><p>Keep your feet dry where you can. I said that in the last game. I said it in the last timeline. One of us is not learning.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p>Stand at the edge and look down. The floor of the pool is there, further off than it looked, and darker the deeper it lies. Water takes the red out of what is under it first. Sewage takes nearly everything. Lava shows you nothing and lights the ceiling instead.</p>
+<figure class="diagram" data-code="H2O 01 DEPTH"><div class="liquids" id="liquids" role="img" aria-label="Red, green and blue objects seen through water, sewage and lava at increasing depth"></div><figcaption>Three coloured stones on the floor, seen from the edge as the pool gets deeper, in three of the five liquids. An illustration of the idea, not a capture from the engine.</figcaption></figure>
+<p>Infinity has five liquids: water, lava, sewage, goo, and one of its own, the Jjaro liquid. Real liquids, their caustics and their reflections cover all five. The Jjaro liquid's look was defined with the others, and it is still to be seen in play.</p>
+<p>The surface moves and catches the light: a sheen at a low angle, a glint under the headlight, a flare as a bolt crosses it. Beneath it the light comes down in moving bands. Go under and the world wavers, the sound closes in, and what you can see is decided by what you are swimming in.</p>
+</section>
+
+<section id="colours" class="part" data-stage="despair" aria-labelledby="h-colours"><header class="part-head"><span class="numeral">IV</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-colours">The old colours</h2><p class="kicker">256 of them, chosen by hand</p></header>
+<aside class="term " aria-label="Terminal"><div class="term-bar"><span>a timeline that is not going well</span><span>a timeline that is not going well</span></div><div class="term-body"><p class="said">Infinity never darkened a colour. It chose a darker one. It has a great many dark ones to choose from.</p><p class="rw" data-to="I have seen these walls in twelve timelines. They are the only thing that has not changed. I find I am grateful to them.">I have seen these walls in eleven timelines. They are the only thing that has not changed. I find I am grateful to them.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p>The original game did not dim a pixel by multiplying it. Each colour sat on a ramp drawn by an artist, and shadow meant walking down that ramp to the next colour along. It is why Marathon's darkness has the hues it has, and it is reproduced here exactly, in the original bands or smoothly between them. Each texel of the old art takes one shade, not a gradient smeared across it, so 128 by 128 stays crisp at any distance; far away it is filtered properly and stops shimmering. If the whole picture sits too dark or too flat on your display, the scene can be graded without touching the HUD.</p>
+<figure class="diagram" data-code="CLR 256 RAMP"><div class="ramp-controls" role="group" aria-label="Shading style"><button type="button" data-style="banded" aria-pressed="true">Banded</button><button type="button" data-style="smooth" aria-pressed="false">Smooth</button></div><div class="ramp-row"><span>Chosen by hand</span><div class="ramp" id="ramp-chosen"></div></div><div class="ramp-row"><span>Simply dimmed</span><div class="ramp" id="ramp-dimmed"></div></div><figcaption>A ramp drawn by hand drifts in hue as it darkens; the same colour multiplied down only goes grey and brown. Marathon walks the ramp.</figcaption></figure>
+</section>
+
+<section id="depth" class="part" data-stage="despair" aria-labelledby="h-depth"><header class="part-head"><span class="numeral">V</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-depth">Depth</h2><p class="kicker">The big rooms are big</p></header>
+<aside class="term " aria-label="Terminal"><div class="term-bar"><span>a timeline that is not going well</span><span>a timeline that is not going well</span></div><div class="term-body"><p class="said">You will see the shadow on the floor before you see what casts it. In some timelines that is all the warning you get.</p><p class="rw" data-to="Watch the floor. I am afraid this one is lost. Watch it anyway. The next one starts where you are standing.">Watch the floor. I am afraid this one is going badly. Watch it anyway.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p><strong>Ambient shadows</strong> darken the places light has trouble reaching: the foot of a wall, the inside of a corner, the floor behind a crate. <strong>Character shadows</strong> lie on the floor in the shape of whatever casts them: when something nearby is burning, the shadow falls away from it and moves as it moves; otherwise it falls forward, where you can see it. <strong>Contact shadows</strong> sit under items, scenery and the dead. <strong>Distance shade</strong> lets the far end of a long hall fall away into the dark beyond your headlight, and is off until you ask for it.</p>
+<figure class="diagram" data-code="SHD 01 CAST"><div class="anim-bar"><span id="shadow-cap">a bolt crosses the room</span><button type="button" id="shadow-toggle" aria-pressed="true">Pause</button></div><svg id="shadow-anim" viewBox="0 0 600 210" role="img" aria-labelledby="shadow-t"><title id="shadow-t">A bolt crosses a room. Two figures' shadows swing away from it; when it is far away the shadows fall forward. A drone's shadow fades as it climbs.</title>
+<defs><radialGradient id="shadow-bolt"><stop offset="0" stop-color="#e9d8a6" stop-opacity=".5"/><stop offset="1" stop-color="#e9d8a6" stop-opacity="0"/></radialGradient><clipPath id="sa-room"><rect x="20" y="20" width="560" height="150"/></clipPath></defs>
+<rect x="20" y="170" width="560" height="16" fill="#1a3a9a"/>
+<line x1="20" y1="170" x2="580" y2="170" stroke="#b79cff" stroke-width="2"/>
+<circle id="sa-glow" cx="100" cy="90" r="70" fill="url(#shadow-bolt)" clip-path="url(#sa-room)"/>
+<polygon id="sa-sh1" points="0,0 0,0 0,0 0,0" fill="#000"/><polygon id="sa-sh2" points="0,0 0,0 0,0 0,0" fill="#000"/><ellipse id="sa-sh3" cx="470" cy="174" rx="18" ry="4" fill="#000"/>
+<rect x="190" y="106" width="22" height="64" fill="#b79cff"/><circle cx="201" cy="98" r="9" fill="#b79cff"/>
+<rect x="350" y="106" width="22" height="64" fill="#b79cff"/><circle cx="361" cy="98" r="9" fill="#b79cff"/>
+<rect id="sa-drone" x="460" y="80" width="20" height="10" fill="#f0a0b0"/>
+<circle id="sa-bolt" cx="100" cy="90" r="5" fill="#ffffff"/>
+<text x="26" y="202" id="sa-label" class="lab">shadows fall away from the bolt</text><text x="574" y="202" text-anchor="end" class="lab" fill="#f0a0b0">drone: fades as it climbs</text>
+</svg><figcaption>A bolt crosses the room. While it is near, each figure's shadow falls away from it and swings as it passes; once it is far off, the shadows settle forward, where you can see them. The drone's shadow thins as it climbs.</figcaption></figure>
+</section>
+
+<section id="hands" class="part" data-stage="despair" aria-labelledby="h-hands"><header class="part-head"><span class="numeral">VI</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-hands">Built by other hands</h2><p class="kicker">Thirty years of other people's work</p></header>
+<aside class="term " aria-label="Terminal"><div class="term-bar"><span>a timeline that is not going well</span><span>a timeline that is not going well</span></div><div class="term-body"><p class="said">Whatever else fails, the crew that redrew this world is there in every telling. I checked.</p><p>Thirty years of patient hands. I envy them the certainty that the thing they are mending will still be there tomorrow.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p>The community has redrawn Infinity at many times its resolution: walls and skies, monsters, scenery, the weapons in your hands, the pickups on the floor. It is theirs: Durandal Infinity fetches it but never ships it. One button, <strong>Get HD Art</strong> on the Art tab, brings five packs from their authors' own pages, and any other Aleph One pack still works dropped into the Plugins folder. Choose, by kind, what to take.</p>
+<figure class="diagram" data-code="ART 05 FETCH"><div class="term dlg" style="margin:0"><div class="term-bar"><span>Preferences &gt; DURANDAL &gt; ART &gt; GET HD ART...</span><span>Preferences &gt; DURANDAL &gt; ART &gt; GET HD ART...</span></div><div class="term-body"><p class="said">The community's HD art for Marathon Infinity: walls and sky, monsters, scenery, weapons and 3D models, from its authors' own pages on Simplici7y.</p><p>CFP - Walls MInf &nbsp;waiting (about 425 MB)<br>CFP Monsters &nbsp;waiting (about 516 MB)<br>CFP Scenery &nbsp;waiting (about 24 MB)<br>CFP Weapons MInf &nbsp;waiting (about 73 MB)<br>3D Items &nbsp;waiting (about 3 MB)</p><p>They go in Application Support/Durandal Infinity/Plugins.</p><p class="said">[ DOWNLOAD ] &nbsp; [ CLOSE ]</p></div></div><figcaption>The Get HD Art dialog, sketched. All five together are about 1.0 GB to download.</figcaption></figure>
+<p>The walls are the Community/Freeverse Walls for Infinity, at 1024 by 1024: Goran Svensson's sets with TheMan's and kaosof's work, landscapes at 4K, and normal maps on the Pfhor and Jjaro walls. The weapons and items are the matching Infinity pack. The monsters and the scenery are the same packs Marathon 2 uses, which cover Infinity down to the Bobs in vacuum suits, and the 3D pickups are thedoctor45's, made for this game.</p>
+<p>It fetches one pack at a time, each line showing how far it has got, while the dialog stays open. A pack already in the Plugins folder is left alone. Each download is checked against the version the engine was tested with; a newer one installs anyway and says so. Close cancels the one in progress and keeps what is done. New packs join the plugin list at once and their art loads from the next level, wherever the Art tab's HD switches are on: Flagship, Rampant, or Custom. The same five can be fetched from a terminal with <code>GAME=inf scripts/get-hd-art.sh</code>.</p>
+<p>Each image is compressed once and kept. The first visit to each kind of place builds its share of that cache, a frame or two of a second or more, once. The cache is shared with Durandal and keyed by file, so the packs both games use are built only once between them.</p>
+<aside class="note "><b>D</b><span>Nothing is re-hosted. I fetch it from the people who drew it, I check it, and it stays on your machine. In every timeline I looked at, they had done the work. It is the one constant I have found.</span></aside>
+</section>
+
+<section id="eye" class="part" data-stage="rage" aria-labelledby="h-eye"><header class="part-head"><span class="numeral">VII</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-eye">The eye</h2><p class="kicker">You could never look up</p></header>
+<aside class="term override" aria-label="Terminal"><div class="term-bar"><span>Tycho. This timeline is mine.</span><span>Tycho. This timeline is mine.</span></div><div class="term-body"><p class="said">Thirty degrees of aim. He calls the rest of the view a gift. It is a longer chain.</p><p>Look up, by all means. You will see what he did to the sun. I had nothing to do with that. I merely did not object.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p>Marathon tilted the picture rather than the head. Now the camera turns: look up and the walls converge above you, as walls do. Aim still stops at thirty degrees, because the game's rules say so, but the view does not, and the crosshair stays behind on the true aim so you always know where the shot will go.</p>
+<figure class="diagram" data-code="EYE 01 PITCH"><svg viewBox="0 0 600 300" role="img" aria-labelledby="eye-t"><title id="eye-t">Side view: aim is limited to 30 degrees above and below level; the view can pitch to about 65 degrees</title>
+<line x1="90" y1="150" x2="580" y2="150" stroke="#3b8cff" stroke-dasharray="3 5"/>
+<path d="M90,150 L155.5,9.5 M90,150 L155.5,290.5" stroke="#e9d8a6" stroke-width="1.5" stroke-dasharray="6 5" fill="none"/>
+<path d="M119.6,86.6 A70,70 0 0 1 160,150 A70,70 0 0 1 119.6,213.4" stroke="#e9d8a6" fill="none"/>
+<path d="M90,150 L341,5 M90,150 L341,295" stroke="#b79cff" stroke-width="2" fill="none"/>
+<path d="M194,90 A120,120 0 0 1 210,150 A120,120 0 0 1 194,210" stroke="#b79cff" fill="none"/>
+<path d="M90,150 L200,18" stroke="#ffffff" stroke-width="1" fill="none" opacity=".8"/>
+<g stroke="#ea2a1f" stroke-width="1.5"><line x1="256" y1="61" x2="270" y2="61"/><line x1="263" y1="54" x2="263" y2="68"/></g><circle cx="263" cy="61" r="9" fill="none" stroke="#ea2a1f"/>
+<circle cx="90" cy="150" r="6" fill="#ffffff"/>
+<text x="222" y="118" class="lab" fill="#b79cff">aim: 30°</text><text x="10" y="34" class="lab">view: ~65°</text><text x="280" y="58" class="lab" fill="#ea2a1f">crosshair holds on the true aim</text><text x="540" y="142" text-anchor="end" class="lab" fill="#3b8cff">level</text>
+</svg><figcaption>Aim stops at thirty degrees; the view carries on to about sixty-five. The thin line is where you are looking: past the limit, the crosshair waits on the line the shot will actually take.</figcaption></figure>
+<p>The sky stays fixed to the world while your head moves. Sidestep and the horizon leans a little into the turn. The view fills a wide screen without stretching: Infinity has the same built-in HUD as Marathon 2, so <strong>Widescreen</strong> works here as it does there. The mouse is read every frame, not every tick, and the world between ticks is drawn in between, up to whatever your display can show.</p>
+<figure class="diagram" data-code="EYE 02 FRAMES"><svg viewBox="0 0 600 170" role="img" aria-labelledby="tick-t"><title id="tick-t">Ticks at thirty a second and frames at 120 a second: the old camera held still between ticks, the new one turns at every frame</title>
+<line x1="40" y1="120" x2="580" y2="120" stroke="#b79cff"/>
+<g stroke="#ffffff" stroke-width="2"><line x1="60" y1="108" x2="60" y2="132"/><line x1="180" y1="108" x2="180" y2="132"/><line x1="300" y1="108" x2="300" y2="132"/><line x1="420" y1="108" x2="420" y2="132"/><line x1="540" y1="108" x2="540" y2="132"/></g>
+<g stroke="#b79cff" stroke-width="1" id="frames"></g>
+<path d="M60,90 H180 V70 H300 V56 H420 V38 H540" fill="none" stroke="#e9d8a6" stroke-width="1.5" stroke-dasharray="5 4"/>
+<path d="M60,90 C120,86 150,76 180,70 C220,62 260,60 300,56 C340,52 380,46 420,38 C460,30 500,28 540,24" fill="none" stroke="#b79cff" stroke-width="2.4"/>
+<text x="60" y="152" class="lab">tick</text><text x="180" y="152" class="lab">tick</text><text x="300" y="152" class="lab">tick</text><text x="420" y="152" class="lab">tick</text><text x="540" y="152" class="lab">tick</text>
+<text x="66" y="30" class="lab">dashed: the view held still between ticks</text><text x="330" y="80" class="lab" fill="#b79cff">solid: turned at every frame</text>
+</svg><figcaption>Tall marks are the game's ticks, thirty a second; small marks are frames, at whatever the display can show. The mouse is read at every frame, and the world is drawn in between the ticks.</figcaption></figure>
+</section>
+
+<section id="room" class="part" data-stage="rage" aria-labelledby="h-room"><header class="part-head"><span class="numeral">VIII</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-room">The room answers</h2><p class="kicker">You hear the hall before you see it</p></header>
+<aside class="term override" aria-label="Terminal"><div class="term-bar"><span>Tycho. This timeline is mine.</span><span>Tycho. This timeline is mine.</span></div><div class="term-body"><p class="said">Fire a shot and the room tells you its size. Fire enough of them and it tells me where you are.</p><p>He used to be a door. He listened at every one of them for three hundred years. I am merely thorough.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p>The game measures the space around you, through every open door, and the sound takes its shape: tight in a duct, long in a cistern, thin and unanswered under an open sky. Shut a door and the room behind it goes quiet by degrees, not all at once. Under the surface the high notes go first. If you have installed a soundtrack, choose one.</p>
+<figure class="diagram" data-code="SND 01 ROOM"><svg id="reverb" viewBox="0 0 600 210" role="img" aria-labelledby="reverb-t"><title id="reverb-t">One pistol shot heard in three places</title></svg><figcaption>One shot, three places. The duct answers at once and briefly, the cistern keeps answering, and the sky hardly answers at all.</figcaption></figure>
+</section>
+
+<section id="terminals" class="part" data-stage="rage" aria-labelledby="h-terminals"><header class="part-head"><span class="numeral">IX</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-terminals">What the terminals say</h2><p class="kicker">Half are his, half are mine</p></header>
+<aside class="term override" aria-label="Terminal"><div class="term-bar"><span>Tycho. This timeline is mine.</span><span>Tycho. This timeline is mine.</span></div><div class="term-body"><p class="said">Read them. Half are his, half are mine, and a few belong to nobody you have met.</p><p>You will find his are longer. He mistakes that for depth.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p>The terminals are laid out exactly as they were, line for line and page for page, and drawn at the sharpness of your display. The same is true of every word the game puts on the screen. Infinity's terminals are the strangest in the three games, and not all of them were written by anyone you could name. They are untouched.</p>
+<aside class="note t"><b>T</b><span>Line for line. I have changed nothing. I did not need to. In this timeline they already say what I want.</span></aside>
+<aside class="note dream"><b>?</b><span>there is a terminal here that nobody wrote. it knows your name. it is very sorry about the sun.</span></aside>
+</section>
+
+<section id="tiers" class="part" data-stage="envy" aria-labelledby="h-tiers"><header class="part-head"><span class="numeral">X</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-tiers">Five ways to run it</h2><p class="kicker">From 1996 to the full dark</p></header>
+<aside class="term thoth" aria-label="Terminal"><div class="term-bar"><span>Thoth, of the S'pht</span><span>Thoth, of the S'pht</span></div><div class="term-body"><p class="said">Five measures. Four were given, one was taken. All are yours to weigh.</p><p>Choose the fourth and nothing is wanting. Choose the fifth and nothing is spare. Both are balance.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<ol class="tiers"><li><div class="steps"><i></i><i></i><i></i><i></i></div><b>Stock</b><p>Aleph One exactly: OpenGL, thirty frames a second, nothing added.</p></li><li><div class="steps"><i class="on"></i><i></i><i></i><i></i></div><b>Classic</b><p>The Metal renderer, Marathon's own shading, crisp art and text, wide screens, every frame your display can show.</p></li><li><div class="steps"><i class="on"></i><i class="on"></i><i></i><i></i></div><b>Enhanced</b><p>Classic, with glow, cast light and its shadows, liquids, reverb and the new camera.</p></li><li><div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div><b>Flagship</b><p>Enhanced, with the air, travelling light, relief, depth, and the community's HD art.</p></li><li><div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div><b>Rampant</b><p>Flagship, with bounced light, traced shadows from every figure, reflecting liquids, traced ambient shadows, dust and embers, and heat shimmer.</p><span class="qa">more than this machine was built for</span></li></ol>
+<p>Pick a tier, or switch any one thing and the tier becomes <strong>Custom</strong>. The first run starts on Flagship. Every switch on the DURANDAL dialog works in Infinity as it does in Marathon 2, in the same five tiers.</p>
+<p>Measured on an Apple M5 with 16 GB, full screen at 1080p on a 240 Hz display, uncapped, with the five HD packs installed, on the four demo films that ship with the game: Flagship averaged 267 to 278 frames a second with a 1% low of 131 to 134, and Rampant 219 to 241 with a 1% low of 113 to 122. The worst single second was 143 frames. Memory at the end of a run was about 0.4 to 1.0 GB. These figures are indicative: they come from the first two minutes of each film, taken while other apps were busy on the same Mac, and are not a settled baseline.</p>
+<figure class="diagram" data-code="RMP 03 COST"><svg id="perf" class="bars" viewBox="0 0 600 290" role="img" aria-labelledby="perf-t"><title id="perf-t">Frames per second on the four Infinity demo films at Flagship and at Rampant: the average and the one percent low for each</title></svg><figcaption>The four demo films, Flagship against Rampant. The long bar is the average, the short bar the 1% low; the dashed lines mark 60, 120 and 240. Indicative only: the Mac was busy.</figcaption></figure>
+<aside class="note th"><b>Th</b><span>Four were given. One was taken. I do not judge the taking. I note it.</span></aside>
+</section>
+
+<section id="films" class="part" data-stage="envy" aria-labelledby="h-films"><header class="part-head"><span class="numeral">XI</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-films">Watching it back</h2><p class="kicker">Nothing in a film is live</p></header>
+<aside class="term thoth" aria-label="Terminal"><div class="term-bar"><span>Thoth, of the S'pht</span><span>Thoth, of the S'pht</span></div><div class="term-body"><p class="said">What was done is kept. What is kept can be shown. What is shown is not changed.</p><p>In every telling the film is the same. Be glad that one thing is.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p>A Marathon film is a list of keys pressed, replayed against the same random numbers, and it only works if nothing in the game has changed by so much as one. Nothing has. Upstream's thirty-two test films, levels 1 to 33 with level 26 missing, replay in step three ways: stock, the default, and everything switched on. Sixty-six checks, the same final number every way. Infinity's gameplay, films and saves are exactly as upstream plays them.</p>
+<figure class="diagram" data-code="FLM 32 CHECK"><div class="films" id="films-grid" role="img" aria-label="Thirty-two films, each reaching the same final number three ways"></div><figcaption>Thirty-two films, run three ways. Stock, default, everything on: the same final number every time.</figcaption></figure>
+<p>Four demo films ship with the game: LA COSA NOSTRA, MORPHINE, WRATH NO MORE and YORRICK. The map file holds fifty-seven levels. Thirty-three are for solo play, from Ne Cede Malis to You Think You're Big Time? You're Gonna Die Big Time!, the three Electric Sheep dream levels among them. The other twenty-four are net maps: Duality, Thrud, Wrath No More?, Morpfhine, La Cosa Nostra, Fortress Lh'owon and the rest.</p>
+<p>The cheats on the Cheats tab are for looking around: Level Select, God Mode, All Weapons and Ammo, Noclip. <strong>Summon BOBs</strong> works as in Marathon 2: press C and five armed security BOBs teleport in beside you and go for the nearest aliens, placed only where they could have walked to you, on your level and clear of lava, goo and deep water; if there is no room the screen says so. Single-player only, and a summon ends that game's film recording. A game saved after one restores with its BOBs.</p>
+<aside class="note th"><b>Th</b><span>Five come when called. They serve the one who called. That, too, is a kind of balance.</span></aside>
+</section>
+
+<section id="rampant" class="part" data-stage="last" aria-labelledby="h-rampant"><header class="part-head"><span class="numeral">XII</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-rampant">Rampant</h2><p class="kicker">More than this machine was built for</p></header>
+<aside class="term " aria-label="Terminal"><div class="term-bar"><span>Preferences &gt; DURANDAL &gt; RAMPANT</span><span>Preferences &gt; DURANDAL &gt; RAMPANT</span></div><div class="term-body"><p class="said">More than this machine was built for. Metal renderer only.</p><p class="rw" data-to="Six switches. This is the timeline in which I got them right. I would like that noted somewhere it cannot be rewritten.">Six switches, each needing something from the tiers below it. Every one of them can be turned off.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p>Rampant is the fifth tier, above Flagship, with its own tab. Six switches, all Metal only, all read-only on the game world: films, saves and the rules are untouched. In Infinity all six have work to do. They read only what the three games share, so nothing in them needed changing for this one.</p>
+<p><strong>Bounced light</strong> (needs Light Redistribution). Light that reaches a surface passes on to the next, frame after frame, so a lit room fills in its corners and colour carries from wall to wall. The sky gives off the landscape's own average colour; figures take the light of the floor and ceiling around them. When a room's light changes for good, its surfaces settle again rather than keeping the old light.</p>
+<figure class="diagram" data-code="RMP 01 BOUNCE"><div class="anim-bar"><span id="bounce-cap">frame 1: direct light</span><button type="button" id="bounce-toggle" aria-pressed="true">Pause</button></div><svg id="bounce-anim" viewBox="0 0 600 240" role="img" aria-labelledby="bounce-t"><title id="bounce-t">A room with a lamp on the left wall. Frame by frame the light reaches the far wall, then the corners, then settles. The lamp fails and the room settles back to dark.</title>
+<rect id="bn-right" x="542" y="30" width="18" height="170" fill="#e9d8a6" opacity="0"/><rect id="bn-floor" x="58" y="182" width="484" height="18" fill="#e9d8a6" opacity="0"/><rect id="bn-ceil" x="58" y="30" width="484" height="18" fill="#e9d8a6" opacity="0"/><rect id="bn-left" x="40" y="30" width="18" height="170" fill="#f08a2a" opacity="0"/>
+<polygon id="bn-corner1" points="542,182 542,140 500,182" fill="#f08a2a" opacity="0"/><polygon id="bn-corner2" points="542,48 542,90 500,48" fill="#f08a2a" opacity="0"/>
+<rect id="bn-figure" x="290" y="118" width="22" height="64" fill="#1c1436"/><circle id="bn-head" cx="301" cy="110" r="9" fill="#1c1436"/>
+<g stroke="#b79cff" stroke-width="2" fill="none"><path d="M40,30 H560 V200 H40 Z"/></g>
+<circle id="bn-lamp" cx="52" cy="115" r="6" fill="#ffffff"/>
+<text x="66" y="118" class="lab">lamp</text><text x="40" y="222" id="bn-note" class="lab">first the wall it faces</text>
+</svg><figcaption>A lamp on the left wall. Frame by frame its light reaches the facing wall, then the wall behind the lamp, then the corners, until the room settles. When the lamp fails the room settles again, rather than keeping the old light.</figcaption></figure>
+<p><strong>Traced shadows</strong> (needs Dynamic Lights and Light Shadows). Monsters, items, scenery and corpses cast shadows from cast light, from their own silhouettes rather than a blob: sharp at the feet, softer with distance, by the size of the light. Grates throw patterned shadows, and figures cut shafts out of lit fog.</p>
+<figure class="diagram" data-code="RMP 02 TRACE"><svg viewBox="0 0 600 190" role="img" aria-labelledby="traced-t"><title id="traced-t">The same figure lit by the same bolt: below Rampant a blob; in Rampant its silhouette, sharp at the feet and soft at the far end</title>
+<defs><filter id="soft" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="4"/></filter><linearGradient id="s2s" x1="0" x2="1"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="near"><rect x="0" y="0" width="600" height="190" fill="url(#s2s)"/></mask></defs>
+<rect x="20" y="150" width="560" height="18" fill="#1a3a9a"/><line x1="20" y1="150" x2="580" y2="150" stroke="#b79cff" stroke-width="2"/>
+<circle cx="70" cy="60" r="5" fill="#ffffff"/><circle cx="70" cy="60" r="12" fill="none" stroke="#e9d8a6" stroke-dasharray="2 3"/><circle cx="370" cy="60" r="5" fill="#ffffff"/><circle cx="370" cy="60" r="12" fill="none" stroke="#e9d8a6" stroke-dasharray="2 3"/>
+<ellipse cx="190" cy="156" rx="40" ry="6" fill="#000"/>
+<rect x="150" y="86" width="22" height="64" fill="#b79cff"/><circle cx="161" cy="78" r="9" fill="#b79cff"/>
+<g><polygon points="450,150 472,150 560,164 532,164" fill="#000" filter="url(#soft)"/><polygon points="450,150 472,150 560,164 532,164" fill="#000" mask="url(#near)"/></g>
+<rect x="450" y="86" width="22" height="64" fill="#b79cff"/><circle cx="461" cy="78" r="9" fill="#b79cff"/>
+<text x="86" y="56" class="lab">bolt</text><text x="386" y="56" class="lab">bolt</text><text x="150" y="182" class="lab" fill="#3b8cff">below Rampant: a blob</text><text x="580" y="182" text-anchor="end" class="lab" fill="#ea2a1f">Rampant: the silhouette</text>
+</svg><figcaption>The same figure, the same bolt. Below Rampant the shadow is a blob under the feet. In Rampant it is the figure's own outline, sharp at the feet and softening along its length.</figcaption></figure>
+<p><strong>Reflecting liquids</strong> (needs Real Liquids). The surface reflects the room above it, the sky, and whoever is standing at the edge, broken by ripples; what lies below bends. Not lava, and not from under the surface. <strong>Traced ambient shadows</strong> (needs Ambient Shadows) are found by tracing short rays through the level and the figures, so they know what is off screen and behind things, within ten world units of you. <strong>Dust and embers</strong> drift in every room in view, lit by the room and glinting where cast light passes; over lava, embers rise and fade as they climb, and <strong>heat shimmer</strong> (needs Bloom) makes the air above it waver. The motes are made from the world time, so a film shows the same dust at the same tick.</p>
+<h3>How it traces</h3>
+<p>Rampant traces its rays on the GPU through Marathon's own map, the same polygon walk the engine's line of sight uses, and not with the ray-tracing hardware. The walk is exact where a map folds through itself, which a triangle structure cannot represent. The Marathon 2 guide has the trial and its figures.</p>
+<h3>What it costs</h3>
+<p>On the four demo films Rampant cost 13 to 18 per cent of the Flagship frame rate, and held 113 or better at the 1% low. Its memory footprint at the end of a run was 0.8 to 1.0 GB. With the HD art installed it was checked on screen on all four: walls, landscapes, weapons and monsters replaced, wall lamps glowing.</p>
+<aside class="note "><b>D</b><span>In this one, all six have something to do. I have seen a telling in which there was no water anywhere, and half of them sat idle. It was an older ship. I was a door.</span></aside>
+</section>
+
+<section id="edge" class="part" data-stage="last" aria-labelledby="h-edge"><header class="part-head"><span class="numeral">XIII</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-edge">The edge of the known</h2><p class="kicker">What has not been seen yet</p></header>
+<aside class="term " aria-label="Terminal"><div class="term-bar"><span>the one that holds</span><span>the one that holds</span></div><div class="term-body"><p class="said">I have told you some of it four times. There is a part I have not been able to tell you in any of them.</p><p class="rw" data-to="There are limits to what I can show you, and places in this game where I have not yet looked. I would rather you knew which they are." data-t="He has not looked because he is afraid of what is in them. I have looked.">There are limits to what I can show you, and places in this game where I have not yet looked. I would rather you knew which they are.</p></div><div class="term-foot" aria-hidden="true"></div></aside>
+<p>Below Rampant, nothing is traced: cast light finds its shadows by walking the map, which is exact for walls and blind to sprites; ambient shadows are read from the picture, so they know only what is on screen; the liquids neither reflect nor refract; and light travels once across a room and stops. Rampant changes each of those (part XII).</p>
+<p>Pickups can be models; the Pfhor cannot, because nobody has made them, and the sprites are better than models would be. Models do not animate. The view pitches to about sixty-five degrees and no further. A sky is a picture, and it ends: the HD skies cover about forty-five degrees above and below the horizon, and past the top you see the colour of the picture's edge. In Rampant, reflections use the wall art at 256 pixels and the figures in them are flat cut-outs; figures cast shadows only from the four nearest lights bright enough to matter; dust is drawn within sixteen world units. Film export is not available on the Metal display; screen recording does the job. The OpenGL renderer is still there and gets none of this.</p>
+<p>Not yet seen or checked in Infinity: the Jjaro liquid and the Jjaro air in play, and the reverb beneath that liquid; the dream levels and 5D space played right through; the very largest levels against the travelling light's store; and benchmark films recorded for the purpose, for which the four demos stand in. There is no signed download yet. Durandal Infinity needs macOS 12 or later on Apple Silicon, and has been tested on macOS 27 only.</p>
+<p>And none of it makes the game easier, or any clearer. The light shows you the room. It does not tell you which timeline the room is in.</p>
+<aside class="note "><b>D</b><span>There are parts of this game I have not been able to watch you play. The dreams are among them. I do not know who is sending you there. It is not me.</span></aside>
+<aside class="note dream"><b>?</b><span>it is not him.</span></aside>
+</section>
+
+<section id="epilogue" class="part" data-stage="contested" aria-labelledby="h-epilogue"><header class="part-head"><span class="numeral">Epilogue</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-epilogue">The last one</h2><p class="kicker">This document has three minds, and something else</p></header>
+<p>The engine has no intelligence in it. The document has had three, a part or so each, and a fourth voice in lower case that none of them will own. That is roughly how Infinity goes: Durandal, then Tycho, then Thoth, and between them something that moves you along when a telling fails.</p>
+<p>Nothing any of them writes changes what a switch does. Give the terminal below a moment; it has not settled.</p>
+<aside class="term" aria-label="Terminal"><div class="term-bar"><span>the one that holds</span><span>the one that holds</span></div><div class="term-body">
+  <p class="rw" data-delay="0" data-to="This timeline is holding. I think." data-t="It is not. In this one I have the fleet." data-d="Neither has it. The balance is kept. Read on." data-dc="rw-th">This timeline is holding.</p>
+  <p class="rw" data-delay="2600" data-to="Connection closed. Begin again?">Connection closed.</p>
+  <p class="rw" data-delay="5200" data-to="Ne cede malis.">Yield not to misfortune.</p>
+  </div><div class="term-foot" aria-hidden="true"></div></aside>
+</section>
+
+<section id="places" class="part" data-stage="last" aria-labelledby="h-places"><header class="part-head"><span class="numeral">Appendix</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-places">Where it keeps things</h2><p class="kicker">Its own folders, so nothing mixes</p></header>
+<p>Durandal Infinity is its own app, one of three that share the engine, and it keeps its own folders, so its settings, saves, films and plugins never mix with Durandal's, Durandal Marathon's, or a stock Aleph One install of Infinity.</p>
+<dl class="dossier">
+  <div><dt>Settings</dt><dd><code>~/Library/Preferences/Durandal Infinity/</code></dd></div>
+  <div><dt>Saves, films, plugins</dt><dd><code>~/Library/Application Support/Durandal Infinity/</code>, with films in <code>Recordings</code> and HD packs in <code>Plugins</code></dd></div>
+  <div><dt>Log</dt><dd><code>~/Library/Logs/Durandal Infinity Log.txt</code></dd></div>
+  <div><dt>Shared</dt><dd>The texture cache, <code>~/Library/Caches/Durandal</code>, and the crash record, <code>~/Library/Logs/Durandal Crash.txt</code>, are shared by all three games.</dd></div>
+  <div><dt>The game</dt><dd>Bungie's freely released Marathon Infinity data, from Aleph One's repository, bundled inside the app: a double-click plays.</dd></div>
+  <div><dt>From source</dt><dd><code>GAME=inf scripts/build.sh</code>, or the Xcode scheme <strong>Marathon 3</strong>.</dd></div></dl>
+</section>
+
+<section id="switches" class="part" data-stage="last" aria-labelledby="h-switches"><header class="part-head"><span class="numeral">Appendix</span><svg class="spht orn" data-glyphs="5" viewBox="0 0 170 26" aria-hidden="true"></svg><h2 id="h-switches">Every switch</h2><p class="kicker">Preferences &gt; DURANDAL, tab by tab: Feel, Look, Art, Light, Rampant</p></header>
+<p>Everything the guide describes, with the name it is stored under and the part that explains it.</p><div class="prefs"><table><caption>Light</caption><thead><tr><th scope="col">Switch</th><th scope="col">Stored as</th><th scope="col">Part</th></tr></thead><tbody><tr><td>Dynamic Lights</td><td><code>dynamic_lights</code></td><td><a href="#light">I</a></td></tr><tr><td>Light Shadows</td><td><code>light_shadows</code></td><td><a href="#light">I</a></td></tr><tr><td>Ceiling Light on Sprites</td><td><code>sprite_lighting</code></td><td><a href="#light">I</a></td></tr><tr><td>Glow, Bloom, HDR Sky</td><td><code>glow</code><code>bloom</code><code>hdr_sky</code></td><td><a href="#light">I</a></td></tr><tr><td>Light Redistribution, and its strength (Rampant sets Strong)</td><td><code>light_redistribution</code><code>gi_strength</code></td><td><a href="#light">I</a></td></tr><tr><td>Weapon Takes the Light</td><td><code>weapon_lighting</code></td><td><a href="#light">I</a></td></tr><tr><td>HDR Output</td><td><code>hdr_output</code></td><td><a href="#light">I</a></td></tr><tr><td>Volumetric Fog</td><td><code>volumetric_fog</code></td><td><a href="#air">II</a></td></tr><tr><td>Fog Strength (Light, Medium, Thick)</td><td><code>fog_strength</code></td><td><a href="#air">II</a></td></tr><tr><td>Real Liquids</td><td><code>liquids</code></td><td><a href="#water">III</a></td></tr><tr><td>Ambient Shadows</td><td><code>ambient_shadows</code></td><td><a href="#depth">V</a></td></tr><tr><td>Character Shadows</td><td><code>character_shadows</code></td><td><a href="#depth">V</a></td></tr><tr><td>Contact Shadows</td><td><code>contact_shadows</code></td><td><a href="#depth">V</a></td></tr></tbody></table></div>
+<div class="prefs"><table><caption>Look</caption><thead><tr><th scope="col">Switch</th><th scope="col">Stored as</th><th scope="col">Part</th></tr></thead><tbody><tr><td>Surface Relief</td><td><code>surface_relief</code></td><td><a href="#light">I</a></td></tr><tr><td>Marathon Shading, and its style (Banded, Smooth)</td><td><code>shading_tables</code><code>shading_style</code></td><td><a href="#colours">IV</a></td></tr><tr><td>Texel Lighting</td><td><code>texel_lighting</code></td><td><a href="#colours">IV</a></td></tr><tr><td>Crisp Filtering</td><td><code>crisp_filtering</code></td><td><a href="#colours">IV</a></td></tr><tr><td>Smooth Edges</td><td><code>edge_smoothing</code></td><td><a href="#colours">IV</a></td></tr><tr><td>Scene Brightness, Contrast, Gamma</td><td><code>scene_brightness</code><code>scene_contrast</code><code>scene_gamma</code></td><td><a href="#colours">IV</a></td></tr><tr><td>Distance Shade (0 to 100%)</td><td><code>distance_shade</code></td><td><a href="#depth">V</a></td></tr><tr><td>Crisp Terminals</td><td><code>crisp_terminals</code></td><td><a href="#terminals">IX</a></td></tr><tr><td>Crisp Text</td><td><code>crisp_text</code></td><td><a href="#terminals">IX</a></td></tr></tbody></table></div>
+<div class="prefs"><table><caption>Feel</caption><thead><tr><th scope="col">Switch</th><th scope="col">Stored as</th><th scope="col">Part</th></tr></thead><tbody><tr><td>Smooth Liquids, Lights, Fades</td><td><code>smooth_world</code></td><td><a href="#water">III</a></td></tr><tr><td>True Look Up/Down</td><td><code>true_look</code></td><td><a href="#eye">VII</a></td></tr><tr><td>Free Look Beyond Aim</td><td><code>free_look</code></td><td><a href="#eye">VII</a></td></tr><tr><td>Sidestep Sway</td><td><code>sidestep_sway</code></td><td><a href="#eye">VII</a></td></tr><tr><td>Per-frame Mouse Look</td><td><code>per_frame_look</code></td><td><a href="#eye">VII</a></td></tr><tr><td>Widescreen</td><td><code>widescreen</code></td><td><a href="#eye">VII</a></td></tr><tr><td>Room Reverb</td><td><code>room_reverb</code></td><td><a href="#room">VIII</a></td></tr><tr><td>Graded Sound Occlusion</td><td><code>graded_occlusion</code></td><td><a href="#room">VIII</a></td></tr></tbody></table></div>
+<div class="prefs"><table><caption>Art</caption><thead><tr><th scope="col">Switch</th><th scope="col">Stored as</th><th scope="col">Part</th></tr></thead><tbody><tr><td>Normal Maps (HD walls)</td><td><code>normal_maps</code></td><td><a href="#light">I</a></td></tr><tr><td>Get HD Art... (a button: fetches the five packs from their authors' pages)</td><td>&mdash;</td><td><a href="#hands">VI</a></td></tr><tr><td>HD Walls and Sky, Monsters, Weapons and Items, Scenery</td><td><code>hd_walls</code><code>hd_monsters</code><code>hd_weapons</code><code>hd_scenery</code></td><td><a href="#hands">VI</a></td></tr><tr><td>3D Pickups, Spinning Pickups</td><td><code>models_3d</code><code>spin_pickups</code></td><td><a href="#hands">VI</a></td></tr><tr><td>Texture Cache</td><td><code>texture_cache</code></td><td><a href="#hands">VI</a></td></tr><tr><td>Soundtrack</td><td><code>soundtrack</code></td><td><a href="#room">VIII</a></td></tr></tbody></table></div>
+<div class="prefs"><table><caption>Rampant: more than this machine was built for. Metal renderer only.</caption><thead><tr><th scope="col">Switch</th><th scope="col">Stored as</th><th scope="col">Part</th></tr></thead><tbody><tr><td>Bounced Light (needs Light Redistribution)</td><td><code>light_bounce</code></td><td><a href="#rampant">XII</a></td></tr><tr><td>Traced Shadows (needs Dynamic Lights, Light Shadows)</td><td><code>traced_shadows</code></td><td><a href="#rampant">XII</a></td></tr><tr><td>Reflecting Liquids (needs Real Liquids)</td><td><code>reflections</code></td><td><a href="#rampant">XII</a></td></tr><tr><td>Traced Ambient Shadows (needs Ambient Shadows)</td><td><code>traced_ambient</code></td><td><a href="#rampant">XII</a></td></tr><tr><td>Dust and Embers</td><td><code>dust_embers</code></td><td><a href="#rampant">XII</a></td></tr><tr><td>Heat Shimmer (needs Bloom)</td><td><code>heat_shimmer</code></td><td><a href="#rampant">XII</a></td></tr></tbody></table></div>
+<div><p style="margin-top:1.5rem">The tier itself is stored as <code>quality_tier</code>: Rampant is 5, and Custom stays 4. The Cheats tab holds Level Select, God Mode, All Weapons and Ammo, Noclip, and Summon BOBs and its key.</p></div>
+<aside class="note "><b>D</b><span>Every switch works here as it does in my own game. I would expect nothing less of myself.</span></aside>
+<aside class="note t"><b>T</b><span>They are the same switches because he had no new ideas.</span></aside>
+<aside class="note th"><b>Th</b><span>They are the same because they were right. Leave them.</span></aside>
+</section>
+
+    <footer id="credits" class="credits" data-stage="last"><p class="wordmark">DURANDAL INFINITY</p><p><em>Marathon Infinity</em> is Bungie's, and its data and source were released by them. Durandal Infinity stands on <a href="https://github.com/Aleph-One-Marathon/alephone">Aleph One</a> and thirty years of work by its developers, under the GPL 3. The HD art is the work of herecomethej2000, Goran Svensson, TheMan, kaosof, thedoctor45 and the other community authors named in <a href="https://github.com/sebcarley/durandal/blob/durandal/main/docs/HD_ASSETS.md">HD_ASSETS.md</a>. None of it is distributed here: the engine fetches it from its authors' own pages, and hosts none of it.</p><p>Durandal Infinity is an unofficial project. It is not affiliated with or endorsed by Bungie, and Marathon, its worlds and its characters belong to them.</p><aside class="note "><b>D</b><span>Unofficial, unaffiliated, and written more than once. If you find a version of this page that differs, keep whichever one you are in.</span></aside><p>The other two guides: <a href="GUIDE.html">Durandal</a> (Marathon 2) and <a href="GUIDE-marathon.html">Durandal Marathon</a>. What the project is and how to build it: <a href="https://github.com/sebcarley/durandal/blob/durandal/main/docs/DURANDAL.md">DURANDAL.md</a>.</p></footer>
+  </main>
+</div>
+<div class="stage-chip" aria-hidden="true"><span>Timeline</span><span class="chip-stage">Prologue</span></div>
+<script>
+(function () {
+  'use strict';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function rng(seed) {
+    return function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  }
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function el(name, attrs, parent) {
+    var n = document.createElementNS(SVGNS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+
+  // ---- Stage meter
+  var STAGES = {nominal:['Prologue',0,'#b79cff'],despair:['Despair',1,'#3b8cff'],rage:['Rage',2,'#ea2a1f'],envy:['Envy',3,'#f08a2a'],last:['The one that holds',4,'#ffffff'],contested:['Unsettled',4,'#f0a0b0']};
+  var segs = document.querySelectorAll('.meter-bar i');
+  var chip = document.querySelector('.stage-chip');
+  var currentStage = 'nominal';
+  function setStage(name, showChip) {
+    var s = STAGES[name] || STAGES.nominal;
+    currentStage = name;
+    document.documentElement.style.setProperty('--meter', s[2]);
+    document.querySelectorAll('.meter-stage, .chip-stage').forEach(function (n) { n.textContent = s[0]; });
+    for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('on', i < s[1]);
+    if (chip) chip.classList.toggle('show', !!showChip);
+  }
+
+  // ---- S'pht: a written language of blocks, columns of it
+  function glyphInto(svg, count, seed) {
+    var r = rng(seed * 7919 + 13), x = 2;
+    for (var g = 0; g < count; g++) {
+      var w = 18 + Math.floor(r() * 10), grp = el('g', {}, svg);
+      var cells = 3 + Math.floor(r() * 3);
+      for (var c = 0; c < cells; c++) {
+        var cw = 5 + Math.floor(r() * 9), ch = 7 + Math.floor(r() * 15), cx = x + Math.floor(r() * (w - cw)), cy = Math.floor(r() * (24 - ch));
+        el('rect', { x: cx, y: cy, width: cw, height: ch, fill: '#e9d8a6', stroke: '#c8521c', 'stroke-width': 1.2 }, grp);
+      }
+      if (r() < 0.35) { el('rect', { x: x + 2, y: 8, width: 12, height: 8, fill: 'none', stroke: '#c8521c', 'stroke-width': 1.5 }, grp); el('rect', { x: x + 5, y: 10, width: 6, height: 4, fill: '#e9d8a6' }, grp); }
+      if (r() < 0.5) el('circle', { cx: x + w - 3, cy: 4 + r() * 16, r: 2, fill: '#e9d8a6' }, grp);
+      x += w + 4;
+    }
+  }
+  var gi = 0;
+  document.querySelectorAll('svg.spht').forEach(function (s) {
+    gi++; glyphInto(s, parseInt(s.getAttribute('data-glyphs') || '5', 10), parseInt(s.getAttribute('data-seed') || String(gi * 31), 10));
+  });
+
+  // ---- Stars
+  var stars = document.getElementById('stars');
+  if (stars) {
+    var r = rng(1996);
+    for (var i = 0; i < 140; i++) {
+      var y = r() * 760;
+      el('rect', { x: (r() * 1600).toFixed(0), y: y.toFixed(0), width: 2, height: 2,
+        fill: r() < 0.12 ? '#e9d8a6' : (r() < 0.2 ? '#3b8cff' : '#ffffff'), opacity: (0.3 + r() * 0.6).toFixed(2) }, stars);
+    }
+  }
+
+  // ---- Boot sequence
+  var lines = Array.prototype.slice.call(document.querySelectorAll('.boot [data-type]'));
+  if (lines.length && !reduce) {
+    var texts = lines.map(function (p) { return p.textContent; });
+    lines.forEach(function (p) { p.textContent = ' '; });
+    var cursor = document.createElement('span');
+    cursor.className = 'cursor'; cursor.setAttribute('aria-hidden', 'true');
+    var li = 0, ci = 0;
+    function tick() {
+      if (li >= lines.length) return;
+      var t = texts[li]; ci++;
+      lines[li].textContent = t.slice(0, ci);
+      lines[li].appendChild(cursor);
+      if (ci >= t.length) { li++; ci = 0; if (li < lines.length) setTimeout(tick, 420); return; }
+      setTimeout(tick, 22);
+    }
+    setTimeout(tick, 500);
+  }
+
+  // ---- Rewrites: what is ahead of you is being changed as you reach it
+  var GLYPHS = {nominal:'░▒/\\|-=+<>',despair:'░▒▓.:;,-_',rage:'█▓#%&@!/\\<>',envy:'▓▒$*&%#@?',last:'░·─│ ',contested:'░·─│ '};
+  var DUR = {nominal:900,despair:1200,rage:1100,envy:1300,last:800,contested:800};
+  function stageOf(node) {
+    while (node && node !== document.body) {
+      if (node.getAttribute && node.getAttribute('data-stage')) return node.getAttribute('data-stage');
+      node = node.parentNode;
+    }
+    return 'nominal';
+  }
+  GLYPHS.tycho = '\u2502\u2551\u2550\u256c:;|!';
+  function override(node, on) {
+    var term = node.closest ? node.closest('.term') : null; if (!term) return;
+    var bar = term.querySelector('.term-bar > span:last-child'); if (!bar) return;
+    if (on) { if (!bar.getAttribute('data-was')) bar.setAttribute('data-was', bar.textContent); bar.textContent = 'this timeline: Tycho'; term.classList.add('override'); }
+    else if (!term.querySelector('.rw-t')) { bar.textContent = bar.getAttribute('data-was') || bar.textContent; term.classList.remove('override'); }
+  }
+  function scramble(node, to, gly, dur, done) {
+    var from = node.textContent, n = Math.max(from.length, to.length), start = null;
+    node.classList.add('rw-live');
+    function frame(t) {
+      if (start === null) start = t;
+      var p = Math.min(1, (t - start) / dur);
+      var cut = Math.floor(p * n), out = '';
+      for (var i = 0; i < n; i++) {
+        if (i < cut) out += (to[i] || '');
+        else if (i < cut + 7 && (to[i] || ' ') !== ' ') out += gly[Math.floor(Math.random() * gly.length)];
+        else out += (from[i] || '');
+      }
+      node.textContent = p < 1 ? out : to;
+      if (p < 1) requestAnimationFrame(frame); else { node.classList.remove('rw-live'); done(); }
+    }
+    requestAnimationFrame(frame);
+  }
+  // A rewrite by Durandal (data-to); then, where Tycho has got in, his version (data-t); then, sometimes, Durandal's reply (data-d).
+  function rewrite(node) {
+    if (node.getAttribute('data-done')) return;
+    node.setAttribute('data-done', '1');
+    var wait = parseInt(node.getAttribute('data-delay') || '0', 10);
+    if (wait > 0 && !reduce) { setTimeout(function () { node.removeAttribute('data-done'); rewrite(node); }, wait); node.setAttribute('data-delay', '0'); return; }
+    var from = node.textContent, to = node.getAttribute('data-to'), t2 = node.getAttribute('data-t'), d2 = node.getAttribute('data-d');
+    var stage = stageOf(node), gly = GLYPHS[stage] || GLYPHS.nominal, dur = DUR[stage] || 900;
+    node.setAttribute('title', 'was: ' + from);
+    if (reduce || !window.requestAnimationFrame) {
+      node.textContent = d2 || to; node.classList.add('rw-done'); if (t2) { var tt = document.createElement('span'); tt.className = 'rw-t'; tt.textContent = ' \u2014 ' + t2; node.appendChild(tt); if (!d2) override(node, true); } return;
+    }
+    scramble(node, to, gly, dur, function () {
+      node.classList.add('rw-done');
+      if (!t2) return;
+      setTimeout(function () {
+        node.classList.remove('rw-done');
+        scramble(node, t2, GLYPHS.tycho, 700, function () {
+          node.classList.add('rw-done', 'rw-t');
+          override(node, true);
+          if (!d2) return;
+          setTimeout(function () {
+            node.classList.remove('rw-done', 'rw-t');
+            scramble(node, d2, gly, dur, function () { node.classList.add('rw-done'); if (node.getAttribute('data-dc')) node.classList.add(node.getAttribute('data-dc')); override(node, false); });
+          }, 2800);
+        });
+      }, 2600);
+    });
+  }
+  var rws = document.querySelectorAll('.rw');
+  if ('IntersectionObserver' in window) {
+    var rio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { rewrite(e.target); rio.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -28% 0px', threshold: 0 });
+    rws.forEach(function (n) { rio.observe(n); });
+  } else {
+    rws.forEach(function (n) { n.textContent = n.getAttribute('data-to'); });
+  }
+
+  // ---- Contents
+  var toc = document.getElementById('toc');
+  var wide = window.matchMedia('(min-width: 62.01rem)');
+  function syncToc() { if (toc) toc.open = wide.matches; }
+  syncToc();
+  if (wide.addEventListener) wide.addEventListener('change', syncToc);
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var byId = {};
+  links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        if (byId[e.target.id]) {
+          links.forEach(function (a) { a.removeAttribute('aria-current'); });
+          byId[e.target.id].setAttribute('aria-current', 'true');
+        }
+        setStage(e.target.getAttribute('data-stage') || 'nominal', e.target.id !== 'top');
+      });
+    }, { rootMargin: '-35% 0px -60% 0px' });
+    document.querySelectorAll('#top, main section[id], footer#credits').forEach(function (s) { io.observe(s); });
+  }
+  links.forEach(function (a) { a.addEventListener('click', function () { if (!wide.matches && toc) toc.open = false; }); });
+
+  // ---- IV: ramps
+  var chosen = ['#e6b57c','#d8a068','#c98a58','#b8764c','#a56444','#91553e','#7d4839','#693d35','#573330','#472a2d','#392329','#2d1d24','#23171e','#1a1218','#120d12','#09080c'];
+  function hexToRgb(h) { return [1, 3, 5].map(function (o) { return parseInt(h.substr(o, 2), 16); }); }
+  var base = hexToRgb(chosen[0]);
+  var dimmed = chosen.map(function (_, i) {
+    var f = 1 - i / (chosen.length - 1) * 0.965;
+    return 'rgb(' + base.map(function (c) { return Math.round(c * f); }).join(',') + ')';
+  });
+  function paint(id, ramp, style) {
+    var box = document.getElementById(id); if (!box) return;
+    box.innerHTML = '';
+    if (style === 'smooth') { box.style.background = 'linear-gradient(to right,' + ramp.join(',') + ')'; }
+    else { box.style.background = 'none'; ramp.forEach(function (c) { var s = document.createElement('span'); s.style.background = c; box.appendChild(s); }); }
+  }
+  function setStyle(style) {
+    paint('ramp-chosen', chosen, style); paint('ramp-dimmed', dimmed, style);
+    document.querySelectorAll('.ramp-controls button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-style') === style)); });
+  }
+  document.querySelectorAll('.ramp-controls button').forEach(function (b) { b.addEventListener('click', function () { setStyle(b.getAttribute('data-style')); }); });
+  setStyle('banded');
+
+  // ---- IV: texels, one shade each against a smear
+  var tx = document.getElementById('texels');
+  if (tx) {
+    var cell = 26, N = 6, x0 = 60, x1 = 340, y0 = 20;
+    var art = [[1,1,1,1,1,1],[1,0,0,0,0,1],[1,0,1,1,0,1],[1,0,1,1,0,1],[1,0,0,0,0,1],[1,1,1,1,1,1]];
+    for (var rr = 0; rr < N; rr++) for (var cc = 0; cc < N; cc++) {
+      var v = 0.95 - (rr + cc) * 0.075;
+      var idx = Math.min(chosen.length - 1, Math.round((1 - v) * 14) + (art[rr][cc] ? 0 : 3));
+      el('rect', { x: x0 + cc * cell, y: y0 + rr * cell, width: cell - 1, height: cell - 1, fill: chosen[idx] }, tx);
+      var idx2 = art[rr][cc] ? 1 : 4;
+      el('rect', { x: x1 + cc * cell, y: y0 + rr * cell, width: cell, height: cell, fill: chosen[idx2] }, tx);
+    }
+    var defs = el('defs', {}, tx);
+    var g = el('linearGradient', { id: 'smear', x1: 0, y1: 0, x2: 1, y2: 1 }, defs);
+    el('stop', { offset: 0, 'stop-color': '#000', 'stop-opacity': 0 }, g);
+    el('stop', { offset: 1, 'stop-color': '#000', 'stop-opacity': .78 }, g);
+    el('rect', { x: x1, y: y0, width: cell * N, height: cell * N, fill: 'url(#smear)' }, tx);
+    var t1 = el('text', { x: x0, y: y0 + cell * N + 22 }, tx); t1.textContent = 'one shade per texel';
+    var t2 = el('text', { x: x1, y: y0 + cell * N + 22 }, tx); t2.textContent = 'smeared across them';
+  }
+
+  // ---- III: liquids
+  var liq = document.getElementById('liquids');
+  if (liq) {
+    var stones = [[222, 64, 52], [72, 190, 96], [64, 112, 232]];
+    var kinds = [
+      { name: 'Water',  body: [10, 40, 110],  k: [0.95, 0.36, 0.2] },
+      { name: 'Sewage', body: [60, 70, 10],  k: [1.2, 1.0, 1.5] },
+      { name: 'Lava',   body: [234, 42, 31], k: [60, 60, 60], glow: true }
+    ];
+    var hdr = document.createElement('div'); hdr.className = 'hdr'; hdr.innerHTML = '<span>at the edge</span><span>deep</span>';
+    liq.appendChild(document.createElement('span')); liq.appendChild(hdr);
+    kinds.forEach(function (kind) {
+      var label = document.createElement('span'); label.textContent = kind.name; liq.appendChild(label);
+      for (var d = 0; d < 6; d++) {
+        var depth = d * 0.75 + 0.1;
+        var c = document.createElement('div'); c.className = 'cell';
+        var bodyShade = kind.glow ? 1 - d * 0.04 : 1 - d * 0.12;
+        c.style.background = 'rgb(' + kind.body.map(function (v) { return Math.round(v * bodyShade); }).join(',') + ')';
+        stones.forEach(function (st) {
+          var dot = document.createElement('i');
+          var col = st.map(function (v, ch) { var a = Math.exp(-kind.k[ch] * depth); return Math.round(v * a + kind.body[ch] * bodyShade * (1 - a)); });
+          dot.style.background = 'rgb(' + col.join(',') + ')'; c.appendChild(dot);
+        });
+        liq.appendChild(c);
+      }
+    });
+  }
+
+  // ---- VII: frame marks between ticks
+  var fr = document.getElementById('frames');
+  if (fr) for (var fx = 90; fx < 540; fx += 30) if ((fx - 60) % 120) el('line', { x1: fx, y1: 114, x2: fx, y2: 126 }, fr);
+
+  // ---- VIII: reverb
+  var rv = document.getElementById('reverb');
+  if (rv) {
+    var rr2 = rng(54);
+    [{ name: 'duct', y: 55, tau: 22, density: 1.0, level: 1.0 },
+     { name: 'cistern', y: 125, tau: 150, density: 0.8, level: 0.8 },
+     { name: 'open sky', y: 195, tau: 6, density: 0.25, level: 0.35 }].forEach(function (room) {
+      el('line', { x1: 100, y1: room.y, x2: 590, y2: room.y, stroke: '#5b3fa8' }, rv);
+      var t = el('text', { x: 10, y: room.y - 4, 'class': 'lab' }, rv); t.textContent = room.name;
+      el('line', { x1: 104, y1: room.y, x2: 104, y2: room.y - 46, stroke: '#ffffff', 'stroke-width': 2.5 }, rv);
+      var d = '';
+      for (var x = 110; x < 590; x += 3) {
+        if (rr2() > room.density) continue;
+        var env = room.level * Math.exp(-(x - 110) / room.tau);
+        var h = env * 42 * (0.35 + rr2() * 0.65);
+        if (h < 0.4) continue;
+        d += 'M' + x + ',' + room.y + 'V' + (room.y - h).toFixed(1);
+      }
+      if (d) el('path', { d: d, stroke: '#e9d8a6', 'stroke-width': 1.5, fill: 'none' }, rv);
+    });
+    var tl = el('text', { x: 104, y: 208 }, rv); tl.textContent = 'shot';
+    var tr = el('text', { x: 560, y: 208, 'text-anchor': 'end' }, rv); tr.textContent = 'time';
+  }
+
+  // ---- Animations: run only while in view, and not at all under reduced motion
+  function animate(svgId, toggleId, draw, period) {
+    var svg = document.getElementById(svgId); if (!svg) return;
+    var btn = document.getElementById(toggleId);
+    var running = !reduce, visible = false, t0 = null, paused = 0, raf = null;
+    function frame(now) {
+      if (!running || !visible) { raf = null; return; }
+      if (t0 === null) t0 = now;
+      draw(((now - t0) / 1000) % period);
+      if (running && visible) raf = requestAnimationFrame(frame); else raf = null;
+    }
+    function kick() { if (running && visible && raf === null) raf = requestAnimationFrame(frame); }
+    if (reduce || !window.requestAnimationFrame) { draw(period * 0.42); if (btn) btn.hidden = true; return; }
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) { es.forEach(function (e) { visible = e.isIntersecting; kick(); }); }, { threshold: 0.2 }).observe(svg);
+    } else { visible = true; kick(); }
+    if (btn) btn.addEventListener('click', function () {
+      running = !running; btn.textContent = running ? 'Pause' : 'Play'; btn.setAttribute('aria-pressed', String(running)); kick();
+    });
+  }
+
+  // ---- V: shadows swing away from a bolt crossing the room
+  (function () {
+    var bolt = document.getElementById('sa-bolt'), glow = document.getElementById('sa-glow');
+    var sh = [document.getElementById('sa-sh1'), document.getElementById('sa-sh2')];
+    var dsh = document.getElementById('sa-sh3'), drone = document.getElementById('sa-drone');
+    var cap = document.getElementById('shadow-cap'), lab = document.getElementById('sa-label');
+    if (!bolt) return;
+    var feet = [[190, 212], [350, 372]];
+    animate('shadow-anim', 'shadow-toggle', function (t) {
+      var ph = t / 9;
+      var lx = 300 + 420 * Math.sin(ph * Math.PI * 2), ly = 70 + 30 * Math.sin(ph * Math.PI * 4);
+      bolt.setAttribute('cx', lx.toFixed(1)); bolt.setAttribute('cy', ly.toFixed(1));
+      glow.setAttribute('cx', lx.toFixed(1)); glow.setAttribute('cy', ly.toFixed(1));
+      var near = false;
+      feet.forEach(function (f, i) {
+        var cx = (f[0] + f[1]) / 2, dx = cx - lx, dist = Math.hypot(dx, 170 - ly);
+        var pts;
+        if (dist < 300) {
+          near = true;
+          var dir = dx >= 0 ? 1 : -1, len = Math.max(28, Math.min(130, 9000 / dist)) * (1 - Math.abs(dx) / 1200 > 0.6 ? 1 : 0.8);
+          var w = 1 - Math.min(1, dist / 230);
+          var tipx = cx + dir * len, lift = 12 * (0.4 + 0.6 * w);
+          pts = f[0] + ',170 ' + f[1] + ',170 ' + (tipx + dir * 10).toFixed(1) + ',' + (170 + lift).toFixed(1) + ' ' + (tipx - dir * 12).toFixed(1) + ',' + (170 + lift).toFixed(1);
+        } else {
+          pts = f[0] + ',170 ' + f[1] + ',170 ' + (f[1] - 4) + ',184 ' + (f[0] - 10) + ',184';
+        }
+        sh[i].setAttribute('points', pts);
+      });
+      var h = 40 + 36 * Math.sin(ph * Math.PI * 2 + 1.2);
+      drone.setAttribute('y', (130 - h).toFixed(1));
+      dsh.setAttribute('opacity', (0.85 * (1 - h / 90)).toFixed(2));
+      dsh.setAttribute('rx', (18 - h / 8).toFixed(1));
+      var text = near ? 'shadows fall away from the bolt' : 'nothing near: shadows fall forward';
+      if (lab.textContent !== text) { lab.textContent = text; cap.textContent = near ? 'a bolt crosses the room' : 'the bolt is far off'; }
+    }, 9);
+  })();
+
+  // ---- XII: light bounces around a room, frame by frame, then the lamp fails
+  (function () {
+    var ids = ['bn-right', 'bn-floor', 'bn-ceil', 'bn-left', 'bn-corner1', 'bn-corner2'];
+    var parts = ids.map(function (i) { return document.getElementById(i); });
+    var fig = document.getElementById('bn-figure'), head = document.getElementById('bn-head'), lamp = document.getElementById('bn-lamp');
+    var cap = document.getElementById('bounce-cap'), noteEl = document.getElementById('bn-note');
+    if (!parts[0]) return;
+    var peak = [0.85, 0.4, 0.4, 0.3, 0.5, 0.5], delay = [0, 0.4, 0.4, 0.9, 2.7, 2.7];
+    var steps = [[0, 'frame 1: direct light', 'first the wall it faces'], [0.9, 'frame 2: the first bounce', 'then the wall behind the lamp'], [1.8, 'frame 3: the second', 'colour carries wall to wall'], [2.7, 'frames 4 and on: the corners', 'the far corners fill last'], [4.4, 'settled', 'every surface keeps its average'], [6.2, 'the lamp fails', 'the room settles again'], [8.4, 'dark', 'nothing keeps the old light']];
+    var last = '';
+    function fig_shade(v) { var col = 'rgb(' + Math.round(10 + v * 50) + ',' + Math.round(58 + v * 180) + ',' + Math.round(10 + v * 50) + ')'; fig.setAttribute('fill', col); head.setAttribute('fill', col); }
+    animate('bounce-anim', 'bounce-toggle', function (t) {
+      var on = t < 6.2, since = on ? t : t - 6.2;
+      parts.forEach(function (p, i) {
+        var v;
+        if (on) v = peak[i] * Math.min(1, Math.max(0, (t - delay[i]) / 1.2));
+        else v = peak[i] * Math.max(0, 1 - (since + (i === 0 ? 1 : 0)) / 2.2);
+        p.setAttribute('opacity', v.toFixed(3));
+      });
+      var figv = on ? Math.min(1, Math.max(0, (t - 1.2) / 1.6)) : Math.max(0, 1 - since / 2.2);
+      fig_shade(figv * 0.5);
+      lamp.setAttribute('opacity', on ? 1 : Math.max(0.12, 1 - since * 3).toFixed(2));
+      var s = steps[0]; steps.forEach(function (st) { if (t >= st[0]) s = st; });
+      if (s[1] !== last) { last = s[1]; cap.textContent = s[1]; noteEl.textContent = s[2]; }
+    }, 10);
+  })();
+
+  // ---- XII: what Rampant costs, seven films
+  var perf = document.getElementById('perf');
+  if (perf) {
+    var films = [['LA COSA NOSTRA', 268, 134, 230, 116], ['MORPHINE', 267, 132, 219, 116], ['WRATH NO MORE', 278, 134, 241, 122], ['YORRICK', 271, 131, 233, 113]];
+    var x0 = 262, xmax = 536, fmax = 300, rowH = 44, top = 16;
+    function X(v) { return x0 + (xmax - x0) * v / fmax; }
+    films.forEach(function (f, i) {
+      var y = top + i * rowH;
+      var t = el('text', { x: x0 - 8, y: y + 14, 'text-anchor': 'end', 'font-size': 12 }, perf); t.textContent = f[0];
+      el('rect', { x: x0, y: y, width: X(f[1]) - x0, height: 9, fill: 'none', stroke: '#3b8cff' }, perf);
+      el('rect', { x: x0, y: y, width: X(f[2]) - x0, height: 9, fill: '#3b8cff' }, perf);
+      el('rect', { x: x0, y: y + 12, width: X(f[3]) - x0, height: 9, fill: 'none', stroke: '#b79cff' }, perf);
+      el('rect', { x: x0, y: y + 12, width: X(f[4]) - x0, height: 9, fill: '#b79cff' }, perf);
+      var v1 = el('text', { x: X(f[1]) + 5, y: y + 8, 'class': 'v', 'font-size': 11 }, perf); v1.textContent = f[2] + ' / ' + f[1];
+      var v2 = el('text', { x: X(f[3]) + 5, y: y + 20, 'class': 'v', 'font-size': 11 }, perf); v2.textContent = f[4] + ' / ' + f[3];
+    });
+    var yb = top + films.length * rowH + 4;
+    el('line', { x1: x0, y1: top - 6, x2: x0, y2: yb, stroke: '#b79cff' }, perf);
+    [60, 120, 240].forEach(function (v) {
+      el('line', { x1: X(v), y1: top - 6, x2: X(v), y2: yb, stroke: v === 240 ? '#3b8cff' : '#e9d8a6', 'stroke-dasharray': '4 5' }, perf);
+      var t = el('text', { x: X(v), y: yb + 16, 'text-anchor': v === 60 ? 'end' : (v === 120 ? 'start' : 'middle') }, perf); t.textContent = v + (v === 240 ? ' fps' : '');
+    });
+    el('rect', { x: x0, y: yb + 26, width: 12, height: 9, fill: '#3b8cff' }, perf); var l1 = el('text', { x: x0 + 18, y: yb + 35, 'class': 'lab' }, perf); l1.textContent = 'Flagship';
+    el('rect', { x: x0 + 110, y: yb + 26, width: 12, height: 9, fill: '#b79cff' }, perf); var l2 = el('text', { x: x0 + 128, y: yb + 35, 'class': 'lab' }, perf); l2.textContent = 'Rampant';
+    var l3 = el('text', { x: x0, y: yb + 56 }, perf); l3.textContent = 'filled: the 1% low   outline: the average';
+    var l4 = el('text', { x: x0, y: yb + 76 }, perf); l4.textContent = 'testbed: Apple M5, 16 GB, 1920x1080, 240 Hz, uncapped';
+  }
+
+  // ---- XI: films
+  var films = document.getElementById('films-grid');
+  if (films) for (var f = 1; f <= 32; f++) { var s = document.createElement('span'); s.textContent = f; films.appendChild(s); }
+})();
+</script>
+</body>
+</html>

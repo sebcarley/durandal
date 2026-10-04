@@ -82,6 +82,7 @@ The same five tiers, first run on Flagship. Differences from Marathon 2:
 | Light Redistribution | May darken a surface only half as far as in the other games (corridors lit evenly made one long group whose brighter end set the average). In all three games since 3-4 Oct: unlit rooms no longer blotch (the ratio has a floor), lines Marathon draws as walls stop light, uncovered surfaces round moving doors start clean |
 | Volumetric Fog | Ship air everywhere: Marathon's environment codes name other places, and with no liquids there is no lava smoke or sewage air |
 | Character Shadows | Every Marathon monster and its scenery cast them (the per-game collection list) |
+| All Weapons and Ammo (Cheats) | Gives Marathon's own seven weapons and their ammunition: never Marathon 2's shotgun or Infinity's SMG, which the engine also knows (a bogus "fist that fires rockets" on key 4 until 4 Oct 2026) |
 | Summon BOBs (Cheats) | Left out: the key prints "Summon BOBs: Marathon's BOBs carry no weapons" and the film keeps recording |
 | HD art | Its own pack set (section 4) |
 | Spinning Pickups, 3D Pickups | The 3D Pickups switch also switches the 3D scenery pack (the only model pack Marathon has) |
