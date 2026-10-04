@@ -737,9 +737,9 @@ void Dialog(void* parent_dialog)
 	w_grade_slider* shade_w = new w_grade_slider(11, prefs.distance_shade / 10, 0, 10, true);
 	tables[kTabLook]->dual_add(shade_w->label("Distance Shade"), d);
 	tables[kTabLook]->dual_add(shade_w, d);
-	// Marathon's HUD (in QA): with or without the frame round the view
+	// Marathon's HUD (QA passed 4 Oct 2026): with or without the frame round the view
 	w_select* hud_w = nullptr;
-	if (DurandalScenario::Marathon1() && QA())
+	if (DurandalScenario::Marathon1() && Available())
 	{
 		static const char* hud_labels[] = { "Classic", "Basic (no frame)", "Enhanced", nullptr };
 		hud_w = new w_select(prefs.hud_style, hud_labels);

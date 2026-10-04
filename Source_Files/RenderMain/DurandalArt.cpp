@@ -245,9 +245,10 @@ bool Apply()
 			}
 		}
 	}
-	// Marathon's HUD (in QA): exactly one of the scenario's three HUD
-	// plugins, as the Look tab says; Stock leaves them as upstream has them
-	if (DurandalScenario::Marathon1() && Durandal::QA() && Durandal::Prefs().quality_tier != Durandal::kTierStock)
+	// Marathon's HUD (QA passed 4 Oct 2026): exactly one of the scenario's
+	// three HUD plugins, as the Look tab says; Stock leaves them as
+	// upstream has them (Apply does nothing with the gate closed)
+	if (DurandalScenario::Marathon1() && Durandal::Prefs().quality_tier != Durandal::kTierStock)
 	{
 		static const char* const kHUDs[3] = { "Default HUD", "Basic M1 HUD", "Enhanced HUD" };
 		const std::string chosen = kHUDs[std::clamp(Durandal::Prefs().hud_style, 0, 2)];

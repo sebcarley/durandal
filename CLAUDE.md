@@ -1402,7 +1402,7 @@ The folder name comes from the *localised* bundle name
   packs; Marathon: TTEP 1024, Updated Starscape, Texture Renewal monsters,
   M1 Weapons Redux, 3D scenery; 7z via macOS tar, direct links); lamps for
   Infinity's and Marathon's walls; Marathon's HUD choice (`hud_style`,
-  Look tab, in QA: Classic / Basic / Enhanced); Marathon in Flagship and
+  Look tab: Classic / Basic / Enhanced; QA passed 4 Oct 2026); Marathon in Flagship and
   Rampant: no monster lights, half the redistribution darkening, ship air,
   monsters' half-lit bodies not glowing; no Summon BOBs in Marathon (its
   BOBs are unarmed). Test installs: `Assets/cfp-inf`, `Assets/cfp-m1`,
@@ -1415,6 +1415,12 @@ The folder name comes from the *localised* bundle name
   four taps when reading the cache. `DURANDAL_GI_VIEW=1` (dev) draws the
   redistribution factor on walls as grey (1 = mid grey). Logs are per app
   (`~/Library/Logs/Durandal Infinity Log.txt`, `Durandal Marathon Log.txt`).
+- Tag `baseline-12` (4 Oct 2026, the owner's word: "All three games look
+  good"; film tests green three ways for all three games):
+  `durandal/trilogy` fast-forwarded into `durandal/main` locally, the
+  Marathon HUD switch released. Not pushed: the owner wants the trilogy
+  kept off the public repository until the game guides are written (ground
+  truths for them to follow).
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
