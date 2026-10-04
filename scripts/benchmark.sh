@@ -28,8 +28,10 @@ NAMES=(L00-demo L06-combat net-5D-space own-260926-1 own-260926-2 own-260926-3)
 if [[ $GAME != m2 ]]; then
   # Other games: their demo films (Marathon 1 has none: its first test film)
   # and any benchmark films recorded for them in tests/benchmark-films/<game>.
-  FILMS=("$GAME_DATA"/Demos/*.filA(N) "$ROOT/tests/benchmark-films/$GAME"/*.filA(N))
-  (( ${#FILMS} )) || FILMS=("$GAME_DEMO")
+  FILMS=("$GAME_DATA"/Demos/*.filA(N))
+  # Marathon has no demo films: three of upstream's test films stand in
+  [[ $GAME == m1 ]] && FILMS=("$GAME_REPLAYS/Tooncinator Films/"{"M1 L1 Arrival.42903","M1 L8 Cool Fusion.55777","M1 L16 Neither High Nor Low.57685"}.filA)
+  FILMS+=("$ROOT/tests/benchmark-films/$GAME"/*.filA(N))
   NAMES=(); for f in $FILMS; do NAMES+=("$GAME-${${f:t:r}//[^A-Za-z0-9]/-}"); done
 fi
 # FILMS_ONLY="1 4 5" limits a run to those films (indices into FILMS)

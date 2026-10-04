@@ -515,8 +515,8 @@ static void GetHDArtDialog()
 	else if (!room)
 		snprintf(summary_text, sizeof(summary_text), "Not enough free space: about %d GB is needed.", (megabytes * 3 + 500 + 1023) / 1024);
 	else
-		snprintf(summary_text, sizeof(summary_text), "%d to fetch, about %d MB. They go in Application Support/Durandal/Plugins.",
-				 missing, megabytes);
+		snprintf(summary_text, sizeof(summary_text), "%d to fetch, about %d MB. They go in Application Support/%s/Plugins.",
+				 missing, megabytes, get_application_name().c_str());
 	std::string padded(summary_text);
 	padded.resize(std::max<size_t>(padded.size(), 72), ' ');
 	w_static_text* summary = new w_static_text(padded.c_str());

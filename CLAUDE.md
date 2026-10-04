@@ -1421,6 +1421,16 @@ The folder name comes from the *localised* bundle name
   Marathon HUD switch released. Not pushed: the owner wants the trilogy
   kept off the public repository until the game guides are written (ground
   truths for them to follow).
+- Bench and ground truths (4 Oct 2026, after `baseline-12`, on
+  `durandal/trilogy`): full screen on the MSI with the owner's other apps
+  busy, first 2 min of each film, HD art on: Infinity's four demos Rampant
+  219-241 avg / 113-122 1% low, Flagship 267-278 / 131-134; Marathon (L1,
+  L8, L16, the lift film) Rampant 241-348 / 128-138, Flagship 268-338 /
+  130-150 (`docs/benchmarks/b12-*.md`; `benchmark.sh` takes Marathon's three
+  test films and `tests/benchmark-films/<game>`). Ground truths for the two
+  game guides: `docs/GROUND-TRUTH-marathon.md`,
+  `docs/GROUND-TRUTH-infinity.md`. The trilogy stays unpushed until the
+  guides are written (the owner's call).
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved
