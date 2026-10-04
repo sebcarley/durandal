@@ -8,6 +8,10 @@ OpenGL renderer with one written for Metal and builds a modern look, sound
 and feel on top of it, while keeping the game itself exactly as it was:
 films replay tick for tick, saved games load, and the rules are untouched.
 
+The same engine plays the other two games of the trilogy, as two more apps
+with their own folders, HD art and guides: **Durandal Marathon** (Marathon,
+1994) and **Durandal Infinity** (Marathon Infinity, 1996).
+
 It is a personal project, not affiliated with Bungie or the Aleph One
 developers. Like Aleph One it is licensed under the GPL 3.
 
@@ -60,6 +64,11 @@ it. About 20 minutes the first time, most of it unattended; about 1 GB of
 art to download. `scripts/setup.sh --no-art` skips the art (the game's
 GET HD ART... button, below, fetches it later).
 
+The other two games build the same way: `GAME=m1 scripts/setup.sh` leaves
+**Durandal Marathon.app** (about 0.1 GB of art), `GAME=inf scripts/setup.sh`
+**Durandal Infinity.app** (about 1 GB), and `GAME=all` builds all three.
+Signed downloads of those two are still to come.
+
 The game starts on the Flagship tier. If it is too slow on your Mac:
 Preferences > DURANDAL > Quality.
 
@@ -92,15 +101,18 @@ action sets; `DURANDAL_STOCK=1` closes the gate altogether.
 
 ## Current state
 
-Confirmed in play at `baseline-7` (29 September 2026): all four tiers, the
-community HD art set and the texture cache, with the film tests passing
-with the enhancements off and on. Next is the audio round, and more
-borrowed from the sister project's Quake work where it suits Marathon.
-[HISTORY.md](HISTORY.md) has the development to date, round by round.
+Confirmed in play at `baseline-13` (4 October 2026): all five tiers in
+all three games, each game's community HD art and the texture cache, with
+the film tests passing three ways (enhancements off, on, and with anything
+still in QA) for Marathon (27 films), Marathon 2 (42) and Marathon
+Infinity (32). [HISTORY.md](HISTORY.md) has the development to date, round
+by round.
 
 ## Where to read more
 
 - `docs/GUIDE.html`: the field guide, illustrated and annotated by its namesake (on the web at https://sebcarley.github.io/durandal/); `docs/GUIDE.md` is the plain edition
+- `docs/GUIDE-marathon.html` and `docs/GUIDE-infinity.html` (plain editions `.md`): the guides to Durandal Marathon and Durandal Infinity
+- `docs/PLAN-trilogy.md`: how the engine was taken to the other two games
 - `docs/HISTORY.md`: the development to date
 - `docs/ROADMAP.md`: the plan, feature by feature
 - `docs/AUDIT.md`: how the original renderer produces its look, and what must not change

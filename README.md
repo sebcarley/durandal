@@ -5,6 +5,10 @@ Aleph One with a Metal renderer, modern lighting, liquids, fog and sound,
 and support for the community's HD art, all switchable and all without
 changing the game. Films still replay tick for tick.
 
+The same engine plays the rest of the trilogy as two more apps:
+**Durandal Marathon** (Marathon) and **Durandal Infinity** (Marathon
+Infinity), each with its own HD art and its own field guide.
+
 **To play it**, on an Apple Silicon Mac: download the signed app from
 **[Releases](https://github.com/sebcarley/durandal/releases/latest)**, unzip
 it and open it. Its GET HD ART... button (Preferences > DURANDAL > ART)
@@ -15,9 +19,14 @@ fetches the community's HD art.
     git clone https://github.com/sebcarley/durandal.git && cd durandal && scripts/setup.sh
 
 That builds the game with the community's HD art and leaves `Durandal.app`
-in the folder. [More](docs/DURANDAL.md#playing-it).
+in the folder. `GAME=m1 scripts/setup.sh` builds Durandal Marathon,
+`GAME=inf scripts/setup.sh` Durandal Infinity (signed downloads of those two
+are still to come). [More](docs/DURANDAL.md#playing-it).
 
-**[The field guide](docs/GUIDE.md)** ([illustrated edition](https://sebcarley.github.io/durandal/)) ·
+**The field guides** ([illustrated editions](https://sebcarley.github.io/durandal/)):
+[Durandal](docs/GUIDE.md) · [Durandal Marathon](docs/GUIDE-marathon.md) ·
+[Durandal Infinity](docs/GUIDE-infinity.md)
+
 **[What it is and how to build it](docs/DURANDAL.md)** ·
 **[Development to date](docs/HISTORY.md)**
 

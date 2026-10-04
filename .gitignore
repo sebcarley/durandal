@@ -42,3 +42,5 @@ compile_commands.json
 
 # Durandal: the app scripts/setup.sh leaves at the top of the folder
 /Durandal.app/
+/Durandal Marathon.app/
+/Durandal Infinity.app/

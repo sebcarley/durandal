@@ -535,5 +535,6 @@ pages, and hosts none of it.
 Durandal is an unofficial project. It is not affiliated with or endorsed by
 Bungie, and Marathon, its worlds and its characters belong to them.
 
-What the project is and how to build it: [DURANDAL.md](DURANDAL.md). How it
-came to be: [HISTORY.md](HISTORY.md).
+The other two guides: [Durandal Marathon](GUIDE-marathon.md) (Marathon) and
+[Durandal Infinity](GUIDE-infinity.md). What the project is and how to build
+it: [DURANDAL.md](DURANDAL.md). How it came to be: [HISTORY.md](HISTORY.md).
