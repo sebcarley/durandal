@@ -1444,6 +1444,15 @@ The folder name comes from the *localised* bundle name
   `durandal/trilogy` fast-forwarded into `durandal/main`, pushed with
   `baseline-12` and `baseline-13` to the public `github` remote. The new
   apps have no signed release yet.
+- Release 0.2.0 (4 Oct 2026, the owner's ask): GitHub Release `v0.2.0`
+  (https://github.com/sebcarley/durandal/releases/tag/v0.2.0, marked
+  latest), all three apps from `e220d6cb` (`baseline-13`), Developer ID
+  signed, notarised and stapled with the `metalquake` profile:
+  `Durandal-0.2.0.zip` (35 MB), `Durandal-Infinity-0.2.0.zip` (38 MB),
+  `Durandal-Marathon-0.2.0.zip` (32 MB), each with its SHA-256; notes in
+  `.deps/release/notes-0.2.0.md`. README, DURANDAL.md, both new guides and
+  their ground truths now point at it; the repo's description and homepage
+  name the trilogy and the Pages front page.
 - Play launch (Terminal): `DURANDAL_QA=1
   .deps/play/Durandal.app/Contents/MacOS/Durandal` - a copy of a good
   build (`cp -R` from DerivedData) that rebuilds never touch. Saved

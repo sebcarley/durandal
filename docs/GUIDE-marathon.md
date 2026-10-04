@@ -516,7 +516,8 @@ renderer is still there and gets none of this.
 Not yet done: the 3D scenery has no switch of its own and rides on 3D Pickups;
 Marathon music packs are not recognised by the Soundtrack switch; the
 benchmarks rest on three of upstream's test films and one recorded for the
-purpose; and there is no signed download yet. Durandal Marathon needs macOS 12
+purpose. The signed, notarised app is on
+[Releases](https://github.com/sebcarley/durandal/releases/latest) since 0.2.0. Durandal Marathon needs macOS 12
 or later on Apple Silicon, and has been tested on macOS 27 only.
 
 And none of it makes the ship safer. You can see further down the corridor. So

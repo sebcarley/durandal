@@ -489,7 +489,8 @@ Not yet seen or checked in Infinity: the Jjaro liquid and the Jjaro air in
 play, and the reverb beneath that liquid; the dream levels and 5D space played
 right through; the very largest levels against the travelling light's store;
 and benchmark films recorded for the purpose, for which the four demos stand
-in. There is no signed download yet. Durandal Infinity needs macOS 12 or later
+in. The signed, notarised app is on
+[Releases](https://github.com/sebcarley/durandal/releases/latest) since 0.2.0. Durandal Infinity needs macOS 12 or later
 on Apple Silicon, and has been tested on macOS 27 only.
 
 And none of it makes the game easier, or any clearer. The light shows you the

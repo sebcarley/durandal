@@ -67,7 +67,8 @@ GET HD ART... button, below, fetches it later).
 The other two games build the same way: `GAME=m1 scripts/setup.sh` leaves
 **Durandal Marathon.app** (about 0.1 GB of art), `GAME=inf scripts/setup.sh`
 **Durandal Infinity.app** (about 1 GB), and `GAME=all` builds all three.
-Signed downloads of those two are still to come.
+All three are on [Releases](https://github.com/sebcarley/durandal/releases/latest),
+signed and notarised, since 0.2.0.
 
 The game starts on the Flagship tier. If it is too slow on your Mac:
 Preferences > DURANDAL > Quality.

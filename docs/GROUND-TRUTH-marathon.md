@@ -27,8 +27,9 @@ each other, so this file is longer.
   repository), in its original format, which Aleph One converts on load;
   bundled inside the app. Its music plays from the bundled `Music` folder.
 - **Minimum macOS 12** (tested on macOS 27 only), Apple Silicon.
-- **Not yet released** as a signed download (`GAME=m1
-  scripts/make-release.sh` makes `Durandal-Marathon-<version>.zip`).
+- **Released** signed and notarised in v0.2.0 (4 Oct 2026),
+  `Durandal-Marathon-0.2.0.zip` (32 MB), with Durandal and Durandal
+  Infinity (`GAME=m1 scripts/make-release.sh <version>`).
 - **Building from source:** `GAME=m1 scripts/build.sh`; Xcode scheme
   **Marathon 1**.
 
@@ -153,7 +154,6 @@ HD art installed in both games (each game's five packs). Average fps, the
 - Marathon's own music packs (a pack supplying only `Music/NN.ogg` files is
   not recognised by the Soundtrack switch; the bundled music plays).
 - A separate switch class for 3D scenery.
-- A signed release.
 
 ## 7. Notes for the guide
 

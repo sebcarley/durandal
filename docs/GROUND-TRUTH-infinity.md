@@ -27,9 +27,9 @@ says otherwise.
   Aleph One's repository, bundled inside the app
   (`Contents/Resources/DataFiles`): it plays with a double-click.
 - **Minimum macOS 12** (tested on macOS 27 only), Apple Silicon.
-- **Not yet released** as a signed download. `scripts/make-release.sh`
-  takes `GAME=inf` and makes `Durandal-Infinity-<version>.zip`; the owner
-  decides when.
+- **Released** signed and notarised in v0.2.0 (4 Oct 2026),
+  `Durandal-Infinity-0.2.0.zip` (38 MB), with Durandal and Durandal
+  Marathon (`GAME=inf scripts/make-release.sh <version>`).
 - **Building from source:** `GAME=inf scripts/build.sh`; Xcode scheme
   **Marathon 3**.
 
@@ -113,7 +113,6 @@ Infinity rows are in the table there and in
 - The dream levels and 5D space played through.
 - The largest levels against the light redistribution's atlas.
 - Benchmark films recorded by the owner (the four demos stand in).
-- A signed release.
 
 ## 7. Corrections to carry over from the Marathon 2 guide's slips
 
